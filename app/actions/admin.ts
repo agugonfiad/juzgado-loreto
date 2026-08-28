@@ -63,6 +63,11 @@ export async function conciliarPago(id: string, nuevoEstado: string) {
 
 export async function crearActa(datos: { nroActa: string, nombreTitular: string, dniTitular: string, monto: number, lugar: string, articulo: string, inspector: string }) {
   try {
+    // El sistema genera la fecha actual y calcula 5 días de plazo automáticamente
+    const hoy = new Date();
+    const fechaPlazo = new Date(hoy);
+    fechaPlazo.setDate(fechaPlazo.getDate() + 5);
+
     await prisma.infraccion.create({
       data: {
         nroActa: datos.nroActa,
@@ -73,7 +78,8 @@ export async function crearActa(datos: { nroActa: string, nombreTitular: string,
         articulo: datos.articulo,
         inspector: datos.inspector,
         estado: 'PENDIENTE',
-        fechaInfraccion: new Date() 
+        fechaInfraccion: hoy,
+        plazoDescargo: fechaPlazo // Dato inyectado sin molestar al usuario
       }
     })
     return { success: true }

@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum RolUsuario {
+  MESA_ENTRADAS
+  JUEZ
+  ADMIN
+}
+
+enum EstadoInfraccion {
+  PENDIENTE
+  EN_DESCARGO
+  FIRME
+  PAGADA
+  APELADA
+  ANULADA
+}
+
+model UsuarioInterno {
+  id           String     @id @default(uuid())
+  nombre       String
+  email        String     @unique
+  passwordHash String
+  rol          RolUsuario
+  activo       Boolean    @default(true)
+  creadoEn     DateTime   @default(now())
+
+  descargosResueltos Descargo[]
+  auditorias         Auditoria[]
+}
+
+model Infraccion {
+  id             String           @id @default(uuid())
+  nroActa        String           @unique
+  fechaInfraccion DateTime
+  lugar          String
+  articulo       String
+  monto          Decimal          @db.Decimal(10, 2)
+  patente        String?
+  dniTitular     String
+  nombreTitular  String
+  inspector      String
+  plazoDescargo  DateTime
+  estado         EstadoInfraccion @default(PENDIENTE)
+  creadoEn       DateTime         @default(now())
+
+  descargos      Descargo[]
+  pagos          Pago[]
+  audiencias     Audiencia[]
+}
+
+model Descargo {
+  id              String   @id @default(uuid())
+  expedienteNro   String   @unique
+  infraccionId    String
+  motivo          String
+  archivosUrl     String[]
+  estado          String   @default("PRESENTADO")
+  resolucion      String?
+  fechaResolucion DateTime?
+  resueltoPor     String?
+  creadoEn        DateTime @default(now())
+
+  infraccion      Infraccion @relation(fields: [infraccionId], references: [id])
+  usuarioResuelve UsuarioInterno? @relation(fields: [resueltoPor], references: [id])
+}
+
+model Pago {
+  id             String    @id @default(uuid())
+  infraccionId   String
+  comprobanteUrl String
+  montoInformado Decimal   @db.Decimal(10, 2)
+  estado         String    @default("PENDIENTE_CONCILIACION")
+  observaciones  String?
+  creadoEn       DateTime  @default(now())
+  resueltoEn     DateTime?
+  resueltoPor    String?
+
+  infraccion     Infraccion @relation(fields: [infraccionId], references: [id])
+}
+
+model Audiencia {
+  id             String    @id @default(uuid())
+  infraccionId   String?
+  dniSolicitante String
+  nombreCompleto String
+  email          String
+  telefono       String
+  motivo         String
+  fechaPropuesta DateTime
+  estado         String    @default("SOLICITADA")
+  creadoEn       DateTime  @default(now())
+  resueltaEn     DateTime?
+  resueltaPor    String?
+  notasInternas  String?
+
+  infraccion     Infraccion? @relation(fields: [infraccionId], references: [id])
+}
+
+model Auditoria {
+  id              String   @id @default(uuid())
+  usuarioId       String
+  accion          String
+  entidadAfectada String
+  entidadId       String
+  detalle         String?
+  timestamp       DateTime @default(now())
+
+  usuario         UsuarioInterno @relation(fields: [usuarioId], references: [id])
+}

@@ -14,7 +14,6 @@ export default function JuzgadoFaltasUnificado() {
   const [datosAdmin, setDatosAdmin] = useState<any[]>([])
   const [cargandoAdmin, setCargandoAdmin] = useState(false)
   
-  // Estados para el Visor/Modal
   const [itemModal, setItemModal] = useState<any>(null)
   const [textoResolucion, setTextoResolucion] = useState("")
   const [procesando, setProcesando] = useState(false)
@@ -68,7 +67,6 @@ export default function JuzgadoFaltasUnificado() {
     setCargandoAdmin(false)
   }
 
-  // FUNCIONES DE AUDITORÍA
   const auditarDescargo = async (estado: string) => {
     if (estado === 'RECHAZADO' && !textoResolucion) return alert("Debe justificar el rechazo.")
     setProcesando(true)
@@ -76,7 +74,7 @@ export default function JuzgadoFaltasUnificado() {
     setItemModal(null)
     setTextoResolucion("")
     setProcesando(false)
-    manejarLoginYDatos(undefined, vista) // Recargar tabla
+    manejarLoginYDatos(undefined, vista)
   }
 
   const auditarPago = async (estado: string) => {
@@ -84,7 +82,7 @@ export default function JuzgadoFaltasUnificado() {
     await conciliarPago(itemModal.id, estado)
     setItemModal(null)
     setProcesando(false)
-    manejarLoginYDatos(undefined, vista) // Recargar tabla
+    manejarLoginYDatos(undefined, vista)
   }
 
   return (
@@ -136,14 +134,34 @@ export default function JuzgadoFaltasUnificado() {
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
         .modal-content { background: var(--papel); padding: 32px; border-radius: var(--radius-m); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .contacto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+        .contacto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 20px; }
+        .contacto-list li { display: flex; gap: 14px; align-items: flex-start; }
+        .contacto-list .ico { width: 36px; height: 36px; border-radius: 50%; background: rgba(235, 33, 40, 0.1); color: var(--rojo-loreto); display: flex; align-items: center; justify-content: center; flex: none; }
+        .contacto-list strong { display: block; font-size: 14px; color: var(--azul-loreto); }
+        .contacto-list span, .contacto-list a { font-size: 14.5px; color: var(--tinta-suave); text-decoration: none; }
+        .contacto-list a:hover { color: var(--rojo-loreto); text-decoration: underline; }
+        .map-frame { border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; height: 360px; }
+        .map-frame iframe { width: 100%; height: 100%; border: 0; }
+        @media (max-width: 980px) { .contacto-grid { grid-template-columns: 1fr; } }
       `}} />
 
-      <div className="topbar"><div className="wrap"><div><span className="topbar__item">🕗 Lun. a Vie. 08:00 a 12:30 y 16:00 a 20:00 hs</span><span className="topbar__item">☎ <a href="tel:+5493854743310">385 474-3310</a></span></div><div><span className="topbar__item"><a href="#contacto">Contacto</a></span></div></div></div>
+      <div className="topbar">
+        <div className="wrap">
+          <div>
+            <span className="topbar__item">🕗 Lun. a Vie. 07:00 a 13:00 y 16:00 a 20:00 hs</span>
+            <span className="topbar__item">☎ <a href="tel:+5493854743310">385 474-3310</a></span>
+          </div>
+          <div>
+            <span className="topbar__item"><a href="#contacto">Contacto</a></span>
+          </div>
+        </div>
+      </div>
 
       <header className="site">
         <div className="wrap nav-row">
           <a className="brand" href="#" onClick={(e) => { e.preventDefault(); setVista('publica'); }}>
-            <img src="/logojdf.png" alt="Logo Juzgado" className="brand__logo" />
+            <img src="/logojdf.jpg" alt="Logo Juzgado" className="brand__logo" />
             <span className="brand__text">
               <span className="eyebrow">Municipalidad de Loreto</span>
               <strong>Juzgado de Faltas</strong>
@@ -175,7 +193,39 @@ export default function JuzgadoFaltasUnificado() {
             <section className="hero" id="inicio">
               <div className="wrap">
                 <div><p className="eyebrow">Municipalidad de Loreto · Provincia de Santiago del Estero</p><h1>Juzgado de Faltas Municipal de Loreto</h1><p className="lead">Consultá el estado de tus infracciones de tránsito, presentá tu descargo y gestioná tus trámites con el Juzgado desde un mismo lugar.</p><a href="#consulta" className="btn btn--primary">Consultar mi infracción</a></div>
-                <div style={{display: 'flex', justifyContent: 'center'}}><img src="/logojdf.png" alt="Sello institucional" style={{width: 'min(380px, 100%)'}} /></div>
+                <div style={{display: 'flex', justifyContent: 'center'}}><img src="/logojdf.jpg" alt="Sello institucional" style={{width: 'min(380px, 100%)'}} /></div>
+              </div>
+            </section>
+
+            <section id="institucion">
+              <div className="wrap">
+                <div className="section-head">
+                  <p className="kicker">Código de Faltas Municipal</p>
+                  <h2>Qué hace el Juzgado de Faltas</h2>
+                  <p>El Juzgado interviene una vez agotada la instancia administrativa, cuando un vecino o vecina apela una infracción labrada por los inspectores o por la autoridad de control de tránsito.</p>
+                </div>
+                <div className="art-grid">
+                  <div className="art-card">
+                    <span className="art-card__tag">ART. 1 — Competencia</span>
+                    <h3>Jurisdicción</h3>
+                    <p>Entiende en las faltas y contravenciones de tránsito cometidas dentro del ejido municipal de Loreto, conforme a la ordenanza vigente.</p>
+                  </div>
+                  <div className="art-card">
+                    <span className="art-card__tag">ART. 2 — Principios</span>
+                    <h3>Imparcialidad</h3>
+                    <p>Actúa como órgano autónomo, garantizando a cada infractor el derecho a ser oído antes de que se confirme cualquier sanción.</p>
+                  </div>
+                  <div className="art-card">
+                    <span className="art-card__tag">ART. 3 — Proceso</span>
+                    <h3>Debido proceso</h3>
+                    <p>Toda infracción admite descargo, prueba y, si correspondiera, apelación, antes de quedar firme.</p>
+                  </div>
+                  <div className="art-card">
+                    <span className="art-card__tag">ART. 4 — Prevención</span>
+                    <h3>Educación vial</h3>
+                    <p>Promueve el conocimiento de las normas de tránsito como herramienta central para reducir siniestros en la vía pública.</p>
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -214,6 +264,53 @@ export default function JuzgadoFaltasUnificado() {
                         ))}
                       </div>
                     )}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="contacto" style={{background: 'var(--papel-alto)', borderTop: '1px solid var(--linea)'}}>
+              <div className="wrap">
+                <div className="section-head">
+                  <p className="kicker">Contacto</p>
+                  <h2>Ubicación y contacto</h2>
+                </div>
+
+                <div className="contacto-grid">
+                  <ul className="contacto-list">
+                    <li>
+                      <span className="ico">📍</span>
+                      <div>
+                        <strong>Dirección</strong>
+                        <span>Isla Soledad S/N, Bº Islas Malvinas<br/>Loreto, Santiago del Estero</span>
+                      </div>
+                    </li>
+                    <li>
+                      <span className="ico">☎</span>
+                      <div>
+                        <strong>Teléfono / Celular</strong>
+                        <a href="tel:+5493854743310">385 474-3310</a>
+                      </div>
+                    </li>
+                    <li>
+                      <span className="ico">📧</span>
+                      <div>
+                        <strong>Correo electrónico</strong>
+                        <a href="mailto:juzgadodefaltasloreto@outlook.com">juzgadodefaltasloreto@outlook.com</a><br/>
+                        <a href="mailto:juzgadodefaltas@gmail.com" style={{display: 'inline-block', marginTop: '4px'}}>juzgadodefaltas@gmail.com</a>
+                      </div>
+                    </li>
+                    <li>
+                      <span className="ico">🕗</span>
+                      <div>
+                        <strong>Horario de atención</strong>
+                        <span>Lunes a viernes de 07:00 a 13:00 y 16:00 a 20:00 hs</span>
+                      </div>
+                    </li>
+                  </ul>
+
+                  <div className="map-frame">
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3527.794711317769!2d-64.1893188!3d-28.3031456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMjjCsDE4JzExLjMiUyA2NMKwMTEnMjEuNSJX!5e0!3m2!1sen!2sar!4v1700000000000!5m2!1sen!2sar" title="Mapa de ubicación del Juzgado de Faltas de Loreto" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe>
                   </div>
                 </div>
               </div>
@@ -277,7 +374,6 @@ export default function JuzgadoFaltasUnificado() {
             </div>
           </section>
         )}
-
       </main>
 
       {/* MODAL DE AUDITORÍA */}
@@ -304,22 +400,14 @@ export default function JuzgadoFaltasUnificado() {
               </a>
             </div>
 
-            {/* Acciones de Resolución (Solo si está pendiente) */}
             {(itemModal.estado === 'PRESENTADO' || itemModal.estado === 'PENDIENTE_CONCILIACION') ? (
               <div style={{borderTop: '1px solid var(--linea)', paddingTop: '20px'}}>
-                
                 {vista === 'admin_descargos' && (
                   <div className="field">
                     <label>Escribir Dictamen / Resolución Corta</label>
-                    <textarea 
-                      value={textoResolucion} 
-                      onChange={(e) => setTextoResolucion(e.target.value)} 
-                      placeholder="Ej: Se comprueba error en patente..." 
-                      rows={2} 
-                    />
+                    <textarea value={textoResolucion} onChange={(e) => setTextoResolucion(e.target.value)} placeholder="Ej: Se comprueba error en patente..." rows={2} />
                   </div>
                 )}
-
                 <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}>
                   {vista === 'admin_descargos' ? (
                     <>

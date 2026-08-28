@@ -189,10 +189,10 @@ export default function JuzgadoFaltasUnificado() {
                   <p>El Juzgado interviene una vez agotada la instancia administrativa, cuando un vecino o vecina apela una infracción labrada por los inspectores o por la autoridad de control de tránsito.</p>
                 </div>
                 <div className="art-grid">
-                  <div className="art-card"><span className="art-card__tag">ART. 1 — Competencia</span><h3>Jurisdicción</h3><p>Entiende en las faltas y contravenciones de tránsito cometidas dentro del ejido municipal de Loreto, conforme a la ordenanza vigente.</p></div>
-                  <div className="art-card"><span className="art-card__tag">ART. 2 — Principios</span><h3>Imparcialidad</h3><p>Actúa como órgano autónomo, garantizando a cada infractor el derecho a ser oído antes de que se confirme cualquier sanción.</p></div>
-                  <div className="art-card"><span className="art-card__tag">ART. 3 — Proceso</span><h3>Debido proceso</h3><p>Toda infracción admite descargo, prueba y, si correspondiera, apelación, antes de quedar firme.</p></div>
-                  <div className="art-card"><span className="art-card__tag">ART. 4 — Prevención</span><h3>Educación vial</h3><p>Promueve el conocimiento de las normas de tránsito como herramienta central para reducir siniestros en la vía pública.</p></div>
+                  <div className="art-card"><h3>Jurisdicción</h3><p>Entiende en las faltas y contravenciones de tránsito cometidas dentro del ejido municipal de Loreto, conforme a la ordenanza vigente.</p></div>
+                  <div className="art-card"><h3>Imparcialidad</h3><p>Actúa como órgano autónomo, garantizando a cada infractor el derecho a ser oído antes de que se confirme cualquier sanción.</p></div>
+                  <div className="art-card"><h3>Debido proceso</h3><p>Toda infracción admite descargo, prueba y, si correspondiera, apelación, antes de quedar firme.</p></div>
+                  <div className="art-card"><h3>Educación vial</h3><p>Promueve el conocimiento de las normas de tránsito como herramienta central para reducir siniestros en la vía pública.</p></div>
                 </div>
               </div>
             </section>

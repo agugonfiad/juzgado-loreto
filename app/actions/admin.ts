@@ -62,15 +62,16 @@ export async function conciliarPago(id: string, nuevoEstado: string) {
 }
 
 // CORREGIDO: Se agregó la fecha obligatoria
-export async function crearActa(datos: { nroActa: string, dniTitular: string, monto: number }) {
+export async function crearActa(datos: { nroActa: string, dniTitular: string, monto: number, lugar: string }) {
   try {
     await prisma.infraccion.create({
       data: {
         nroActa: datos.nroActa,
         dniTitular: datos.dniTitular,
         monto: datos.monto,
+        lugar: datos.lugar, // Agregamos el lugar obligatorio
         estado: 'PENDIENTE',
-        fechaInfraccion: new Date() // Dato obligatorio que faltaba
+        fechaInfraccion: new Date() 
       }
     })
     return { success: true }

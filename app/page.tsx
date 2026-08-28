@@ -28,6 +28,7 @@ export default function JuzgadoFaltasUnificado() {
   // Estados para Cargar Nueva Acta
   const [nuevoNroActa, setNuevoNroActa] = useState("")
   const [nuevoDni, setNuevoDni] = useState("")
+  const [nuevoLugar, setNuevoLugar] = useState("")
   const [nuevoMonto, setNuevoMonto] = useState("")
   const [guardandoActa, setGuardandoActa] = useState(false)
 
@@ -76,10 +77,11 @@ export default function JuzgadoFaltasUnificado() {
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault()
     setGuardandoActa(true)
-    const res = await crearActa({ nroActa: nuevoNroActa, dniTitular: nuevoDni, monto: Number(nuevoMonto) })
+    const res = await crearActa({ nroActa: nuevoNroActa, dniTitular: nuevoDni, monto: Number(nuevoMonto), lugar: nuevoLugar })
     if (res.success) {
       setNuevoNroActa("")
       setNuevoDni("")
+      setNuevoLugar("")
       setNuevoMonto("")
       manejarLoginYDatos(undefined, vista)
     } else { alert(res.error) }
@@ -268,6 +270,7 @@ export default function JuzgadoFaltasUnificado() {
                       <form onSubmit={manejarCrearActa} style={{display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '150px'}}><label>N° Acta</label><input type="text" value={nuevoNroActa} onChange={(e) => setNuevoNroActa(e.target.value)} required /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '150px'}}><label>DNI Infractor</label><input type="text" value={nuevoDni} onChange={(e) => setNuevoDni(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '150px'}}><label>Lugar</label><input type="text" value={nuevoLugar} onChange={(e) => setNuevoLugar(e.target.value)} required /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '150px'}}><label>Monto ($)</label><input type="number" value={nuevoMonto} onChange={(e) => setNuevoMonto(e.target.value)} required /></div>
                         <button type="submit" disabled={guardandoActa} className="btn btn--primary">{guardandoActa ? 'Guardando...' : 'Registrar Acta'}</button>
                       </form>

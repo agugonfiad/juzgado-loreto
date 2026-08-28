@@ -61,7 +61,7 @@ export async function conciliarPago(id: string, nuevoEstado: string) {
   } catch (error) { return { success: false, error: "Fallo al actualizar" } }
 }
 
-export async function crearActa(datos: { nroActa: string, nombreTitular: string, dniTitular: string, monto: number, lugar: string, articulo: string }) {
+export async function crearActa(datos: { nroActa: string, nombreTitular: string, dniTitular: string, monto: number, lugar: string, articulo: string, inspector: string }) {
   try {
     await prisma.infraccion.create({
       data: {
@@ -71,6 +71,7 @@ export async function crearActa(datos: { nroActa: string, nombreTitular: string,
         monto: datos.monto,
         lugar: datos.lugar,
         articulo: datos.articulo,
+        inspector: datos.inspector,
         estado: 'PENDIENTE',
         fechaInfraccion: new Date() 
       }

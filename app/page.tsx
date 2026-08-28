@@ -26,6 +26,7 @@ export default function JuzgadoFaltasUnificado() {
   const [enviando, setEnviando] = useState(false)
 
   const [nuevoNroActa, setNuevoNroActa] = useState("")
+  const [nuevoNombre, setNuevoNombre] = useState("")
   const [nuevoDni, setNuevoDni] = useState("")
   const [nuevoLugar, setNuevoLugar] = useState("")
   const [nuevoArticulo, setNuevoArticulo] = useState("")
@@ -77,9 +78,10 @@ export default function JuzgadoFaltasUnificado() {
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault()
     setGuardandoActa(true)
-    const res = await crearActa({ nroActa: nuevoNroActa, dniTitular: nuevoDni, monto: Number(nuevoMonto), lugar: nuevoLugar, articulo: nuevoArticulo })
+    const res = await crearActa({ nroActa: nuevoNroActa, nombreTitular: nuevoNombre, dniTitular: nuevoDni, monto: Number(nuevoMonto), lugar: nuevoLugar, articulo: nuevoArticulo })
     if (res.success) {
       setNuevoNroActa("")
+      setNuevoNombre("")
       setNuevoDni("")
       setNuevoLugar("")
       setNuevoArticulo("")
@@ -269,11 +271,12 @@ export default function JuzgadoFaltasUnificado() {
                     <div style={{background: 'var(--papel)', padding: '24px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '24px'}}>
                       <h3 style={{fontSize: '16px', marginBottom: '16px'}}>Cargar Nueva Infracción</h3>
                       <form onSubmit={manejarCrearActa} style={{display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>N° Acta</label><input type="text" value={nuevoNroActa} onChange={(e) => setNuevoNroActa(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>DNI Infractor</label><input type="text" value={nuevoDni} onChange={(e) => setNuevoDni(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>Lugar</label><input type="text" value={nuevoLugar} onChange={(e) => setNuevoLugar(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>Art. Infringido</label><input type="text" value={nuevoArticulo} onChange={(e) => setNuevoArticulo(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>Monto ($)</label><input type="number" value={nuevoMonto} onChange={(e) => setNuevoMonto(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '100px'}}><label>N° Acta</label><input type="text" value={nuevoNroActa} onChange={(e) => setNuevoNroActa(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '130px'}}><label>Nombre Infractor</label><input type="text" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '100px'}}><label>DNI Infractor</label><input type="text" value={nuevoDni} onChange={(e) => setNuevoDni(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '100px'}}><label>Lugar</label><input type="text" value={nuevoLugar} onChange={(e) => setNuevoLugar(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '100px'}}><label>Art. Infringido</label><input type="text" value={nuevoArticulo} onChange={(e) => setNuevoArticulo(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '100px'}}><label>Monto ($)</label><input type="number" value={nuevoMonto} onChange={(e) => setNuevoMonto(e.target.value)} required /></div>
                         <button type="submit" disabled={guardandoActa} className="btn btn--primary">{guardandoActa ? 'Guardando...' : 'Registrar Acta'}</button>
                       </form>
                     </div>

@@ -61,11 +61,12 @@ export async function conciliarPago(id: string, nuevoEstado: string) {
   } catch (error) { return { success: false, error: "Fallo al actualizar" } }
 }
 
-export async function crearActa(datos: { nroActa: string, dniTitular: string, monto: number, lugar: string, articulo: string }) {
+export async function crearActa(datos: { nroActa: string, nombreTitular: string, dniTitular: string, monto: number, lugar: string, articulo: string }) {
   try {
     await prisma.infraccion.create({
       data: {
         nroActa: datos.nroActa,
+        nombreTitular: datos.nombreTitular,
         dniTitular: datos.dniTitular,
         monto: datos.monto,
         lugar: datos.lugar,

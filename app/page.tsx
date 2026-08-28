@@ -53,7 +53,14 @@ export default function JuzgadoFaltasUnificado() {
     const formData = new FormData(e.currentTarget)
     const respuesta = await procesarTramiteCiudadano(formData)
     if (respuesta.success) {
-      alert("¡Trámite enviado con éxito!")
+      if (respuesta.expedienteNro) {
+        const msj = respuesta.esExtemporaneo 
+          ? `Trámite recibido FUERA DE TÉRMINO.\n\nNúmero de Expediente: ${respuesta.expedienteNro}\n\nEl sistema lo etiquetó como EXTEMPORÁNEO por superar los plazos legales. El Juzgado evaluará si da lugar a su revisión.`
+          : `¡Descargo presentado con éxito!\n\nSu Número de Expediente es: ${respuesta.expedienteNro}\n\nGuarde este comprobante para el seguimiento de su trámite.`
+        alert(msj)
+      } else {
+        alert("¡Trámite de pago enviado con éxito!")
+      }
       setTramiteActivo(null)
       manejarBusqueda(new Event('submit') as any)
     } else { alert("Error: " + respuesta.error) }
@@ -81,13 +88,7 @@ export default function JuzgadoFaltasUnificado() {
     setGuardandoActa(true)
     const res = await crearActa({ nroActa: nuevoNroActa, nombreTitular: nuevoNombre, dniTitular: nuevoDni, monto: Number(nuevoMonto), lugar: nuevoLugar, articulo: nuevoArticulo, inspector: nuevoInspector })
     if (res.success) {
-      setNuevoNroActa("")
-      setNuevoNombre("")
-      setNuevoDni("")
-      setNuevoLugar("")
-      setNuevoArticulo("")
-      setNuevoInspector("")
-      setNuevoMonto("")
+      setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto("");
       manejarLoginYDatos(undefined, vista)
     } else { alert(res.error) }
     setGuardandoActa(false)
@@ -131,7 +132,7 @@ export default function JuzgadoFaltasUnificado() {
         .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; border-radius: var(--radius-s); font-weight: 700; font-size: 14.5px; text-decoration: none; border: 1.5px solid transparent; cursor: pointer; font-family: 'Public Sans', sans-serif; } .btn--primary { background: var(--celeste-loreto); color: #fff; } .btn--ghost { background: transparent; color: var(--azul-loreto); border-color: var(--azul-loreto); } .btn--ghost:hover { background: var(--azul-loreto); color: #fff; } .btn--sm { padding: 8px 14px; font-size: 13.5px; } .btn--block { width: 100%; } .btn--success { background: #10B981; color: white; border: none; } .btn--danger { background: #EF4444; color: white; border: none; }
         .hero { padding: 64px 0 56px; background: radial-gradient(circle at 88% 15%, rgba(0, 178, 214, 0.08), transparent 45%), var(--papel-alto); border-bottom: 1px solid var(--linea); } .hero .wrap { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 56px; align-items: center; } .hero .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--celeste-loreto); margin-bottom: 14px; font-weight: 500; } .hero h1 { font-size: clamp(30px, 4vw, 44px); max-width: 14ch; } .hero p.lead { font-size: 17.5px; color: var(--tinta-suave); max-width: 46ch; margin: 14px 0 28px; }
         section { padding: 72px 0; } .section-head { max-width: 60ch; margin-bottom: 40px; } .section-head .kicker { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin-bottom: 10px; font-weight: 500; }
-        .art-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--linea); border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; } .art-card { background: var(--papel); padding: 30px 26px; } .art-card__tag { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--celeste-loreto); font-weight: 600; margin-bottom: 14px; display: block; }
+        .art-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--linea); border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; } .art-card { background: var(--papel); padding: 30px 26px; } 
         .consulta-panel { background: var(--azul-loreto); color: #F8F9FA; border-radius: var(--radius-m); padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; } .consulta-form { background: var(--papel); border-radius: var(--radius-m); padding: 26px; color: var(--tinta); } .field { margin-bottom: 16px; } .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--tinta); } .field input, .field textarea { width: 100%; padding: 11px 12px; border: 1.5px solid var(--linea); border-radius: var(--radius-s); font-family: 'IBM Plex Mono', monospace; font-size: 14px; background: #fff; color: var(--tinta); }
         .admin-table { width: 100%; text-align: left; border-collapse: collapse; background: #fff; border-radius: var(--radius-m); overflow: hidden; border: 1px solid var(--linea); box-shadow: 0 2px 8px rgba(0,0,0,0.05); } .admin-table th { background: var(--papel-alto); padding: 16px; font-weight: 600; border-bottom: 2px solid var(--linea); font-size: 14px; color: var(--azul-loreto); } .admin-table td { padding: 16px; border-bottom: 1px solid var(--linea); font-size: 14.5px; } .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; } .modal-content { background: var(--papel); padding: 32px; border-radius: var(--radius-m); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
@@ -219,10 +220,15 @@ export default function JuzgadoFaltasUnificado() {
                               <form onSubmit={manejarEnvioTramite} style={{marginTop: '15px', paddingTop: '15px', borderTop: '1px solid var(--linea)'}}>
                                 <input type="hidden" name="infraccionId" value={acta.id} />
                                 <input type="hidden" name="tipo" value={tramiteActivo.tipo} />
+                                
                                 {tramiteActivo.tipo === 'pago' ? (
                                   <div className="field"><label>Monto transferido ($)</label><input type="number" name="monto" required /></div>
                                 ) : (
-                                  <div className="field"><label>Motivo de defensa</label><textarea name="motivo" rows={3} required></textarea></div>
+                                  <>
+                                    <div className="field"><label>Nombre Completo</label><input type="text" name="nombre" placeholder="Ej: Juan Perez" required /></div>
+                                    <div className="field"><label>Correo Electrónico</label><input type="email" name="email" placeholder="Para recibir notificaciones" required /></div>
+                                    <div className="field"><label>Motivo de defensa</label><textarea name="motivo" rows={3} required></textarea></div>
+                                  </>
                                 )}
                                 <div className="field"><label>Adjuntar archivo (PDF/IMG)</label><input type="file" name="archivo" required /></div>
                                 <button type="submit" disabled={enviando} className="btn btn--primary btn--block">{enviando ? 'Enviando...' : 'Subir Documentación'}</button>
@@ -300,7 +306,14 @@ export default function JuzgadoFaltasUnificado() {
                           {datosAdmin.map((item: any) => (
                             <tr key={item.id}>
                               <td><strong>{item.nroActa || item.expedienteNro || item.infraccion?.nroActa}</strong></td>
-                              <td><span className="badge" style={{background: item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? '#B45309' : '#047857'}}>{item.estado || item.dniTitular}</span></td>
+                              <td>
+                                <span className="badge" style={{
+                                  background: item.estado === 'EXTEMPORANEO' ? 'rgba(239, 68, 68, 0.15)' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)'),
+                                  color: item.estado === 'EXTEMPORANEO' ? '#DC2626' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? '#B45309' : '#047857')
+                                }}>
+                                  {item.estado || item.dniTitular}
+                                </span>
+                              </td>
                               <td>{item.monto ? `$${item.monto}` : new Date(item.creadoEn || item.fechaPago || item.fechaInfraccion).toLocaleDateString('es-AR')}</td>
                               <td>
                                 {vista !== 'admin_actas' ? (
@@ -329,12 +342,18 @@ export default function JuzgadoFaltasUnificado() {
             <h3 style={{marginBottom: '15px'}}>Auditoría de Expediente</h3>
             <div style={{background: 'var(--papel-alto)', padding: '15px', borderRadius: '6px', marginBottom: '20px', fontSize: '14px'}}>
               <p><strong>Acta Asociada:</strong> {itemModal.infraccion?.nroActa}</p><p><strong>DNI Titular:</strong> {itemModal.infraccion?.dniTitular}</p>
-              {vista === 'admin_descargos' && <p><strong>Motivo del Descargo:</strong> {itemModal.motivo}</p>}
+              {vista === 'admin_descargos' && <p style={{whiteSpace: 'pre-wrap'}}><strong>Información Presentada:</strong><br/>{itemModal.motivo}</p>}
               {vista === 'admin_pagos' && <p><strong>Monto Informado:</strong> ${itemModal.montoInformado}</p>}
             </div>
             <div style={{marginBottom: '20px'}}><a href={vista === 'admin_descargos' ? itemModal.archivosUrl?.[0] : itemModal.comprobanteUrl} target="_blank" rel="noreferrer" className="btn btn--ghost btn--block">Abrir Documento Adjunto (Nube)</a></div>
-            {(itemModal.estado === 'PRESENTADO' || itemModal.estado === 'PENDIENTE_CONCILIACION') ? (
+            
+            {(itemModal.estado === 'PRESENTADO' || itemModal.estado === 'EXTEMPORANEO' || itemModal.estado === 'PENDIENTE_CONCILIACION') ? (
               <div style={{borderTop: '1px solid var(--linea)', paddingTop: '20px'}}>
+                {itemModal.estado === 'EXTEMPORANEO' && (
+                  <div style={{background: 'rgba(239, 68, 68, 0.1)', color: '#DC2626', padding: '10px', borderRadius: '4px', marginBottom: '15px', fontSize: '13.5px', fontWeight: 'bold'}}>
+                    ⚠️ Atención: Esta presentación superó el plazo legal de 5 días hábiles.
+                  </div>
+                )}
                 {vista === 'admin_descargos' && (
                   <div className="field"><label>Escribir Dictamen / Resolución Corta</label><textarea value={textoResolucion} onChange={(e) => setTextoResolucion(e.target.value)} placeholder="Ej: Se comprueba error en patente..." rows={2} /></div>
                 )}

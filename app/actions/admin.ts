@@ -27,7 +27,6 @@ export async function obtenerPagosAdmin() {
   })
 }
 
-// NUEVO: Funciones para resolver expedientes
 export async function resolverDescargo(id: string, nuevoEstado: string, resolucionText: string) {
   try {
     const descargo = await prisma.descargo.update({
@@ -35,7 +34,6 @@ export async function resolverDescargo(id: string, nuevoEstado: string, resoluci
       data: { estado: nuevoEstado, resolucion: resolucionText, fechaResolucion: new Date() }
     })
     
-    // Si el juez falla a favor, anulamos el acta original
     if (nuevoEstado === 'RESUELTO_A_FAVOR') {
        await prisma.infraccion.update({
          where: { id: descargo.infraccionId },
@@ -53,7 +51,6 @@ export async function conciliarPago(id: string, nuevoEstado: string) {
       data: { estado: nuevoEstado }
     })
 
-    // Si el pago es válido, marcamos el acta como pagada
     if (nuevoEstado === 'CONCILIADO') {
        await prisma.infraccion.update({
          where: { id: pago.infraccionId },
@@ -62,4 +59,33 @@ export async function conciliarPago(id: string, nuevoEstado: string) {
     }
     return { success: true }
   } catch (error) { return { success: false, error: "Fallo al actualizar" } }
+}
+
+// NUEVO: Función para que el empleado cargue un acta manual
+export async function crearActa(datos: { nroActa: string, dniTitular: string, monto: number }) {
+  try {
+    await prisma.infraccion.create({
+      data: {
+        nroActa: datos.nroActa,
+        dniTitular: datos.dniTitular,
+        monto: datos.monto,
+        estado: 'PENDIENTE'
+      }
+    })
+    return { success: true }
+  } catch (error) { 
+    return { success: false, error: "Error al crear el acta en la base de datos." } 
+  }
+}
+
+// NUEVO: Función para eliminar un acta (solo para errores de carga)
+export async function eliminarActa(id: string) {
+  try {
+    await prisma.infraccion.delete({
+      where: { id }
+    })
+    return { success: true }
+  } catch (error) { 
+    return { success: false, error: "Error al eliminar. Verifique que no tenga descargos asociados." } 
+  }
 }

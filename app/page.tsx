@@ -143,7 +143,7 @@ export default function JuzgadoFaltasUnificado() {
       <header className="site">
         <div className="wrap nav-row">
           <a className="brand" href="#" onClick={(e) => { e.preventDefault(); setVista('publica'); }}>
-            <img src="/logojdf.png" alt="Logo Juzgado" className="brand__logo" />
+            <img src="/logojdf.jpg" alt="Logo Juzgado" className="brand__logo" />
             <span className="brand__text">
               <span className="eyebrow">Municipalidad de Loreto</span>
               <strong>Juzgado de Faltas</strong>
@@ -175,7 +175,7 @@ export default function JuzgadoFaltasUnificado() {
             <section className="hero" id="inicio">
               <div className="wrap">
                 <div><p className="eyebrow">Municipalidad de Loreto · Provincia de Santiago del Estero</p><h1>Juzgado de Faltas Municipal de Loreto</h1><p className="lead">Consultá el estado de tus infracciones de tránsito, presentá tu descargo y gestioná tus trámites con el Juzgado desde un mismo lugar.</p><a href="#consulta" className="btn btn--primary">Consultar mi infracción</a></div>
-                <div style={{display: 'flex', justifyContent: 'center'}}><img src="/logojdf.png" alt="Sello institucional" style={{width: 'min(380px, 100%)'}} /></div>
+                <div style={{display: 'flex', justifyContent: 'center'}}><img src="/logojdf.jpg" alt="Sello institucional" style={{width: 'min(380px, 100%)'}} /></div>
               </div>
             </section>
 

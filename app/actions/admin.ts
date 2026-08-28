@@ -61,15 +61,15 @@ export async function conciliarPago(id: string, nuevoEstado: string) {
   } catch (error) { return { success: false, error: "Fallo al actualizar" } }
 }
 
-// CORREGIDO: Se agregó la fecha obligatoria
-export async function crearActa(datos: { nroActa: string, dniTitular: string, monto: number, lugar: string }) {
+export async function crearActa(datos: { nroActa: string, dniTitular: string, monto: number, lugar: string, articulo: string }) {
   try {
     await prisma.infraccion.create({
       data: {
         nroActa: datos.nroActa,
         dniTitular: datos.dniTitular,
         monto: datos.monto,
-        lugar: datos.lugar, // Agregamos el lugar obligatorio
+        lugar: datos.lugar,
+        articulo: datos.articulo,
         estado: 'PENDIENTE',
         fechaInfraccion: new Date() 
       }
@@ -80,14 +80,10 @@ export async function crearActa(datos: { nroActa: string, dniTitular: string, mo
   }
 }
 
-// CORREGIDO: Elimina en cascada (primero los hijos, luego el padre)
 export async function eliminarActa(id: string) {
   try {
-    // 1. Eliminar archivos/descargos asociados primero
     await prisma.descargo.deleteMany({ where: { infraccionId: id } })
     await prisma.pago.deleteMany({ where: { infraccionId: id } })
-    
-    // 2. Ahora sí eliminar el acta principal
     await prisma.infraccion.delete({ where: { id } })
     return { success: true }
   } catch (error: any) { 

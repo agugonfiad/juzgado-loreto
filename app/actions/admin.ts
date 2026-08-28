@@ -61,7 +61,7 @@ export async function conciliarPago(id: string, nuevoEstado: string) {
   } catch (error) { return { success: false, error: "Fallo al actualizar" } }
 }
 
-// NUEVO: Función para que el empleado cargue un acta manual
+// CORREGIDO: Se agregó la fecha obligatoria
 export async function crearActa(datos: { nroActa: string, dniTitular: string, monto: number }) {
   try {
     await prisma.infraccion.create({
@@ -69,23 +69,27 @@ export async function crearActa(datos: { nroActa: string, dniTitular: string, mo
         nroActa: datos.nroActa,
         dniTitular: datos.dniTitular,
         monto: datos.monto,
-        estado: 'PENDIENTE'
+        estado: 'PENDIENTE',
+        fechaInfraccion: new Date() // Dato obligatorio que faltaba
       }
     })
     return { success: true }
-  } catch (error) { 
-    return { success: false, error: "Error al crear el acta en la base de datos." } 
+  } catch (error: any) { 
+    return { success: false, error: "Error al crear: " + error.message } 
   }
 }
 
-// NUEVO: Función para eliminar un acta (solo para errores de carga)
+// CORREGIDO: Elimina en cascada (primero los hijos, luego el padre)
 export async function eliminarActa(id: string) {
   try {
-    await prisma.infraccion.delete({
-      where: { id }
-    })
+    // 1. Eliminar archivos/descargos asociados primero
+    await prisma.descargo.deleteMany({ where: { infraccionId: id } })
+    await prisma.pago.deleteMany({ where: { infraccionId: id } })
+    
+    // 2. Ahora sí eliminar el acta principal
+    await prisma.infraccion.delete({ where: { id } })
     return { success: true }
-  } catch (error) { 
-    return { success: false, error: "Error al eliminar. Verifique que no tenga descargos asociados." } 
+  } catch (error: any) { 
+    return { success: false, error: "Error al eliminar: " + error.message } 
   }
 }

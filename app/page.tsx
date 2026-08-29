@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano, procesarNoticia } from "./actions/subidas"
-import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia } from "./actions/admin"
+import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario } from "./actions/admin"
 
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
@@ -105,6 +105,12 @@ export default function JuzgadoFaltasUnificado() {
     if (!confirm(`¿Seguro que desea ELIMINAR ${tipo === 'acta' ? 'esta acta' : 'esta noticia'}?`)) return
     const res = tipo === 'acta' ? await eliminarActa(id) : await eliminarNoticia(id)
     if (res.success) { cargarDatosPanel(vista); if(tipo==='noticia') obtenerNoticiasAdmin().then(setNoticiasPublicas); } else { alert(res.error); }
+  }
+
+  const manejarEliminarUsuario = async (id: string) => {
+    if (!confirm("¿Seguro que desea ELIMINAR definitivamente a este empleado del sistema? Esta acción no se puede deshacer.")) return
+    const res = await eliminarUsuario(id)
+    if (res.success) { cargarDatosPanel('admin_usuarios'); } else { alert(res.error); }
   }
 
   const auditarDescargo = async (estado: string) => {
@@ -328,7 +334,6 @@ export default function JuzgadoFaltasUnificado() {
                                 
                                 {tramiteActivo.tipo === 'pago' ? (
                                   <>
-                                    {/* CUADRO INFORMATIVO DE DATOS BANCARIOS */}
                                     <div style={{background: 'rgba(0, 178, 214, 0.08)', border: '1px solid var(--celeste-loreto)', padding: '16px', borderRadius: '4px', marginBottom: '16px', fontSize: '14px'}}>
                                       <h4 style={{fontSize: '15px', margin: '0 0 10px 0', color: 'var(--azul-loreto)'}}>Datos para transferencia bancaria</h4>
                                       <p style={{margin: '0 0 5px 0'}}><strong>Titular:</strong> Municipalidad de Loreto - Santiago del Estero</p>
@@ -445,51 +450,91 @@ export default function JuzgadoFaltasUnificado() {
 
                   <div style={{overflowX: 'auto'}}>
                     {cargandoAdmin ? <p style={{textAlign: 'center', padding: '40px'}}>Cargando registros...</p> : (
-                      <table className="admin-table">
-                        <thead>
-                          <tr>
-                            <th>{vista === 'admin_usuarios' ? 'Nombre / Correo' : vista === 'admin_noticias' ? 'Imagen' : vista === 'admin_actas' ? 'N° Acta' : 'Expediente / Acta'}</th>
-                            <th>{vista === 'admin_usuarios' ? 'Rol' : vista === 'admin_noticias' ? 'Título Público' : vista === 'admin_actas' ? 'DNI Titular' : 'Estado'}</th>
-                            <th>{vista === 'admin_usuarios' ? 'Estado' : vista === 'admin_noticias' ? 'Fecha de Publicación' : vista === 'admin_actas' ? 'Monto' : 'Fecha'}</th>
-                            <th>Acción</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {datosAdmin.map((item: any) => (
-                            <tr key={item.id}>
-                              {vista === 'admin_usuarios' ? (
-                                <>
+                      
+                      <>
+                        {/* TABLA DE USUARIOS */}
+                        {vista === 'admin_usuarios' && (
+                          <table className="admin-table">
+                            <thead><tr><th>Nombre / Correo</th><th>Rol</th><th>Estado</th><th>Acción</th></tr></thead>
+                            <tbody>
+                              {datosAdmin.map(item => (
+                                <tr key={item.id}>
                                   <td><strong>{item.nombre}</strong><br/><span style={{fontSize: '12px', color: 'var(--tinta-suave)'}}>{item.email}</span></td>
                                   <td><span className="badge" style={{background: 'rgba(11, 74, 130, 0.1)', color: 'var(--azul-loreto)'}}>{item.rol}</span></td>
                                   <td><span className="badge" style={{background: item.activo ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: item.activo ? '#047857' : '#DC2626'}}>{item.activo ? 'Activo' : 'Suspendido'}</span></td>
-                                  <td>{item.rol !== 'SUPERADMIN' && (<button onClick={async () => { await toggleEstadoUsuario(item.id, item.activo); cargarDatosPanel('admin_usuarios'); }} className="btn btn--ghost btn--sm">{item.activo ? 'Suspender' : 'Reactivar'}</button>)}</td>
-                                </>
-                              ) : vista === 'admin_noticias' ? (
-                                <>
+                                  <td>
+                                    {item.rol !== 'SUPERADMIN' && (
+                                      <div style={{display: 'flex', gap: '8px'}}>
+                                        <button onClick={async () => { await toggleEstadoUsuario(item.id, item.activo); cargarDatosPanel('admin_usuarios'); }} className="btn btn--ghost btn--sm">{item.activo ? 'Suspender' : 'Reactivar'}</button>
+                                        <button onClick={() => manejarEliminarUsuario(item.id)} className="btn btn--danger btn--sm" style={{padding: '6px 10px', fontSize: '12.5px'}}>Eliminar</button>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              ))}
+                              {datosAdmin.length === 0 && (<tr><td colSpan={4} style={{textAlign: 'center', padding: '40px'}}>No hay registros.</td></tr>)}
+                            </tbody>
+                          </table>
+                        )}
+
+                        {/* TABLA DE NOTICIAS */}
+                        {vista === 'admin_noticias' && (
+                          <table className="admin-table">
+                            <thead><tr><th>Imagen</th><th>Título Público</th><th>Fecha de Publicación</th><th>Acción</th></tr></thead>
+                            <tbody>
+                              {datosAdmin.map(item => (
+                                <tr key={item.id}>
                                   <td><img src={item.imagenUrl} alt="miniatura" style={{width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px'}} /></td>
                                   <td><strong>{item.titulo}</strong></td>
                                   <td>{new Date(item.creadoEn).toLocaleDateString('es-AR')}</td>
                                   <td><button onClick={() => manejarEliminarDato(item.id, 'noticia')} className="btn btn--danger btn--sm" style={{padding: '6px 10px', fontSize: '12.5px'}}>Eliminar Noticia</button></td>
-                                </>
-                              ) : (
-                                <>
-                                  <td><strong>{item.nroActa || item.expedienteNro || item.infraccion?.nroActa}</strong></td>
-                                  <td><span className="badge" style={{background: item.estado === 'EXTEMPORANEO' ? 'rgba(239, 68, 68, 0.15)' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)'), color: item.estado === 'EXTEMPORANEO' ? '#DC2626' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? '#B45309' : '#047857')}}>{item.estado || item.dniTitular}</span></td>
-                                  <td>{item.monto ? `$${item.monto}` : new Date(item.creadoEn || item.fechaPago || item.fechaInfraccion).toLocaleDateString('es-AR')}</td>
+                                </tr>
+                              ))}
+                              {datosAdmin.length === 0 && (<tr><td colSpan={4} style={{textAlign: 'center', padding: '40px'}}>No hay registros.</td></tr>)}
+                            </tbody>
+                          </table>
+                        )}
+
+                        {/* TABLA DE ACTAS */}
+                        {vista === 'admin_actas' && (
+                          <table className="admin-table">
+                            <thead><tr><th>N° Acta</th><th>DNI Titular</th><th>Estado</th><th>Monto</th><th>Acción</th></tr></thead>
+                            <tbody>
+                              {datosAdmin.map(item => (
+                                <tr key={item.id}>
+                                  <td><strong>{item.nroActa}</strong></td>
+                                  <td>{item.dniTitular}</td>
+                                  <td><span className="badge" style={{background: item.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: item.estado === 'PENDIENTE' ? '#B45309' : '#047857'}}>{item.estado}</span></td>
+                                  <td>${item.monto}</td>
+                                  <td><button onClick={() => manejarEliminarDato(item.id, 'acta')} className="btn btn--danger btn--sm" style={{padding: '6px 10px', fontSize: '12.5px'}}>Eliminar</button></td>
+                                </tr>
+                              ))}
+                              {datosAdmin.length === 0 && (<tr><td colSpan={5} style={{textAlign: 'center', padding: '40px'}}>No hay registros.</td></tr>)}
+                            </tbody>
+                          </table>
+                        )}
+
+                        {/* TABLA DE DESCARGOS Y PAGOS */}
+                        {(vista === 'admin_descargos' || vista === 'admin_pagos') && (
+                          <table className="admin-table">
+                            <thead><tr><th>Expediente / Acta</th><th>Estado</th><th>Fecha</th><th>Acción</th></tr></thead>
+                            <tbody>
+                              {datosAdmin.map(item => (
+                                <tr key={item.id}>
+                                  <td><strong>{item.expedienteNro || item.infraccion?.nroActa}</strong></td>
                                   <td>
-                                    {vista !== 'admin_actas' ? (
-                                      <button onClick={() => setItemModal(item)} className="btn btn--ghost btn--sm">Ver Detalles</button>
-                                    ) : (
-                                      <button onClick={() => manejarEliminarDato(item.id, 'acta')} className="btn btn--danger btn--sm" style={{padding: '6px 10px', fontSize: '12.5px'}}>Eliminar</button>
-                                    )}
+                                    <span className="badge" style={{background: item.estado === 'EXTEMPORANEO' ? 'rgba(239, 68, 68, 0.15)' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)'), color: item.estado === 'EXTEMPORANEO' ? '#DC2626' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? '#B45309' : '#047857')}}>{item.estado}</span>
                                   </td>
-                                </>
-                              )}
-                            </tr>
-                          ))}
-                          {datosAdmin.length === 0 && (<tr><td colSpan={4} style={{textAlign: 'center', padding: '40px'}}>No hay registros.</td></tr>)}
-                        </tbody>
-                      </table>
+                                  <td>{new Date(item.creadoEn || item.fechaPago || item.fechaInfraccion || new Date()).toLocaleDateString('es-AR')}</td>
+                                  <td><button onClick={() => setItemModal(item)} className="btn btn--ghost btn--sm">Ver Detalles</button></td>
+                                </tr>
+                              ))}
+                              {datosAdmin.length === 0 && (<tr><td colSpan={4} style={{textAlign: 'center', padding: '40px'}}>No hay registros.</td></tr>)}
+                            </tbody>
+                          </table>
+                        )}
+                      </>
+
                     )}
                   </div>
                 </>

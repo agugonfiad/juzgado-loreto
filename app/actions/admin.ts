@@ -210,4 +210,11 @@ export async function eliminarNoticia(id: string) {
     await prisma.noticia.delete({ where: { id } })
     return { success: true }
   } catch (error: any) { return { success: false, error: error.message } }
+}export async function eliminarUsuario(id: string) {
+  try {
+    await prisma.usuario.delete({ where: { id } })
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
 }

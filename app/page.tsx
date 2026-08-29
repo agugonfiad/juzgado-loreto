@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano } from "./actions/subidas"
-import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario } from "./actions/admin"
+import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena } from "./actions/admin"
 
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
@@ -33,6 +33,13 @@ export default function JuzgadoFaltasUnificado() {
 
   // Estados para Usuarios
   const [nuevoUsuarioNombre, setNuevoUsuarioNombre] = useState(""); const [nuevoUsuarioEmail, setNuevoUsuarioEmail] = useState(""); const [nuevoUsuarioRol, setNuevoUsuarioRol] = useState("ADMINISTRATIVO"); const [guardandoUsuario, setGuardandoUsuario] = useState(false);
+
+  // Estados para Cambio de Contraseña
+  const [modalPassword, setModalPassword] = useState(false);
+  const [passActual, setPassActual] = useState("");
+  const [passNueva, setPassNueva] = useState("");
+  const [passConfirmar, setPassConfirmar] = useState("");
+  const [cambiandoPass, setCambiandoPass] = useState(false);
 
   const manejarBusqueda = async (e: React.FormEvent) => {
     e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null);
@@ -123,6 +130,21 @@ export default function JuzgadoFaltasUnificado() {
     setGuardandoUsuario(false)
   }
 
+  const manejarCambioPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passNueva !== passConfirmar) return alert("Las contraseñas nuevas no coinciden.");
+    if (passNueva.length < 6) return alert("La nueva contraseña debe tener al menos 6 caracteres.");
+    
+    setCambiandoPass(true);
+    const res = await cambiarContrasena(email, passActual, passNueva);
+    setCambiandoPass(false);
+    
+    if (res.success) {
+      alert("Contraseña actualizada con éxito.");
+      setModalPassword(false); setPassActual(""); setPassNueva(""); setPassConfirmar("");
+    } else { alert(res.error); }
+  }
+
   const forzarAltaAdmin = async () => { const res = await inicializarSistema(); alert(res.mensaje || res.error); }
 
   const rol = usuario?.rol || ''
@@ -185,6 +207,7 @@ export default function JuzgadoFaltasUnificado() {
 
           <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
             {autenticado && <span style={{fontSize: '13px', color: 'var(--tinta-suave)', fontWeight: 600}}>👤 {usuario?.nombre}</span>}
+            {autenticado && <a onClick={() => setModalPassword(true)} style={{fontSize: '13px', cursor: 'pointer', color: 'var(--celeste-loreto)', fontWeight: 600}}>Cambiar Clave</a>}
             <button onClick={() => {
                 if (vista === 'publica') { setVista('admin_actas'); }
                 else { setVista('publica'); setAutenticado(false); setUsuario(null); setPassword(""); }
@@ -410,6 +433,25 @@ export default function JuzgadoFaltasUnificado() {
         )}
       </main>
 
+      {/* MODAL DE CAMBIO DE CONTRASEÑA */}
+      {modalPassword && (
+        <div className="modal-overlay" onClick={() => setModalPassword(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '400px'}}>
+            <h3 style={{marginBottom: '15px'}}>Cambiar mi contraseña</h3>
+            <form onSubmit={manejarCambioPassword}>
+              <div className="field"><label>Contraseña Actual</label><input type="password" value={passActual} onChange={(e) => setPassActual(e.target.value)} required /></div>
+              <div className="field"><label>Nueva Contraseña</label><input type="password" value={passNueva} onChange={(e) => setPassNueva(e.target.value)} required /></div>
+              <div className="field"><label>Confirmar Nueva Contraseña</label><input type="password" value={passConfirmar} onChange={(e) => setPassConfirmar(e.target.value)} required /></div>
+              <div style={{display: 'flex', gap: '10px', marginTop: '20px'}}>
+                <button type="button" onClick={() => setModalPassword(false)} className="btn btn--ghost" style={{flex: 1}}>Cancelar</button>
+                <button type="submit" disabled={cambiandoPass} className="btn btn--primary" style={{flex: 1}}>{cambiandoPass ? 'Guardando...' : 'Actualizar'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE AUDITORÍA */}
       {itemModal && (
         <div className="modal-overlay" onClick={() => setItemModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>

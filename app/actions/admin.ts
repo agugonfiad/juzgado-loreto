@@ -181,4 +181,22 @@ export async function toggleEstadoUsuario(id: string, estadoActual: boolean) {
   } catch (error: any) {
     return { success: false, error: error.message }
   }
+}export async function cambiarContrasena(email: string, actual: string, nueva: string) {
+  try {
+    const usuario = await prisma.usuario.findUnique({ where: { email } })
+    if (!usuario) return { success: false, error: "Usuario no encontrado." }
+
+    const passwordValida = await compare(actual, usuario.password)
+    if (!passwordValida) return { success: false, error: "La contraseña actual es incorrecta." }
+
+    const passwordEncriptada = await hash(nueva, 10)
+    await prisma.usuario.update({
+      where: { email },
+      data: { password: passwordEncriptada }
+    })
+
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
 }

@@ -103,6 +103,7 @@ export async function procesarTramiteCiudadano(formData: FormData) {
 }export async function procesarNoticia(formData: FormData) {
   try {
     const titulo = formData.get('titulo') as string
+    const contenido = formData.get('contenido') as string // <-- Captura el texto
     const archivo = formData.get('archivo') as File
 
     if (!archivo || archivo.size === 0) return { success: false, error: "Debe adjuntar una imagen." }
@@ -110,7 +111,7 @@ export async function procesarTramiteCiudadano(formData: FormData) {
     const blob = await put(archivo.name, archivo, { access: 'public', addRandomSuffix: true })
     
     await prisma.noticia.create({
-      data: { titulo, imagenUrl: blob.url }
+      data: { titulo, contenido, imagenUrl: blob.url } // <-- Lo guarda en la BD
     })
     return { success: true }
   } catch (error: any) {

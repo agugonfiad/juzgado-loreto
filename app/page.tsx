@@ -35,10 +35,7 @@ export default function JuzgadoFaltasUnificado() {
   
   const [modalPassword, setModalPassword] = useState(false); const [passActual, setPassActual] = useState(""); const [passNueva, setPassNueva] = useState(""); const [passConfirmar, setPassConfirmar] = useState(""); const [cambiandoPass, setCambiandoPass] = useState(false);
 
-  // Cargar noticias públicas al abrir la web
-  useEffect(() => {
-    obtenerNoticiasAdmin().then(setNoticiasPublicas)
-  }, [])
+  useEffect(() => { obtenerNoticiasAdmin().then(setNoticiasPublicas) }, [])
 
   const manejarBusqueda = async (e: React.FormEvent) => {
     e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null);
@@ -65,16 +62,11 @@ export default function JuzgadoFaltasUnificado() {
     e.preventDefault()
     const auth = await iniciarSesion(email, password)
     if (!auth.success) return alert(auth.error)
-    
-    setUsuario(auth.usuario)
-    setAutenticado(true)
-    
+    setUsuario(auth.usuario); setAutenticado(true);
     let vistaInicial = 'admin_actas'
     if (auth.usuario.rol === 'LETRADO') vistaInicial = 'admin_descargos'
     if (auth.usuario.rol === 'CONTABLE') vistaInicial = 'admin_pagos'
-    
-    setVista(vistaInicial as any)
-    cargarDatosPanel(vistaInicial)
+    setVista(vistaInicial as any); cargarDatosPanel(vistaInicial);
   }
 
   const cargarDatosPanel = async (vistaDestino: string) => {
@@ -104,7 +96,7 @@ export default function JuzgadoFaltasUnificado() {
       alert("Noticia publicada con éxito.");
       (e.target as HTMLFormElement).reset();
       cargarDatosPanel(vista);
-      obtenerNoticiasAdmin().then(setNoticiasPublicas); // Refrescar vista pública
+      obtenerNoticiasAdmin().then(setNoticiasPublicas); 
     } else { alert("Error: " + res.error) }
     setProcesando(false)
   }
@@ -164,7 +156,13 @@ export default function JuzgadoFaltasUnificado() {
         .hero { padding: 64px 0 56px; background: radial-gradient(circle at 88% 15%, rgba(0, 178, 214, 0.08), transparent 45%), var(--papel-alto); border-bottom: 1px solid var(--linea); } .hero .wrap { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 56px; align-items: center; } .hero .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--celeste-loreto); margin-bottom: 14px; font-weight: 500; } .hero h1 { font-size: clamp(30px, 4vw, 44px); max-width: 14ch; } .hero p.lead { font-size: 17.5px; color: var(--tinta-suave); max-width: 46ch; margin: 14px 0 28px; }
         section { padding: 72px 0; } .section-head { max-width: 60ch; margin-bottom: 40px; } .section-head .kicker { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin-bottom: 10px; font-weight: 500; }
         .art-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--linea); border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; } .art-card { background: var(--papel); padding: 30px 26px; } 
-        .news-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; } .news-card img { width: 100%; aspect-ratio: 3/2; object-fit: cover; margin-bottom: 16px; border-radius: 2px; } .news-card h3 { font-size: 14px; text-transform: uppercase; color: var(--tinta-suave); line-height: 1.4; font-family: 'Public Sans', sans-serif; font-weight: 700; letter-spacing: 0.2px; }
+        
+        .news-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; } 
+        .news-card { background: var(--papel); padding: 20px; border-radius: var(--radius-m); border: 1px solid var(--linea); box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .news-card img { width: 100%; aspect-ratio: 3/2; object-fit: cover; margin-bottom: 16px; border-radius: 4px; } 
+        .news-card h3 { font-size: 15px; text-transform: uppercase; color: var(--azul-loreto); line-height: 1.4; font-family: 'Public Sans', sans-serif; font-weight: 800; letter-spacing: 0.2px; margin-bottom: 8px; }
+        .news-card p { font-size: 14px; color: var(--tinta-suave); line-height: 1.6; white-space: pre-wrap; margin: 0; }
+        
         .consulta-panel { background: var(--azul-loreto); color: #F8F9FA; border-radius: var(--radius-m); padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; } .consulta-form { background: var(--papel); border-radius: var(--radius-m); padding: 26px; color: var(--tinta); } .field { margin-bottom: 16px; } .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--tinta); } .field input, .field textarea, .field select { width: 100%; padding: 11px 12px; border: 1.5px solid var(--linea); border-radius: var(--radius-s); font-family: 'IBM Plex Mono', monospace; font-size: 14px; background: #fff; color: var(--tinta); }
         .admin-table { width: 100%; text-align: left; border-collapse: collapse; background: #fff; border-radius: var(--radius-m); overflow: hidden; border: 1px solid var(--linea); box-shadow: 0 2px 8px rgba(0,0,0,0.05); } .admin-table th { background: var(--papel-alto); padding: 16px; font-weight: 600; border-bottom: 2px solid var(--linea); font-size: 14px; color: var(--azul-loreto); } .admin-table td { padding: 16px; border-bottom: 1px solid var(--linea); font-size: 14.5px; } .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; } .modal-content { background: var(--papel); padding: 32px; border-radius: var(--radius-m); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
@@ -256,6 +254,7 @@ export default function JuzgadoFaltasUnificado() {
                       <div className="news-card" key={n.id}>
                         <img src={n.imagenUrl} alt={n.titulo} />
                         <h3>{n.titulo}</h3>
+                        {n.contenido && <p>{n.contenido}</p>}
                       </div>
                     ))}
                   </div>
@@ -356,10 +355,11 @@ export default function JuzgadoFaltasUnificado() {
                   {vista === 'admin_noticias' && (
                     <div style={{background: 'var(--papel)', padding: '24px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '24px'}}>
                       <h3 style={{fontSize: '16px', marginBottom: '16px'}}>Publicar Nueva Noticia</h3>
-                      <form onSubmit={manejarCrearNoticia} style={{display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
-                        <div className="field" style={{marginBottom: 0, flex: 2}}><label>Título de la Noticia (en mayúsculas automáticamente)</label><input type="text" name="titulo" required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1}}><label>Fotografía (JPG/PNG)</label><input type="file" name="archivo" accept=".jpg, .jpeg, .png" required /></div>
-                        <button type="submit" disabled={procesando} className="btn btn--primary" style={{borderRadius: '4px'}}>{procesando ? 'Subiendo...' : 'Publicar en Portada'}</button>
+                      <form onSubmit={manejarCrearNoticia}>
+                        <div className="field"><label>Título de la Noticia</label><input type="text" name="titulo" required /></div>
+                        <div className="field"><label>Desarrollo / Contenido</label><textarea name="contenido" rows={4} placeholder="Escribe aquí el desarrollo de la actividad..." required></textarea></div>
+                        <div className="field"><label>Fotografía (JPG/PNG)</label><input type="file" name="archivo" accept=".jpg, .jpeg, .png" required /></div>
+                        <button type="submit" disabled={procesando} className="btn btn--primary" style={{borderRadius: '4px', marginTop: '10px'}}>{procesando ? 'Subiendo...' : 'Publicar en Portada'}</button>
                       </form>
                     </div>
                   )}
@@ -458,7 +458,7 @@ export default function JuzgadoFaltasUnificado() {
         )}
       </main>
 
-      {/* VENTANAS MODALES (Clave y Auditoría) se mantienen sin cambios estructurales */}
+      {/* VENTANAS MODALES */}
       {modalPassword && (
         <div className="modal-overlay" onClick={() => setModalPassword(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '400px'}}>

@@ -133,6 +133,7 @@ model Usuario {
 }model Noticia {
   id        String   @id @default(uuid())
   titulo    String
+  contenido String?  // <-- Agregamos el cuerpo de la noticia
   imagenUrl String
   creadoEn  DateTime @default(now())
 }

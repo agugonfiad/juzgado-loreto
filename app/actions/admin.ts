@@ -2,6 +2,7 @@
 
 import { PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'
+import { compare } from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -121,5 +122,21 @@ export async function eliminarActa(id: string) {
     return { success: true, mensaje: "Cuenta SuperAdmin creada con éxito." }
   } catch (error: any) {
     return { success: false, error: error.message }
+  }
+}export async function iniciarSesion(email: string, passwordPlana: string) {
+  try {
+    const usuario = await prisma.usuario.findUnique({ where: { email } })
+    if (!usuario) return { success: false, error: "Credenciales incorrectas." }
+    if (!usuario.activo) return { success: false, error: "Cuenta deshabilitada." }
+
+    const passwordValida = await compare(passwordPlana, usuario.password)
+    if (!passwordValida) return { success: false, error: "Credenciales incorrectas." }
+
+    return { 
+      success: true, 
+      usuario: { id: usuario.id, nombre: usuario.nombre, rol: usuario.rol } 
+    }
+  } catch (error: any) {
+    return { success: false, error: "Error de servidor: " + error.message }
   }
 }

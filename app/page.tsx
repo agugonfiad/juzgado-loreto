@@ -3,14 +3,17 @@
 import { useState } from "react"
 import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano } from "./actions/subidas"
-import { verificarAcceso, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa } from "./actions/admin"
+import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa } from "./actions/admin"
 
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
   const [vista, setVista] = useState<'publica' | 'admin_actas' | 'admin_descargos' | 'admin_pagos'>('publica')
 
   const [autenticado, setAutenticado] = useState(false)
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [usuario, setUsuario] = useState<{nombre: string, rol: string} | null>(null)
+  
   const [datosAdmin, setDatosAdmin] = useState<any[]>([])
   const [cargandoAdmin, setCargandoAdmin] = useState(false)
   
@@ -36,9 +39,7 @@ export default function JuzgadoFaltasUnificado() {
 
   const manejarBusqueda = async (e: React.FormEvent) => {
     e.preventDefault()
-    setBuscando(true)
-    setMensaje("")
-    setTramiteActivo(null)
+    setBuscando(true); setMensaje(""); setTramiteActivo(null);
     const respuesta = await buscarInfraccionPorDni(dni)
     if (respuesta.success && respuesta.data) {
       setResultados(respuesta.data)
@@ -54,33 +55,41 @@ export default function JuzgadoFaltasUnificado() {
     const respuesta = await procesarTramiteCiudadano(formData)
     if (respuesta.success) {
       if (respuesta.expedienteNro) {
-        const msj = respuesta.esExtemporaneo 
-          ? `Trámite recibido FUERA DE TÉRMINO.\n\nNúmero de Expediente: ${respuesta.expedienteNro}\n\nEl sistema lo etiquetó como EXTEMPORÁNEO por superar los plazos legales. El Juzgado evaluará si da lugar a su revisión.`
-          : `¡Descargo presentado con éxito!\n\nSu Número de Expediente es: ${respuesta.expedienteNro}\n\nGuarde este comprobante para el seguimiento de su trámite.`
-        alert(msj)
-      } else {
-        alert("¡Trámite de pago enviado con éxito!")
-      }
-      setTramiteActivo(null)
-      manejarBusqueda(new Event('submit') as any)
+        alert(respuesta.esExtemporaneo ? `Trámite EXTEMPORÁNEO.\nExpediente: ${respuesta.expedienteNro}` : `¡Descargo presentado!\nExpediente: ${respuesta.expedienteNro}`)
+      } else { alert("¡Trámite de pago enviado con éxito!") }
+      setTramiteActivo(null); manejarBusqueda(new Event('submit') as any);
     } else { alert("Error: " + respuesta.error) }
     setEnviando(false)
   }
 
-  const manejarLoginYDatos = async (e?: React.FormEvent, nuevaVista?: string) => {
-    if (e) e.preventDefault()
-    if (!autenticado) {
-      const auth = await verificarAcceso(password)
-      if (!auth.success) return alert(auth.error)
-      setAutenticado(true)
-    }
-    const vistaDestino = nuevaVista || vista
+  const procesarLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const auth = await iniciarSesion(email, password)
+    if (!auth.success) return alert(auth.error)
+    
+    setUsuario(auth.usuario)
+    setAutenticado(true)
+    
+    // Redirección inteligente según el rol del empleado
+    let vistaInicial = 'admin_actas'
+    if (auth.usuario.rol === 'LETRADO') vistaInicial = 'admin_descargos'
+    if (auth.usuario.rol === 'CONTABLE') vistaInicial = 'admin_pagos'
+    
+    setVista(vistaInicial as any)
+    cargarDatosPanel(vistaInicial)
+  }
+
+  const cargarDatosPanel = async (vistaDestino: string) => {
     setCargandoAdmin(true)
     if (vistaDestino === 'admin_actas') setDatosAdmin(await obtenerActasAdmin())
     if (vistaDestino === 'admin_descargos') setDatosAdmin(await obtenerDescargosAdmin())
     if (vistaDestino === 'admin_pagos') setDatosAdmin(await obtenerPagosAdmin())
-    if (nuevaVista) setVista(nuevaVista as any)
     setCargandoAdmin(false)
+  }
+
+  const cambiarVistaAdmin = (nuevaVista: string) => {
+    setVista(nuevaVista as any)
+    cargarDatosPanel(nuevaVista)
   }
 
   const manejarCrearActa = async (e: React.FormEvent) => {
@@ -89,35 +98,43 @@ export default function JuzgadoFaltasUnificado() {
     const res = await crearActa({ nroActa: nuevoNroActa, nombreTitular: nuevoNombre, dniTitular: nuevoDni, monto: Number(nuevoMonto), lugar: nuevoLugar, articulo: nuevoArticulo, inspector: nuevoInspector })
     if (res.success) {
       setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto("");
-      manejarLoginYDatos(undefined, vista)
+      cargarDatosPanel(vista)
     } else { alert(res.error) }
     setGuardandoActa(false)
   }
 
   const manejarEliminarActa = async (id: string) => {
-    if (!confirm("¿Seguro que desea ELIMINAR esta acta del sistema? Úselo solo para corregir errores de tipeo.")) return
+    if (!confirm("¿Seguro que desea ELIMINAR esta acta?")) return
     const res = await eliminarActa(id)
-    if (res.success) { manejarLoginYDatos(undefined, vista) } 
-    else { alert(res.error) }
+    if (res.success) cargarDatosPanel(vista) 
+    else alert(res.error)
   }
 
   const auditarDescargo = async (estado: string) => {
     if (estado === 'RECHAZADO' && !textoResolucion) return alert("Debe justificar el rechazo.")
     setProcesando(true)
     await resolverDescargo(itemModal.id, estado, textoResolucion)
-    setItemModal(null)
-    setTextoResolucion("")
-    setProcesando(false)
-    manejarLoginYDatos(undefined, vista)
+    setItemModal(null); setTextoResolucion(""); setProcesando(false);
+    cargarDatosPanel(vista)
   }
 
   const auditarPago = async (estado: string) => {
     setProcesando(true)
     await conciliarPago(itemModal.id, estado)
-    setItemModal(null)
-    setProcesando(false)
-    manejarLoginYDatos(undefined, vista)
+    setItemModal(null); setProcesando(false);
+    cargarDatosPanel(vista)
   }
+
+  const forzarAltaAdmin = async () => {
+    const res = await inicializarSistema()
+    alert(res.mensaje || res.error)
+  }
+
+  // Filtros de permisos
+  const rol = usuario?.rol || ''
+  const puedeActas = ['SUPERADMIN', 'JUEZ', 'ADMINISTRATIVO'].includes(rol)
+  const puedeDescargos = ['SUPERADMIN', 'JUEZ', 'LETRADO'].includes(rol)
+  const puedePagos = ['SUPERADMIN', 'JUEZ', 'CONTABLE'].includes(rol)
 
   return (
     <>
@@ -128,7 +145,7 @@ export default function JuzgadoFaltasUnificado() {
         .topbar { background: var(--azul-loreto); color: #FFFFFF; font-size: 13.5px; } .topbar .wrap { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; padding-bottom: 8px; gap: 16px; flex-wrap: wrap; } .topbar a { text-decoration: none; opacity: .9; } .topbar a:hover { opacity: 1; text-decoration: underline; } .topbar__item { display: inline-flex; align-items: center; gap: 6px; margin-right: 18px; }
         header.site { background: var(--papel); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 100; } .nav-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; gap: 20px; }
         .brand { display: flex; align-items: center; gap: 14px; text-decoration: none; } .brand__logo { height: 55px; width: auto; flex: none; } .brand__text .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin: 0 0 2px; } .brand__text strong { display: block; font-family: 'Fraunces', serif; font-weight: 600; font-size: 17px; color: var(--azul-loreto); line-height: 1.2; }
-        nav.primary { display: flex; align-items: center; gap: 28px; } nav.primary ul { list-style: none; display: flex; gap: 26px; margin: 0; padding: 0; } nav.primary a { text-decoration: none; font-weight: 600; font-size: 14.5px; color: var(--tinta); padding: 6px 2px; border-bottom: 2px solid transparent; cursor: pointer; } nav.primary a:hover { border-color: var(--rojo-loreto); color: var(--azul-loreto); }
+        nav.primary { display: flex; align-items: center; gap: 28px; } nav.primary ul { list-style: none; display: flex; gap: 26px; margin: 0; padding: 0; } nav.primary a { text-decoration: none; font-weight: 600; font-size: 14.5px; color: var(--tinta); padding: 6px 2px; border-bottom: 2px solid transparent; cursor: pointer; } nav.primary a:hover, nav.primary a.active { border-color: var(--rojo-loreto); color: var(--azul-loreto); }
         .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; border-radius: var(--radius-s); font-weight: 700; font-size: 14.5px; text-decoration: none; border: 1.5px solid transparent; cursor: pointer; font-family: 'Public Sans', sans-serif; } .btn--primary { background: var(--celeste-loreto); color: #fff; } .btn--ghost { background: transparent; color: var(--azul-loreto); border-color: var(--azul-loreto); } .btn--ghost:hover { background: var(--azul-loreto); color: #fff; } .btn--sm { padding: 8px 14px; font-size: 13.5px; } .btn--block { width: 100%; } .btn--success { background: #10B981; color: white; border: none; } .btn--danger { background: #EF4444; color: white; border: none; }
         .hero { padding: 64px 0 56px; background: radial-gradient(circle at 88% 15%, rgba(0, 178, 214, 0.08), transparent 45%), var(--papel-alto); border-bottom: 1px solid var(--linea); } .hero .wrap { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 56px; align-items: center; } .hero .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--celeste-loreto); margin-bottom: 14px; font-weight: 500; } .hero h1 { font-size: clamp(30px, 4vw, 44px); max-width: 14ch; } .hero p.lead { font-size: 17.5px; color: var(--tinta-suave); max-width: 46ch; margin: 14px 0 28px; }
         section { padding: 72px 0; } .section-head { max-width: 60ch; margin-bottom: 40px; } .section-head .kicker { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin-bottom: 10px; font-weight: 500; }
@@ -156,15 +173,26 @@ export default function JuzgadoFaltasUnificado() {
               <strong>Juzgado de Faltas</strong>
             </span>
           </a>
+          
           {vista === 'publica' ? (
-            <nav className={`primary ${menuAbierto ? 'open' : ''}`}><ul><li><a href="#inicio">Inicio</a></li><li><a href="#institucion">Competencia</a></li><li><a href="#consulta">Trámites</a></li></ul></nav>
+            <nav className="primary"><ul><li><a href="#inicio">Inicio</a></li><li><a href="#institucion">Competencia</a></li><li><a href="#consulta">Trámites</a></li></ul></nav>
           ) : (
-            <nav className="primary">{autenticado && (<ul><li><a onClick={() => manejarLoginYDatos(undefined, 'admin_actas')}>Gestión Actas</a></li><li><a onClick={() => manejarLoginYDatos(undefined, 'admin_descargos')}>Auditoría Descargos</a></li><li><a onClick={() => manejarLoginYDatos(undefined, 'admin_pagos')}>Conciliación BSE</a></li></ul>)}</nav>
+            <nav className="primary">
+              {autenticado && (
+                <ul>
+                  {puedeActas && <li><a className={vista === 'admin_actas' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_actas')}>Gestión Actas</a></li>}
+                  {puedeDescargos && <li><a className={vista === 'admin_descargos' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_descargos')}>Auditoría Descargos</a></li>}
+                  {puedePagos && <li><a className={vista === 'admin_pagos' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_pagos')}>Conciliación BSE</a></li>}
+                </ul>
+              )}
+            </nav>
           )}
-          <div>
+
+          <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+            {autenticado && <span style={{fontSize: '13px', color: 'var(--tinta-suave)', fontWeight: 600}}>👤 {usuario?.nombre}</span>}
             <button onClick={() => {
-                if (vista === 'publica') { setVista('admin_actas'); if (autenticado) manejarLoginYDatos(undefined, 'admin_actas'); }
-                else { setVista('publica'); setAutenticado(false); setPassword(""); }
+                if (vista === 'publica') { setVista('admin_actas'); }
+                else { setVista('publica'); setAutenticado(false); setUsuario(null); setPassword(""); }
               }} className="btn btn--ghost btn--sm">
               {vista === 'publica' ? 'Acceso Personal' : 'Cerrar Sesión'}
             </button>
@@ -268,11 +296,15 @@ export default function JuzgadoFaltasUnificado() {
             <div className="wrap">
               {!autenticado ? (
                 <div style={{maxWidth: '400px', margin: '0 auto', background: 'var(--papel)', padding: '40px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)'}}>
-                  <h2 style={{fontSize: '20px', marginBottom: '20px', textAlign: 'center'}}>Acceso Restringido</h2>
-                  <form onSubmit={manejarLoginYDatos}>
-                    <div className="field"><label>Contraseña del Personal</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
+                  <h2 style={{fontSize: '20px', marginBottom: '20px', textAlign: 'center'}}>Acceso Institucional</h2>
+                  <form onSubmit={procesarLogin}>
+                    <div className="field"><label>Correo Electrónico</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
+                    <div className="field"><label>Contraseña</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
                     <button type="submit" className="btn btn--primary btn--block">Ingresar al Sistema</button>
                   </form>
+                  <div style={{textAlign: 'center', marginTop: '20px'}}>
+                    <button onClick={forzarAltaAdmin} style={{background: 'none', border: 'none', color: 'var(--tinta-suave)', textDecoration: 'underline', fontSize: '12px', cursor: 'pointer'}}>Inicializar mi cuenta (Solo 1ra vez)</button>
+                  </div>
                 </div>
               ) : (
                 <>

@@ -35,7 +35,10 @@ model UsuarioInterno {
   descargosResueltos Descargo[]
   auditorias         Auditoria[]
 }
-
+enum TipoInfraccion {
+  TRANSITO
+  BROMATOLOGIA
+}
 model Infraccion {
   id             String           @id @default(uuid())
   nroActa        String           @unique
@@ -48,6 +51,7 @@ model Infraccion {
   nombreTitular  String
   inspector      String
   plazoDescargo  DateTime
+  tipoInfraccion TipoInfraccion   @default(TRANSITO)
   estado         EstadoInfraccion @default(PENDIENTE)
   creadoEn       DateTime         @default(now())
 

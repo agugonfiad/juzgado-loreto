@@ -30,7 +30,7 @@ export default function JuzgadoFaltasUnificado() {
   const [enviando, setEnviando] = useState(false)
 
   // Estados Formularios
-  const [nuevoNroActa, setNuevoNroActa] = useState(""); const [nuevoNombre, setNuevoNombre] = useState(""); const [nuevoDni, setNuevoDni] = useState(""); const [nuevoLugar, setNuevoLugar] = useState(""); const [nuevoArticulo, setNuevoArticulo] = useState(""); const [nuevoInspector, setNuevoInspector] = useState(""); const [nuevoMonto, setNuevoMonto] = useState(""); const [guardandoActa, setGuardandoActa] = useState(false);
+  const [nuevoNroActa, setNuevoNroActa] = useState(""); const [nuevoNombre, setNuevoNombre] = useState(""); const [nuevoDni, setNuevoDni] = useState(""); const [nuevoLugar, setNuevoLugar] = useState(""); const [nuevoArticulo, setNuevoArticulo] = useState(""); const [nuevoInspector, setNuevoInspector] = useState(""); const [nuevoMonto, setNuevoMonto] = useState(""); const [nuevoTipo, setNuevoTipo] = useState("TRANSITO"); const [guardandoActa, setGuardandoActa] = useState(false);
   const [nuevoUsuarioNombre, setNuevoUsuarioNombre] = useState(""); const [nuevoUsuarioEmail, setNuevoUsuarioEmail] = useState(""); const [nuevoUsuarioRol, setNuevoUsuarioRol] = useState("ADMINISTRATIVO"); const [guardandoUsuario, setGuardandoUsuario] = useState(false);
   
   const [modalPassword, setModalPassword] = useState(false); const [passActual, setPassActual] = useState(""); const [passNueva, setPassNueva] = useState(""); const [passConfirmar, setPassConfirmar] = useState(""); const [cambiandoPass, setCambiandoPass] = useState(false);
@@ -83,8 +83,8 @@ export default function JuzgadoFaltasUnificado() {
 
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
-    const res = await crearActa({ nroActa: nuevoNroActa, nombreTitular: nuevoNombre, dniTitular: nuevoDni, monto: Number(nuevoMonto), lugar: nuevoLugar, articulo: nuevoArticulo, inspector: nuevoInspector })
-    if (res.success) { setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto(""); cargarDatosPanel(vista) } else { alert(res.error) }
+    const res = await crearActa({ nroActa: nuevoNroActa, nombreTitular: nuevoNombre, dniTitular: nuevoDni, monto: Number(nuevoMonto), lugar: nuevoLugar, articulo: nuevoArticulo, inspector: nuevoInspector, tipoInfraccion: nuevoTipo as any })
+    if (res.success) { setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto(""); setNuevoTipo("TRANSITO"); cargarDatosPanel(vista) } else { alert(res.error) }
     setGuardandoActa(false)
   }
 
@@ -321,45 +321,52 @@ export default function JuzgadoFaltasUnificado() {
                     {mensaje && <p style={{marginTop: '15px', fontSize: '14px', color: 'var(--rojo-loreto)'}}>{mensaje}</p>}
                     {resultados.length > 0 && (
                       <div style={{marginTop: '20px'}}>
-                        {resultados.map((acta) => (
-                          <div key={acta.id} style={{padding: '15px', borderLeft: '3px solid var(--rojo-loreto)', background: 'var(--papel-alto)', marginBottom: '10px'}}>
-                            <strong>Acta N° {acta.nroActa}</strong> - ${acta.monto.toString()} <br/><span style={{fontSize: '13px', color: 'var(--tinta-suave)'}}>Estado: {acta.estado}</span>
-                            {acta.estado === 'PENDIENTE' && (
-                              <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'pago' })} className="btn btn--ghost btn--sm">Informar Pago</button><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'descargo' })} className="btn btn--primary btn--sm" style={{borderRadius: '4px'}}>Descargo</button></div>
-                            )}
-                            {tramiteActivo?.id === acta.id && (
-                              <form onSubmit={manejarEnvioTramite} style={{marginTop: '15px', paddingTop: '15px', borderTop: '1px solid var(--linea)'}}>
-                                <input type="hidden" name="infraccionId" value={acta.id} />
-                                <input type="hidden" name="tipo" value={tramiteActivo.tipo} />
-                                
-                                {tramiteActivo.tipo === 'pago' ? (
-                                  <>
-                                    <div style={{background: 'rgba(0, 178, 214, 0.08)', border: '1px solid var(--celeste-loreto)', padding: '16px', borderRadius: '4px', marginBottom: '16px', fontSize: '14px'}}>
-                                      <h4 style={{fontSize: '15px', margin: '0 0 10px 0', color: 'var(--azul-loreto)'}}>Datos para transferencia bancaria</h4>
-                                      <p style={{margin: '0 0 5px 0'}}><strong>Titular:</strong> Municipalidad de Loreto - Santiago del Estero</p>
-                                      <p style={{margin: '0 0 5px 0'}}><strong>Banco:</strong> Banco Santiago del Estero</p>
-                                      <p style={{margin: '0 0 5px 0'}}><strong>N° de Cuenta:</strong> 12000000001243138</p>
-                                      <p style={{margin: '0 0 5px 0'}}><strong>CBU:</strong> 32101205300000012431389</p>
-                                      <p style={{margin: '0'}}><strong>ALIAS:</strong> LoretoRecaudacion</p>
-                                    </div>
-                                    <div className="field"><label>Monto transferido ($)</label><input type="number" name="monto" required /></div>
-                                  </>
-                                ) : (
-                                  <>
-                                    <div className="field"><label>Nombre Completo</label><input type="text" name="nombre" placeholder="Ej: Juan Perez" required /></div>
-                                    <div className="field"><label>Correo Electrónico</label><input type="email" name="email" placeholder="Para recibir notificaciones" required /></div>
-                                    <div className="field"><label>Motivo de defensa</label><textarea name="motivo" rows={3} required></textarea></div>
-                                  </>
-                                )}
-                                <div className="field">
-                                  <label>Adjuntar comprobante (PDF, JPG, PNG)</label>
-                                  <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required />
-                                </div>
-                                <button type="submit" disabled={enviando} className="btn btn--primary btn--block">{enviando ? 'Enviando...' : 'Subir Documentación'}</button>
-                              </form>
-                            )}
-                          </div>
-                        ))}
+                        {resultados.map((acta) => {
+                          const esBroma = acta.tipoInfraccion === 'BROMATOLOGIA';
+                          const colorBorde = esBroma ? '#10B981' : 'var(--azul-loreto)';
+                          const nombreOrigen = esBroma ? 'BROMATOLOGÍA Y CALIDAD DE VIDA' : 'DIRECCIÓN DE TRÁNSITO';
+
+                          return (
+                            <div key={acta.id} style={{padding: '15px', borderLeft: `4px solid ${colorBorde}`, background: 'var(--papel-alto)', marginBottom: '10px'}}>
+                              <span style={{fontSize: '11px', fontWeight: 'bold', color: colorBorde}}>{nombreOrigen}</span><br/>
+                              <strong>Acta N° {acta.nroActa}</strong> - ${acta.monto.toString()} <br/><span style={{fontSize: '13px', color: 'var(--tinta-suave)'}}>Estado: {acta.estado}</span>
+                              {acta.estado === 'PENDIENTE' && (
+                                <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'pago' })} className="btn btn--ghost btn--sm">Informar Pago</button><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'descargo' })} className="btn btn--primary btn--sm" style={{borderRadius: '4px'}}>Descargo</button></div>
+                              )}
+                              {tramiteActivo?.id === acta.id && (
+                                <form onSubmit={manejarEnvioTramite} style={{marginTop: '15px', paddingTop: '15px', borderTop: '1px solid var(--linea)'}}>
+                                  <input type="hidden" name="infraccionId" value={acta.id} />
+                                  <input type="hidden" name="tipo" value={tramiteActivo.tipo} />
+                                  
+                                  {tramiteActivo.tipo === 'pago' ? (
+                                    <>
+                                      <div style={{background: 'rgba(0, 178, 214, 0.08)', border: '1px solid var(--celeste-loreto)', padding: '16px', borderRadius: '4px', marginBottom: '16px', fontSize: '14px'}}>
+                                        <h4 style={{fontSize: '15px', margin: '0 0 10px 0', color: 'var(--azul-loreto)'}}>Datos para transferencia bancaria</h4>
+                                        <p style={{margin: '0 0 5px 0'}}><strong>Titular:</strong> Municipalidad de Loreto - Santiago del Estero</p>
+                                        <p style={{margin: '0 0 5px 0'}}><strong>Banco:</strong> Banco Santiago del Estero</p>
+                                        <p style={{margin: '0 0 5px 0'}}><strong>N° de Cuenta:</strong> 12000000001243138</p>
+                                        <p style={{margin: '0 0 5px 0'}}><strong>CBU:</strong> 32101205300000012431389</p>
+                                        <p style={{margin: '0'}}><strong>ALIAS:</strong> LoretoRecaudacion</p>
+                                      </div>
+                                      <div className="field"><label>Monto transferido ($)</label><input type="number" name="monto" required /></div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="field"><label>Nombre Completo</label><input type="text" name="nombre" placeholder="Ej: Juan Perez" required /></div>
+                                      <div className="field"><label>Correo Electrónico</label><input type="email" name="email" placeholder="Para recibir notificaciones" required /></div>
+                                      <div className="field"><label>Motivo de defensa</label><textarea name="motivo" rows={3} required></textarea></div>
+                                    </>
+                                  )}
+                                  <div className="field">
+                                    <label>Adjuntar comprobante (PDF, JPG, PNG)</label>
+                                    <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required />
+                                  </div>
+                                  <button type="submit" disabled={enviando} className="btn btn--primary btn--block">{enviando ? 'Enviando...' : 'Subir Documentación'}</button>
+                                </form>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                   </div>
@@ -436,6 +443,13 @@ export default function JuzgadoFaltasUnificado() {
                     <div style={{background: 'var(--papel)', padding: '24px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '24px'}}>
                       <h3 style={{fontSize: '16px', marginBottom: '16px'}}>Cargar Nueva Infracción</h3>
                       <form onSubmit={manejarCrearActa} style={{display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '150px'}}>
+                          <label>Origen del Acta</label>
+                          <select value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value)}>
+                            <option value="TRANSITO">Dirección de Tránsito</option>
+                            <option value="BROMATOLOGIA">Bromatología / Calidad de Vida</option>
+                          </select>
+                        </div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '90px'}}><label>N° Acta</label><input type="text" value={nuevoNroActa} onChange={(e) => setNuevoNroActa(e.target.value)} required /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '130px'}}><label>Nombre Infractor</label><input type="text" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} required /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '110px'}}><label>DNI</label><input type="text" value={nuevoDni} onChange={(e) => setNuevoDni(e.target.value)} required /></div>
@@ -495,21 +509,24 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* TABLA DE ACTAS */}
+                        {/* TABLA DE ACTAS CON ORÍGENES */}
                         {vista === 'admin_actas' && (
                           <table className="admin-table">
-                            <thead><tr><th>N° Acta</th><th>DNI Titular</th><th>Estado</th><th>Monto</th><th>Acción</th></tr></thead>
+                            <thead><tr><th>N° Acta</th><th>Dirección</th><th>DNI Titular</th><th>Estado</th><th>Monto</th><th>Acción</th></tr></thead>
                             <tbody>
-                              {datosAdmin.map(item => (
+                              {datosAdmin.map(item => {
+                                const esBroma = item.tipoInfraccion === 'BROMATOLOGIA';
+                                return (
                                 <tr key={item.id}>
                                   <td><strong>{item.nroActa}</strong></td>
+                                  <td><span className="badge" style={{background: esBroma ? 'rgba(16, 185, 129, 0.1)' : 'rgba(11, 74, 130, 0.1)', color: esBroma ? '#047857' : 'var(--azul-loreto)'}}>{esBroma ? 'Bromatología' : 'Tránsito'}</span></td>
                                   <td>{item.dniTitular}</td>
                                   <td><span className="badge" style={{background: item.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: item.estado === 'PENDIENTE' ? '#B45309' : '#047857'}}>{item.estado}</span></td>
                                   <td>${item.monto}</td>
                                   <td><button onClick={() => manejarEliminarDato(item.id, 'acta')} className="btn btn--danger btn--sm" style={{padding: '6px 10px', fontSize: '12.5px'}}>Eliminar</button></td>
                                 </tr>
-                              ))}
-                              {datosAdmin.length === 0 && (<tr><td colSpan={5} style={{textAlign: 'center', padding: '40px'}}>No hay registros.</td></tr>)}
+                              )})}
+                              {datosAdmin.length === 0 && (<tr><td colSpan={6} style={{textAlign: 'center', padding: '40px'}}>No hay registros.</td></tr>)}
                             </tbody>
                           </table>
                         )}

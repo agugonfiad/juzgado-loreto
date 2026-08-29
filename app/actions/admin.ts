@@ -63,30 +63,39 @@ export async function conciliarPago(id: string, nuevoEstado: string) {
   } catch (error) { return { success: false, error: "Fallo al actualizar" } }
 }
 
-export async function crearActa(datos: { nroActa: string, nombreTitular: string, dniTitular: string, monto: number, lugar: string, articulo: string, inspector: string }) {
+export async function crearActa(data: {
+  nroActa: string
+  nombreTitular: string
+  dniTitular: string
+  monto: number
+  lugar?: string
+  articulo?: string
+  inspector?: string
+  tipoInfraccion?: 'TRANSITO' | 'BROMATOLOGIA'
+}) {
   try {
-    // El sistema genera la fecha actual y calcula 5 días de plazo automáticamente
-    const hoy = new Date();
-    const fechaPlazo = new Date(hoy);
-    fechaPlazo.setDate(fechaPlazo.getDate() + 5);
+    const existe = await prisma.infraccion.findUnique({ where: { nroActa: data.nroActa } })
+    if (existe) return { success: false, error: "El número de acta ya existe en el sistema." }
+
+    const plazo = new Date()
+    plazo.setDate(plazo.getDate() + 5)
 
     await prisma.infraccion.create({
       data: {
-        nroActa: datos.nroActa,
-        nombreTitular: datos.nombreTitular,
-        dniTitular: datos.dniTitular,
-        monto: datos.monto,
-        lugar: datos.lugar,
-        articulo: datos.articulo,
-        inspector: datos.inspector,
-        estado: 'PENDIENTE',
-        fechaInfraccion: hoy,
-        plazoDescargo: fechaPlazo // Dato inyectado sin molestar al usuario
+        nroActa: data.nroActa,
+        nombreTitular: data.nombreTitular,
+        dniTitular: data.dniTitular,
+        monto: data.monto,
+        lugar: data.lugar,
+        articulo: data.articulo,
+        inspector: data.inspector,
+        tipoInfraccion: data.tipoInfraccion || 'TRANSITO',
+        plazoDescargo: plazo
       }
     })
     return { success: true }
-  } catch (error: any) { 
-    return { success: false, error: "Error al crear: " + error.message } 
+  } catch (error: any) {
+    return { success: false, error: error.message }
   }
 }
 

@@ -139,4 +139,46 @@ export async function eliminarActa(id: string) {
   } catch (error: any) {
     return { success: false, error: "Error de servidor: " + error.message }
   }
+}export async function obtenerUsuariosAdmin() {
+  try {
+    return await prisma.usuario.findMany({
+      select: { id: true, nombre: true, email: true, rol: true, activo: true, creadoEn: true },
+      orderBy: { creadoEn: 'desc' }
+    })
+  } catch (error) {
+    return []
+  }
+}
+
+export async function crearUsuarioAdmin(data: { nombre: string, email: string, rol: any }) {
+  try {
+    const existe = await prisma.usuario.findUnique({ where: { email: data.email } })
+    if (existe) return { success: false, error: "El correo ya está registrado." }
+
+    // La contraseña por defecto para el equipo será Loreto2026!
+    const passwordEncriptada = await hash("Loreto2026!", 10)
+    await prisma.usuario.create({
+      data: {
+        nombre: data.nombre,
+        email: data.email,
+        rol: data.rol,
+        password: passwordEncriptada
+      }
+    })
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+}
+
+export async function toggleEstadoUsuario(id: string, estadoActual: boolean) {
+  try {
+    await prisma.usuario.update({
+      where: { id },
+      data: { activo: !estadoActual } // Si estaba activo lo apaga, y viceversa
+    })
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
 }

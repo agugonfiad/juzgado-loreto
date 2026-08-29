@@ -3,11 +3,11 @@
 import { useState } from "react"
 import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano } from "./actions/subidas"
-import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa } from "./actions/admin"
+import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario } from "./actions/admin"
 
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
-  const [vista, setVista] = useState<'publica' | 'admin_actas' | 'admin_descargos' | 'admin_pagos'>('publica')
+  const [vista, setVista] = useState<'publica' | 'admin_actas' | 'admin_descargos' | 'admin_pagos' | 'admin_usuarios'>('publica')
 
   const [autenticado, setAutenticado] = useState(false)
   const [email, setEmail] = useState("")
@@ -28,18 +28,14 @@ export default function JuzgadoFaltasUnificado() {
   const [tramiteActivo, setTramiteActivo] = useState<{ id: string, tipo: 'pago' | 'descargo' } | null>(null)
   const [enviando, setEnviando] = useState(false)
 
-  const [nuevoNroActa, setNuevoNroActa] = useState("")
-  const [nuevoNombre, setNuevoNombre] = useState("")
-  const [nuevoDni, setNuevoDni] = useState("")
-  const [nuevoLugar, setNuevoLugar] = useState("")
-  const [nuevoArticulo, setNuevoArticulo] = useState("")
-  const [nuevoInspector, setNuevoInspector] = useState("")
-  const [nuevoMonto, setNuevoMonto] = useState("")
-  const [guardandoActa, setGuardandoActa] = useState(false)
+  // Estados para Actas
+  const [nuevoNroActa, setNuevoNroActa] = useState(""); const [nuevoNombre, setNuevoNombre] = useState(""); const [nuevoDni, setNuevoDni] = useState(""); const [nuevoLugar, setNuevoLugar] = useState(""); const [nuevoArticulo, setNuevoArticulo] = useState(""); const [nuevoInspector, setNuevoInspector] = useState(""); const [nuevoMonto, setNuevoMonto] = useState(""); const [guardandoActa, setGuardandoActa] = useState(false);
+
+  // Estados para Usuarios
+  const [nuevoUsuarioNombre, setNuevoUsuarioNombre] = useState(""); const [nuevoUsuarioEmail, setNuevoUsuarioEmail] = useState(""); const [nuevoUsuarioRol, setNuevoUsuarioRol] = useState("ADMINISTRATIVO"); const [guardandoUsuario, setGuardandoUsuario] = useState(false);
 
   const manejarBusqueda = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setBuscando(true); setMensaje(""); setTramiteActivo(null);
+    e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null);
     const respuesta = await buscarInfraccionPorDni(dni)
     if (respuesta.success && respuesta.data) {
       setResultados(respuesta.data)
@@ -49,8 +45,7 @@ export default function JuzgadoFaltasUnificado() {
   }
 
   const manejarEnvioTramite = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setEnviando(true)
+    e.preventDefault(); setEnviando(true);
     const formData = new FormData(e.currentTarget)
     const respuesta = await procesarTramiteCiudadano(formData)
     if (respuesta.success) {
@@ -70,7 +65,6 @@ export default function JuzgadoFaltasUnificado() {
     setUsuario(auth.usuario)
     setAutenticado(true)
     
-    // Redirección inteligente según el rol del empleado
     let vistaInicial = 'admin_actas'
     if (auth.usuario.rol === 'LETRADO') vistaInicial = 'admin_descargos'
     if (auth.usuario.rol === 'CONTABLE') vistaInicial = 'admin_pagos'
@@ -84,17 +78,14 @@ export default function JuzgadoFaltasUnificado() {
     if (vistaDestino === 'admin_actas') setDatosAdmin(await obtenerActasAdmin())
     if (vistaDestino === 'admin_descargos') setDatosAdmin(await obtenerDescargosAdmin())
     if (vistaDestino === 'admin_pagos') setDatosAdmin(await obtenerPagosAdmin())
+    if (vistaDestino === 'admin_usuarios') setDatosAdmin(await obtenerUsuariosAdmin())
     setCargandoAdmin(false)
   }
 
-  const cambiarVistaAdmin = (nuevaVista: string) => {
-    setVista(nuevaVista as any)
-    cargarDatosPanel(nuevaVista)
-  }
+  const cambiarVistaAdmin = (nuevaVista: string) => { setVista(nuevaVista as any); cargarDatosPanel(nuevaVista); }
 
   const manejarCrearActa = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setGuardandoActa(true)
+    e.preventDefault(); setGuardandoActa(true);
     const res = await crearActa({ nroActa: nuevoNroActa, nombreTitular: nuevoNombre, dniTitular: nuevoDni, monto: Number(nuevoMonto), lugar: nuevoLugar, articulo: nuevoArticulo, inspector: nuevoInspector })
     if (res.success) {
       setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto("");
@@ -106,8 +97,7 @@ export default function JuzgadoFaltasUnificado() {
   const manejarEliminarActa = async (id: string) => {
     if (!confirm("¿Seguro que desea ELIMINAR esta acta?")) return
     const res = await eliminarActa(id)
-    if (res.success) cargarDatosPanel(vista) 
-    else alert(res.error)
+    if (res.success) cargarDatosPanel(vista); else alert(res.error);
   }
 
   const auditarDescargo = async (estado: string) => {
@@ -119,18 +109,22 @@ export default function JuzgadoFaltasUnificado() {
   }
 
   const auditarPago = async (estado: string) => {
-    setProcesando(true)
-    await conciliarPago(itemModal.id, estado)
-    setItemModal(null); setProcesando(false);
-    cargarDatosPanel(vista)
+    setProcesando(true); await conciliarPago(itemModal.id, estado);
+    setItemModal(null); setProcesando(false); cargarDatosPanel(vista);
   }
 
-  const forzarAltaAdmin = async () => {
-    const res = await inicializarSistema()
-    alert(res.mensaje || res.error)
+  const manejarCrearUsuario = async (e: React.FormEvent) => {
+    e.preventDefault(); setGuardandoUsuario(true);
+    const res = await crearUsuarioAdmin({ nombre: nuevoUsuarioNombre, email: nuevoUsuarioEmail, rol: nuevoUsuarioRol })
+    if (res.success) {
+      setNuevoUsuarioNombre(""); setNuevoUsuarioEmail(""); setNuevoUsuarioRol("ADMINISTRATIVO");
+      cargarDatosPanel(vista)
+    } else { alert(res.error) }
+    setGuardandoUsuario(false)
   }
 
-  // Filtros de permisos
+  const forzarAltaAdmin = async () => { const res = await inicializarSistema(); alert(res.mensaje || res.error); }
+
   const rol = usuario?.rol || ''
   const puedeActas = ['SUPERADMIN', 'JUEZ', 'ADMINISTRATIVO'].includes(rol)
   const puedeDescargos = ['SUPERADMIN', 'JUEZ', 'LETRADO'].includes(rol)
@@ -150,7 +144,7 @@ export default function JuzgadoFaltasUnificado() {
         .hero { padding: 64px 0 56px; background: radial-gradient(circle at 88% 15%, rgba(0, 178, 214, 0.08), transparent 45%), var(--papel-alto); border-bottom: 1px solid var(--linea); } .hero .wrap { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 56px; align-items: center; } .hero .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--celeste-loreto); margin-bottom: 14px; font-weight: 500; } .hero h1 { font-size: clamp(30px, 4vw, 44px); max-width: 14ch; } .hero p.lead { font-size: 17.5px; color: var(--tinta-suave); max-width: 46ch; margin: 14px 0 28px; }
         section { padding: 72px 0; } .section-head { max-width: 60ch; margin-bottom: 40px; } .section-head .kicker { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin-bottom: 10px; font-weight: 500; }
         .art-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--linea); border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; } .art-card { background: var(--papel); padding: 30px 26px; } 
-        .consulta-panel { background: var(--azul-loreto); color: #F8F9FA; border-radius: var(--radius-m); padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; } .consulta-form { background: var(--papel); border-radius: var(--radius-m); padding: 26px; color: var(--tinta); } .field { margin-bottom: 16px; } .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--tinta); } .field input, .field textarea { width: 100%; padding: 11px 12px; border: 1.5px solid var(--linea); border-radius: var(--radius-s); font-family: 'IBM Plex Mono', monospace; font-size: 14px; background: #fff; color: var(--tinta); }
+        .consulta-panel { background: var(--azul-loreto); color: #F8F9FA; border-radius: var(--radius-m); padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; } .consulta-form { background: var(--papel); border-radius: var(--radius-m); padding: 26px; color: var(--tinta); } .field { margin-bottom: 16px; } .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--tinta); } .field input, .field textarea, .field select { width: 100%; padding: 11px 12px; border: 1.5px solid var(--linea); border-radius: var(--radius-s); font-family: 'IBM Plex Mono', monospace; font-size: 14px; background: #fff; color: var(--tinta); }
         .admin-table { width: 100%; text-align: left; border-collapse: collapse; background: #fff; border-radius: var(--radius-m); overflow: hidden; border: 1px solid var(--linea); box-shadow: 0 2px 8px rgba(0,0,0,0.05); } .admin-table th { background: var(--papel-alto); padding: 16px; font-weight: 600; border-bottom: 2px solid var(--linea); font-size: 14px; color: var(--azul-loreto); } .admin-table td { padding: 16px; border-bottom: 1px solid var(--linea); font-size: 14.5px; } .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; } .modal-content { background: var(--papel); padding: 32px; border-radius: var(--radius-m); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .contacto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; } .contacto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 20px; } .contacto-list li { display: flex; gap: 14px; align-items: flex-start; } .contacto-list .ico { width: 36px; height: 36px; border-radius: 50%; background: rgba(235, 33, 40, 0.1); color: var(--rojo-loreto); display: flex; align-items: center; justify-content: center; flex: none; } .contacto-list strong { display: block; font-size: 14px; color: var(--azul-loreto); } .contacto-list span, .contacto-list a { font-size: 14.5px; color: var(--tinta-suave); text-decoration: none; } .contacto-list a:hover { color: var(--rojo-loreto); text-decoration: underline; } .map-frame { border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; height: 360px; } .map-frame iframe { width: 100%; height: 100%; border: 0; }
@@ -183,6 +177,7 @@ export default function JuzgadoFaltasUnificado() {
                   {puedeActas && <li><a className={vista === 'admin_actas' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_actas')}>Gestión Actas</a></li>}
                   {puedeDescargos && <li><a className={vista === 'admin_descargos' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_descargos')}>Auditoría Descargos</a></li>}
                   {puedePagos && <li><a className={vista === 'admin_pagos' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_pagos')}>Conciliación BSE</a></li>}
+                  {rol === 'SUPERADMIN' && <li><a className={vista === 'admin_usuarios' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_usuarios')}>Personal</a></li>}
                 </ul>
               )}
             </nav>
@@ -308,8 +303,31 @@ export default function JuzgadoFaltasUnificado() {
                 </div>
               ) : (
                 <>
-                  <div className="section-head"><p className="kicker">Panel Interno de Trabajo</p><h2>{vista === 'admin_actas' ? 'Gestión General de Actas' : vista === 'admin_descargos' ? 'Auditoría de Descargos Presentados' : 'Conciliación de Transferencias BSE'}</h2></div>
+                  <div className="section-head"><p className="kicker">Panel Interno de Trabajo</p><h2>{vista === 'admin_actas' ? 'Gestión General de Actas' : vista === 'admin_descargos' ? 'Auditoría de Descargos Presentados' : vista === 'admin_usuarios' ? 'Gestión de Personal' : 'Conciliación de Transferencias BSE'}</h2></div>
                   
+                  {/* SECCIÓN CREAR USUARIO (Solo SuperAdmin) */}
+                  {vista === 'admin_usuarios' && (
+                    <div style={{background: 'var(--papel)', padding: '24px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '24px'}}>
+                      <h3 style={{fontSize: '16px', marginBottom: '16px'}}>Dar de alta a nuevo empleado</h3>
+                      <form onSubmit={manejarCrearUsuario} style={{display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
+                        <div className="field" style={{marginBottom: 0, flex: 1}}><label>Nombre Completo</label><input type="text" value={nuevoUsuarioNombre} onChange={(e) => setNuevoUsuarioNombre(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1}}><label>Correo Electrónico</label><input type="email" value={nuevoUsuarioEmail} onChange={(e) => setNuevoUsuarioEmail(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1}}>
+                          <label>Rol Asignado</label>
+                          <select value={nuevoUsuarioRol} onChange={(e) => setNuevoUsuarioRol(e.target.value)}>
+                            <option value="JUEZ">Juez de Faltas</option>
+                            <option value="LETRADO">Secretario Letrado</option>
+                            <option value="CONTABLE">Contadora</option>
+                            <option value="ADMINISTRATIVO">Mesa de Entradas</option>
+                          </select>
+                        </div>
+                        <button type="submit" disabled={guardandoUsuario} className="btn btn--primary">{guardandoUsuario ? 'Creando...' : 'Crear Cuenta'}</button>
+                      </form>
+                      <p style={{fontSize: '12px', color: 'var(--tinta-suave)', marginTop: '10px'}}>Nota: La contraseña inicial para todos los empleados nuevos será: <strong>Loreto2026!</strong></p>
+                    </div>
+                  )}
+
+                  {/* SECCIÓN CREAR ACTA */}
                   {vista === 'admin_actas' && (
                     <div style={{background: 'var(--papel)', padding: '24px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '24px'}}>
                       <h3 style={{fontSize: '16px', marginBottom: '16px'}}>Cargar Nueva Infracción</h3>
@@ -331,32 +349,53 @@ export default function JuzgadoFaltasUnificado() {
                       <table className="admin-table">
                         <thead>
                           <tr>
-                            <th>{vista === 'admin_actas' ? 'N° Acta' : 'Expediente / Acta'}</th>
-                            <th>{vista === 'admin_actas' ? 'DNI Titular' : 'Estado'}</th>
-                            <th>{vista === 'admin_actas' ? 'Monto' : 'Fecha'}</th>
+                            <th>{vista === 'admin_usuarios' ? 'Nombre / Correo' : vista === 'admin_actas' ? 'N° Acta' : 'Expediente / Acta'}</th>
+                            <th>{vista === 'admin_usuarios' ? 'Rol' : vista === 'admin_actas' ? 'DNI Titular' : 'Estado'}</th>
+                            <th>{vista === 'admin_usuarios' ? 'Estado' : vista === 'admin_actas' ? 'Monto' : 'Fecha'}</th>
                             <th>Acción</th>
                           </tr>
                         </thead>
                         <tbody>
                           {datosAdmin.map((item: any) => (
                             <tr key={item.id}>
-                              <td><strong>{item.nroActa || item.expedienteNro || item.infraccion?.nroActa}</strong></td>
-                              <td>
-                                <span className="badge" style={{
-                                  background: item.estado === 'EXTEMPORANEO' ? 'rgba(239, 68, 68, 0.15)' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)'),
-                                  color: item.estado === 'EXTEMPORANEO' ? '#DC2626' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? '#B45309' : '#047857')
-                                }}>
-                                  {item.estado || item.dniTitular}
-                                </span>
-                              </td>
-                              <td>{item.monto ? `$${item.monto}` : new Date(item.creadoEn || item.fechaPago || item.fechaInfraccion).toLocaleDateString('es-AR')}</td>
-                              <td>
-                                {vista !== 'admin_actas' ? (
-                                  <button onClick={() => setItemModal(item)} className="btn btn--ghost btn--sm">Ver Detalles</button>
-                                ) : (
-                                  <button onClick={() => manejarEliminarActa(item.id)} className="btn btn--danger btn--sm" style={{padding: '6px 10px', fontSize: '12.5px'}}>Eliminar</button>
-                                )}
-                              </td>
+                              {vista === 'admin_usuarios' ? (
+                                <>
+                                  <td><strong>{item.nombre}</strong><br/><span style={{fontSize: '12px', color: 'var(--tinta-suave)'}}>{item.email}</span></td>
+                                  <td><span className="badge" style={{background: 'rgba(11, 74, 130, 0.1)', color: 'var(--azul-loreto)'}}>{item.rol}</span></td>
+                                  <td>
+                                    <span className="badge" style={{background: item.activo ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: item.activo ? '#047857' : '#DC2626'}}>
+                                      {item.activo ? 'Activo' : 'Suspendido'}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    {item.rol !== 'SUPERADMIN' && (
+                                      <button onClick={async () => { await toggleEstadoUsuario(item.id, item.activo); cargarDatosPanel('admin_usuarios'); }} className="btn btn--ghost btn--sm">
+                                        {item.activo ? 'Suspender' : 'Reactivar'}
+                                      </button>
+                                    )}
+                                  </td>
+                                </>
+                              ) : (
+                                <>
+                                  <td><strong>{item.nroActa || item.expedienteNro || item.infraccion?.nroActa}</strong></td>
+                                  <td>
+                                    <span className="badge" style={{
+                                      background: item.estado === 'EXTEMPORANEO' ? 'rgba(239, 68, 68, 0.15)' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)'),
+                                      color: item.estado === 'EXTEMPORANEO' ? '#DC2626' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? '#B45309' : '#047857')
+                                    }}>
+                                      {item.estado || item.dniTitular}
+                                    </span>
+                                  </td>
+                                  <td>{item.monto ? `$${item.monto}` : new Date(item.creadoEn || item.fechaPago || item.fechaInfraccion).toLocaleDateString('es-AR')}</td>
+                                  <td>
+                                    {vista !== 'admin_actas' ? (
+                                      <button onClick={() => setItemModal(item)} className="btn btn--ghost btn--sm">Ver Detalles</button>
+                                    ) : (
+                                      <button onClick={() => manejarEliminarActa(item.id)} className="btn btn--danger btn--sm" style={{padding: '6px 10px', fontSize: '12.5px'}}>Eliminar</button>
+                                    )}
+                                  </td>
+                                </>
+                              )}
                             </tr>
                           ))}
                           {datosAdmin.length === 0 && (<tr><td colSpan={4} style={{textAlign: 'center', padding: '40px'}}>No hay registros.</td></tr>)}

@@ -18,7 +18,11 @@ export async function procesarTramiteCiudadano(formData: FormData) {
 
     let urlArchivo = ""
     if (archivo && archivo.size > 0) {
-      const blob = await put(archivo.name, archivo, { access: 'public' })
+      // CORREGIDO: Se agregó addRandomSuffix para evitar choques de nombres
+      const blob = await put(archivo.name, archivo, { 
+        access: 'public',
+        addRandomSuffix: true
+      })
       urlArchivo = blob.url
     } else {
       return { success: false, error: "Debe adjuntar un documento válido." }
@@ -38,7 +42,6 @@ export async function procesarTramiteCiudadano(formData: FormData) {
 
       const textoEstructurado = `TITULAR: ${nombre}\nEMAIL: ${email}\n\nDEFENSA:\n${motivo}`
 
-      // CORREGIDO: Se agregó expedienteNro a la carga de la base de datos
       await prisma.descargo.create({
         data: {
           infraccionId,

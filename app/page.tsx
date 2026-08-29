@@ -343,9 +343,7 @@ export default function JuzgadoFaltasUnificado() {
                     <div className="field"><label>Contraseña</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
                     <button type="submit" className="btn btn--primary btn--block" style={{borderRadius: '4px'}}>Ingresar al Sistema</button>
                   </form>
-                  <div style={{textAlign: 'center', marginTop: '20px'}}>
-                    <button onClick={forzarAltaAdmin} style={{background: 'none', border: 'none', color: 'var(--tinta-suave)', textDecoration: 'underline', fontSize: '12px', cursor: 'pointer'}}>Inicializar mi cuenta (Solo 1ra vez)</button>
-                  </div>
+                  
                 </div>
               ) : (
                 <>

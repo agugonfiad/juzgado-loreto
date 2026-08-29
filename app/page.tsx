@@ -231,7 +231,6 @@ export default function JuzgadoFaltasUnificado() {
               </div>
             </section>
 
-            {/* SECCIÓN AUTORIDADES */}
             <section id="autoridades" style={{background: 'var(--papel-alto)', borderBottom: '1px solid var(--linea)'}}>
               <div className="wrap">
                 <div className="section-head">
@@ -328,7 +327,18 @@ export default function JuzgadoFaltasUnificado() {
                                 <input type="hidden" name="tipo" value={tramiteActivo.tipo} />
                                 
                                 {tramiteActivo.tipo === 'pago' ? (
-                                  <div className="field"><label>Monto transferido ($)</label><input type="number" name="monto" required /></div>
+                                  <>
+                                    {/* CUADRO INFORMATIVO DE DATOS BANCARIOS */}
+                                    <div style={{background: 'rgba(0, 178, 214, 0.08)', border: '1px solid var(--celeste-loreto)', padding: '16px', borderRadius: '4px', marginBottom: '16px', fontSize: '14px'}}>
+                                      <h4 style={{fontSize: '15px', margin: '0 0 10px 0', color: 'var(--azul-loreto)'}}>Datos para transferencia bancaria</h4>
+                                      <p style={{margin: '0 0 5px 0'}}><strong>Titular:</strong> Municipalidad de Loreto - Santiago del Estero</p>
+                                      <p style={{margin: '0 0 5px 0'}}><strong>Banco:</strong> Banco Santiago del Estero</p>
+                                      <p style={{margin: '0 0 5px 0'}}><strong>N° de Cuenta:</strong> 12000000001243138</p>
+                                      <p style={{margin: '0 0 5px 0'}}><strong>CBU:</strong> 32101205300000012431389</p>
+                                      <p style={{margin: '0'}}><strong>ALIAS:</strong> LoretoRecaudacion</p>
+                                    </div>
+                                    <div className="field"><label>Monto transferido ($)</label><input type="number" name="monto" required /></div>
+                                  </>
                                 ) : (
                                   <>
                                     <div className="field"><label>Nombre Completo</label><input type="text" name="nombre" placeholder="Ej: Juan Perez" required /></div>
@@ -337,7 +347,7 @@ export default function JuzgadoFaltasUnificado() {
                                   </>
                                 )}
                                 <div className="field">
-                                  <label>Adjuntar archivo (PDF, JPG, PNG)</label>
+                                  <label>Adjuntar comprobante (PDF, JPG, PNG)</label>
                                   <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required />
                                 </div>
                                 <button type="submit" disabled={enviando} className="btn btn--primary btn--block">{enviando ? 'Enviando...' : 'Subir Documentación'}</button>
@@ -529,7 +539,7 @@ export default function JuzgadoFaltasUnificado() {
                   {vista === 'admin_descargos' ? (
                     <><button onClick={() => auditarDescargo('RESUELTO_A_FAVOR')} disabled={procesando} className="btn btn--success" style={{flex: 1}}>Fallo a Favor (Anular)</button><button onClick={() => auditarDescargo('RECHAZADO')} disabled={procesando} className="btn btn--danger" style={{flex: 1}}>Rechazar Descargo</button></>
                   ) : (
-                    <><button onClick={() => auditarPago('CONCILIADO')} disabled={procesando} className="btn btn--success" style={{flex: 1}}>Aprobar Pago</button><button onClick={() => auditorPago('RECHAZADO')} disabled={procesando} className="btn btn--danger" style={{flex: 1}}>Rechazar Comprobante</button></>
+                    <><button onClick={() => auditarPago('CONCILIADO')} disabled={procesando} className="btn btn--success" style={{flex: 1}}>Aprobar Pago</button><button onClick={() => auditarPago('RECHAZADO')} disabled={procesando} className="btn btn--danger" style={{flex: 1}}>Rechazar Comprobante</button></>
                   )}
                 </div>
               </div>

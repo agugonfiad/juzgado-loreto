@@ -135,8 +135,6 @@ export default function JuzgadoFaltasUnificado() {
     if (res.success) { alert("Contraseña actualizada con éxito."); setModalPassword(false); setPassActual(""); setPassNueva(""); setPassConfirmar(""); } else { alert(res.error); }
   }
 
-  const forzarAltaAdmin = async () => { const res = await inicializarSistema(); alert(res.mensaje || res.error); }
-
   const rol = usuario?.rol || ''
   const puedeActas = ['SUPERADMIN', 'JUEZ', 'ADMINISTRATIVO'].includes(rol)
   const puedeDescargos = ['SUPERADMIN', 'JUEZ', 'LETRADO'].includes(rol)
@@ -157,6 +155,12 @@ export default function JuzgadoFaltasUnificado() {
         section { padding: 72px 0; } .section-head { max-width: 60ch; margin-bottom: 40px; } .section-head .kicker { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin-bottom: 10px; font-weight: 500; }
         .art-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--linea); border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; } .art-card { background: var(--papel); padding: 30px 26px; } 
         
+        .autoridades-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .autoridad-card { background: var(--papel); padding: 28px; border-radius: var(--radius-m); border: 1px solid var(--linea); box-shadow: 0 2px 8px rgba(0,0,0,0.02); text-align: center; border-top: 4px solid var(--azul-loreto); }
+        .autoridad-card.principal { border-top-color: var(--celeste-loreto); background: radial-gradient(circle at top, rgba(0,178,214,0.04), transparent 70%), var(--papel); }
+        .autoridad-card span { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); display: block; margin-bottom: 8px; font-weight: 600; }
+        .autoridad-card h3 { font-size: 18px; color: var(--azul-loreto); margin: 0; font-family: 'Fraunces', serif; }
+
         .news-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; } 
         .news-card { background: var(--papel); padding: 20px; border-radius: var(--radius-m); border: 1px solid var(--linea); box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
         .news-card img { width: 100%; aspect-ratio: 3/2; object-fit: cover; margin-bottom: 16px; border-radius: 4px; } 
@@ -167,7 +171,7 @@ export default function JuzgadoFaltasUnificado() {
         .admin-table { width: 100%; text-align: left; border-collapse: collapse; background: #fff; border-radius: var(--radius-m); overflow: hidden; border: 1px solid var(--linea); box-shadow: 0 2px 8px rgba(0,0,0,0.05); } .admin-table th { background: var(--papel-alto); padding: 16px; font-weight: 600; border-bottom: 2px solid var(--linea); font-size: 14px; color: var(--azul-loreto); } .admin-table td { padding: 16px; border-bottom: 1px solid var(--linea); font-size: 14.5px; } .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; } .modal-content { background: var(--papel); padding: 32px; border-radius: var(--radius-m); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .contacto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; } .contacto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 20px; } .contacto-list li { display: flex; gap: 14px; align-items: flex-start; } .contacto-list .ico { width: 36px; height: 36px; border-radius: 50%; background: rgba(235, 33, 40, 0.1); color: var(--rojo-loreto); display: flex; align-items: center; justify-content: center; flex: none; } .contacto-list strong { display: block; font-size: 14px; color: var(--azul-loreto); } .contacto-list span, .contacto-list a { font-size: 14.5px; color: var(--tinta-suave); text-decoration: none; } .contacto-list a:hover { color: var(--rojo-loreto); text-decoration: underline; } .map-frame { border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; height: 360px; } .map-frame iframe { width: 100%; height: 100%; border: 0; }
-        @media (max-width: 980px) { .contacto-grid { grid-template-columns: 1fr; } .consulta-panel { grid-template-columns: 1fr; } .hero .wrap { grid-template-columns: 1fr; } .news-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 980px) { .contacto-grid { grid-template-columns: 1fr; } .consulta-panel { grid-template-columns: 1fr; } .hero .wrap { grid-template-columns: 1fr; } .news-grid, .autoridades-grid { grid-template-columns: 1fr; } }
       `}} />
 
       <div className="topbar">
@@ -188,7 +192,7 @@ export default function JuzgadoFaltasUnificado() {
           </a>
           
           {vista === 'publica' ? (
-            <nav className="primary"><ul><li><a href="#inicio">Inicio</a></li><li><a href="#institucion">Competencia</a></li><li><a href="#noticias">Noticias</a></li><li><a href="#consulta">Trámites</a></li></ul></nav>
+            <nav className="primary"><ul><li><a href="#inicio">Inicio</a></li><li><a href="#autoridades">Autoridades</a></li><li><a href="#noticias">Noticias</a></li><li><a href="#consulta">Trámites</a></li></ul></nav>
           ) : (
             <nav className="primary">
               {autenticado && (
@@ -224,6 +228,39 @@ export default function JuzgadoFaltasUnificado() {
               <div className="wrap">
                 <div><p className="eyebrow">Municipalidad de Loreto · Provincia de Santiago del Estero</p><h1>Juzgado de Faltas Municipal de Loreto</h1><p className="lead">Consultá el estado de tus infracciones de tránsito, presentá tu descargo y gestioná tus trámites con el Juzgado desde un mismo lugar.</p><a href="#consulta" className="btn btn--primary" style={{borderRadius: '4px'}}>Consultar mi infracción</a></div>
                 <div style={{display: 'flex', justifyContent: 'center'}}><img src="/logojdf.png" alt="Sello institucional" style={{width: 'min(380px, 100%)'}} /></div>
+              </div>
+            </section>
+
+            {/* SECCIÓN AUTORIDADES */}
+            <section id="autoridades" style={{background: 'var(--papel-alto)', borderBottom: '1px solid var(--linea)'}}>
+              <div className="wrap">
+                <div className="section-head">
+                  <p className="kicker">Estructura Institucional</p>
+                  <h2>Autoridades del Juzgado</h2>
+                  <p>Conocé al equipo de magistrados y profesionales que integran la administración del Juzgado de Faltas Municipal.</p>
+                </div>
+                <div className="autoridades-grid">
+                  <div className="autoridad-card principal">
+                    <span>Juez de Faltas</span>
+                    <h3>Dr. Facundo Mansilla</h3>
+                  </div>
+                  <div className="autoridad-card">
+                    <span>Secretaria Letrada</span>
+                    <h3>Dra. Romina Casaubon</h3>
+                  </div>
+                  <div className="autoridad-card">
+                    <span>Secretario Letrado</span>
+                    <h3>Dr. Agustín González Fiad</h3>
+                  </div>
+                  <div className="autoridad-card">
+                    <span>Secretario Letrado</span>
+                    <h3>Dr. Leandro Ledesma</h3>
+                  </div>
+                  <div className="autoridad-card">
+                    <span>Contadora</span>
+                    <h3>CPN Nur Salomón</h3>
+                  </div>
+                </div>
               </div>
             </section>
             
@@ -343,13 +380,11 @@ export default function JuzgadoFaltasUnificado() {
                     <div className="field"><label>Contraseña</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
                     <button type="submit" className="btn btn--primary btn--block" style={{borderRadius: '4px'}}>Ingresar al Sistema</button>
                   </form>
-                  
                 </div>
               ) : (
                 <>
                   <div className="section-head"><p className="kicker">Panel Interno</p><h2>{vista === 'admin_actas' ? 'Gestión de Actas' : vista === 'admin_descargos' ? 'Auditoría de Descargos' : vista === 'admin_usuarios' ? 'Personal' : vista === 'admin_noticias' ? 'Portal de Noticias' : 'Conciliación BSE'}</h2></div>
                   
-                  {/* SECCIÓN CREAR NOTICIA (Solo SuperAdmin) */}
                   {vista === 'admin_noticias' && (
                     <div style={{background: 'var(--papel)', padding: '24px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '24px'}}>
                       <h3 style={{fontSize: '16px', marginBottom: '16px'}}>Publicar Nueva Noticia</h3>
@@ -362,7 +397,6 @@ export default function JuzgadoFaltasUnificado() {
                     </div>
                   )}
 
-                  {/* SECCIÓN CREAR USUARIO (Solo SuperAdmin) */}
                   {vista === 'admin_usuarios' && (
                     <div style={{background: 'var(--papel)', padding: '24px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '24px'}}>
                       <h3 style={{fontSize: '16px', marginBottom: '16px'}}>Dar de alta a nuevo empleado</h3>
@@ -383,7 +417,6 @@ export default function JuzgadoFaltasUnificado() {
                     </div>
                   )}
 
-                  {/* SECCIÓN CREAR ACTA */}
                   {vista === 'admin_actas' && (
                     <div style={{background: 'var(--papel)', padding: '24px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '24px'}}>
                       <h3 style={{fontSize: '16px', marginBottom: '16px'}}>Cargar Nueva Infracción</h3>
@@ -456,7 +489,6 @@ export default function JuzgadoFaltasUnificado() {
         )}
       </main>
 
-      {/* VENTANAS MODALES */}
       {modalPassword && (
         <div className="modal-overlay" onClick={() => setModalPassword(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '400px'}}>
@@ -497,7 +529,7 @@ export default function JuzgadoFaltasUnificado() {
                   {vista === 'admin_descargos' ? (
                     <><button onClick={() => auditarDescargo('RESUELTO_A_FAVOR')} disabled={procesando} className="btn btn--success" style={{flex: 1}}>Fallo a Favor (Anular)</button><button onClick={() => auditarDescargo('RECHAZADO')} disabled={procesando} className="btn btn--danger" style={{flex: 1}}>Rechazar Descargo</button></>
                   ) : (
-                    <><button onClick={() => auditarPago('CONCILIADO')} disabled={procesando} className="btn btn--success" style={{flex: 1}}>Aprobar Pago</button><button onClick={() => auditarPago('RECHAZADO')} disabled={procesando} className="btn btn--danger" style={{flex: 1}}>Rechazar Comprobante</button></>
+                    <><button onClick={() => auditarPago('CONCILIADO')} disabled={procesando} className="btn btn--success" style={{flex: 1}}>Aprobar Pago</button><button onClick={() => auditorPago('RECHAZADO')} disabled={procesando} className="btn btn--danger" style={{flex: 1}}>Rechazar Comprobante</button></>
                   )}
                 </div>
               </div>

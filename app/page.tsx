@@ -29,11 +29,17 @@ export default function JuzgadoFaltasUnificado() {
   const [tramiteActivo, setTramiteActivo] = useState<{ id: string, tipo: 'pago' | 'descargo' } | null>(null)
   const [enviando, setEnviando] = useState(false)
 
-  // Estados Formularios
+  // Estados Formularios Carga
   const [nuevoNroActa, setNuevoNroActa] = useState(""); const [nuevoNombre, setNuevoNombre] = useState(""); const [nuevoDni, setNuevoDni] = useState(""); const [nuevoLugar, setNuevoLugar] = useState(""); const [nuevoArticulo, setNuevoArticulo] = useState(""); const [nuevoInspector, setNuevoInspector] = useState(""); const [nuevoMonto, setNuevoMonto] = useState(""); const [nuevoTipo, setNuevoTipo] = useState("TRANSITO"); const [guardandoActa, setGuardandoActa] = useState(false);
   const [nuevoUsuarioNombre, setNuevoUsuarioNombre] = useState(""); const [nuevoUsuarioEmail, setNuevoUsuarioEmail] = useState(""); const [nuevoUsuarioRol, setNuevoUsuarioRol] = useState("ADMINISTRATIVO"); const [guardandoUsuario, setGuardandoUsuario] = useState(false);
-  
   const [modalPassword, setModalPassword] = useState(false); const [passActual, setPassActual] = useState(""); const [passNueva, setPassNueva] = useState(""); const [passConfirmar, setPassConfirmar] = useState(""); const [cambiandoPass, setCambiandoPass] = useState(false);
+
+  // Estados Buscador Avanzado (Multicriterio)
+  const [filtroActa, setFiltroActa] = useState("")
+  const [filtroDniAdmin, setFiltroDniAdmin] = useState("")
+  const [filtroInspector, setFiltroInspector] = useState("")
+  const [filtroDireccion, setFiltroDireccion] = useState("")
+  const [filtroEstado, setFiltroEstado] = useState("")
 
   useEffect(() => { obtenerNoticiasAdmin().then(setNoticiasPublicas) }, [])
 
@@ -141,6 +147,18 @@ export default function JuzgadoFaltasUnificado() {
     if (res.success) { alert("Contraseña actualizada con éxito."); setModalPassword(false); setPassActual(""); setPassNueva(""); setPassConfirmar(""); } else { alert(res.error); }
   }
 
+  // Lógica del filtro en tiempo real para Actas
+  const actasFiltradas = datosAdmin.filter(item => {
+    if (vista !== 'admin_actas') return true;
+    const coincideActa = item.nroActa?.toLowerCase().includes(filtroActa.toLowerCase());
+    const coincideDni = item.dniTitular?.includes(filtroDniAdmin);
+    const coincideInspector = item.inspector?.toLowerCase().includes(filtroInspector.toLowerCase());
+    const coincideDireccion = filtroDireccion ? item.tipoInfraccion === filtroDireccion : true;
+    const coincideEstado = filtroEstado ? item.estado === filtroEstado : true;
+    
+    return coincideActa && coincideDni && coincideInspector && coincideDireccion && coincideEstado;
+  });
+
   const rol = usuario?.rol || ''
   const puedeActas = ['SUPERADMIN', 'JUEZ', 'ADMINISTRATIVO'].includes(rol)
   const puedeDescargos = ['SUPERADMIN', 'JUEZ', 'LETRADO'].includes(rol)
@@ -174,7 +192,10 @@ export default function JuzgadoFaltasUnificado() {
         .news-card p { font-size: 14px; color: var(--tinta-suave); line-height: 1.6; white-space: pre-wrap; margin: 0; }
         
         .consulta-panel { background: var(--azul-loreto); color: #F8F9FA; border-radius: var(--radius-m); padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; } .consulta-form { background: var(--papel); border-radius: var(--radius-m); padding: 26px; color: var(--tinta); } .field { margin-bottom: 16px; } .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--tinta); } .field input, .field textarea, .field select { width: 100%; padding: 11px 12px; border: 1.5px solid var(--linea); border-radius: var(--radius-s); font-family: 'IBM Plex Mono', monospace; font-size: 14px; background: #fff; color: var(--tinta); }
+        
+        .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; align-items: end; background: var(--papel); padding: 20px; border-radius: var(--radius-m); border: 1px solid var(--linea); margin-bottom: 24px; box-shadow: 0 2px 6px rgba(0,0,0,0.02); }
         .admin-table { width: 100%; text-align: left; border-collapse: collapse; background: #fff; border-radius: var(--radius-m); overflow: hidden; border: 1px solid var(--linea); box-shadow: 0 2px 8px rgba(0,0,0,0.05); } .admin-table th { background: var(--papel-alto); padding: 16px; font-weight: 600; border-bottom: 2px solid var(--linea); font-size: 14px; color: var(--azul-loreto); } .admin-table td { padding: 16px; border-bottom: 1px solid var(--linea); font-size: 14.5px; } .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
+        
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; } .modal-content { background: var(--papel); padding: 32px; border-radius: var(--radius-m); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .contacto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; } .contacto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 20px; } .contacto-list li { display: flex; gap: 14px; align-items: flex-start; } .contacto-list .ico { width: 36px; height: 36px; border-radius: 50%; background: rgba(235, 33, 40, 0.1); color: var(--rojo-loreto); display: flex; align-items: center; justify-content: center; flex: none; } .contacto-list strong { display: block; font-size: 14px; color: var(--azul-loreto); } .contacto-list span, .contacto-list a { font-size: 14.5px; color: var(--tinta-suave); text-decoration: none; } .contacto-list a:hover { color: var(--rojo-loreto); text-decoration: underline; } .map-frame { border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; height: 360px; } .map-frame iframe { width: 100%; height: 100%; border: 0; }
         @media (max-width: 980px) { .contacto-grid { grid-template-columns: 1fr; } .consulta-panel { grid-template-columns: 1fr; } .hero .wrap { grid-template-columns: 1fr; } .news-grid, .autoridades-grid { grid-template-columns: 1fr; } }
@@ -462,9 +483,34 @@ export default function JuzgadoFaltasUnificado() {
                     </div>
                   )}
 
+                  {/* AQUÍ COMIENZA EL BUSCADOR AVANZADO (SOLO EN GESTIÓN DE ACTAS) */}
+                  {vista === 'admin_actas' && (
+                    <div className="filter-grid">
+                      <div className="field" style={{marginBottom: 0}}><label>N° Acta</label><input type="text" placeholder="Ej: 0001" value={filtroActa} onChange={e => setFiltroActa(e.target.value)} /></div>
+                      <div className="field" style={{marginBottom: 0}}><label>DNI del Titular</label><input type="text" placeholder="Buscar DNI..." value={filtroDniAdmin} onChange={e => setFiltroDniAdmin(e.target.value)} /></div>
+                      <div className="field" style={{marginBottom: 0}}><label>Inspector</label><input type="text" placeholder="Apellido..." value={filtroInspector} onChange={e => setFiltroInspector(e.target.value)} /></div>
+                      <div className="field" style={{marginBottom: 0}}>
+                        <label>Dirección</label>
+                        <select value={filtroDireccion} onChange={e => setFiltroDireccion(e.target.value)}>
+                          <option value="">Todas las áreas</option>
+                          <option value="TRANSITO">Tránsito</option>
+                          <option value="BROMATOLOGIA">Bromatología</option>
+                        </select>
+                      </div>
+                      <div className="field" style={{marginBottom: 0}}>
+                        <label>Estado</label>
+                        <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
+                          <option value="">Todos los estados</option>
+                          <option value="PENDIENTE">Pendiente</option>
+                          <option value="PRESENTADO">Presentado / En proceso</option>
+                          <option value="PAGADO">Pagado</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
                   <div style={{overflowX: 'auto'}}>
                     {cargandoAdmin ? <p style={{textAlign: 'center', padding: '40px'}}>Cargando registros...</p> : (
-                      
                       <>
                         {/* TABLA DE USUARIOS */}
                         {vista === 'admin_usuarios' && (
@@ -509,12 +555,12 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* TABLA DE ACTAS CON ORÍGENES */}
+                        {/* TABLA DE ACTAS FILTRADA */}
                         {vista === 'admin_actas' && (
                           <table className="admin-table">
                             <thead><tr><th>N° Acta</th><th>Dirección</th><th>DNI Titular</th><th>Estado</th><th>Monto</th><th>Acción</th></tr></thead>
                             <tbody>
-                              {datosAdmin.map(item => {
+                              {actasFiltradas.map((item: any) => {
                                 const esBroma = item.tipoInfraccion === 'BROMATOLOGIA';
                                 return (
                                 <tr key={item.id}>
@@ -526,7 +572,7 @@ export default function JuzgadoFaltasUnificado() {
                                   <td><button onClick={() => manejarEliminarDato(item.id, 'acta')} className="btn btn--danger btn--sm" style={{padding: '6px 10px', fontSize: '12.5px'}}>Eliminar</button></td>
                                 </tr>
                               )})}
-                              {datosAdmin.length === 0 && (<tr><td colSpan={6} style={{textAlign: 'center', padding: '40px'}}>No hay registros.</td></tr>)}
+                              {actasFiltradas.length === 0 && (<tr><td colSpan={6} style={{textAlign: 'center', padding: '40px'}}>No se encontraron actas con esos filtros.</td></tr>)}
                             </tbody>
                           </table>
                         )}
@@ -551,7 +597,6 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
                       </>
-
                     )}
                   </div>
                 </>
@@ -561,6 +606,7 @@ export default function JuzgadoFaltasUnificado() {
         )}
       </main>
 
+      {/* MODALES REUTILIZADOS (CLAVE Y DETALLE DE EXPEDIENTE) */}
       {modalPassword && (
         <div className="modal-overlay" onClick={() => setModalPassword(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '400px'}}>

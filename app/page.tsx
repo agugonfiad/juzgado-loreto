@@ -230,7 +230,10 @@ export default function JuzgadoFaltasUnificado() {
                                     <div className="field"><label>Motivo de defensa</label><textarea name="motivo" rows={3} required></textarea></div>
                                   </>
                                 )}
-                                <div className="field"><label>Adjuntar archivo (PDF/IMG)</label><input type="file" name="archivo" required /></div>
+                                <div className="field">
+                                  <label>Adjuntar archivo (PDF, JPG, PNG)</label>
+                                  <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required />
+                                </div>
                                 <button type="submit" disabled={enviando} className="btn btn--primary btn--block">{enviando ? 'Enviando...' : 'Subir Documentación'}</button>
                               </form>
                             )}

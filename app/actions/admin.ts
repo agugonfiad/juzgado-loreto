@@ -90,7 +90,8 @@ export async function crearActa(data: {
         articulo: data.articulo,
         inspector: data.inspector,
         tipoInfraccion: data.tipoInfraccion || 'TRANSITO',
-        plazoDescargo: plazo
+        plazoDescargo: plazo,
+        fechaInfraccion: new Date() // Solución al error de fecha faltante
       }
     })
     return { success: true }

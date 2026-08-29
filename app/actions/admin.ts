@@ -1,6 +1,7 @@
 "use server"
 
 import { PrismaClient } from '@prisma/client'
+import { hash } from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -96,5 +97,29 @@ export async function eliminarActa(id: string) {
     return { success: true }
   } catch (error: any) { 
     return { success: false, error: "Error al eliminar: " + error.message } 
+  }
+}export async function inicializarSistema() {
+  try {
+    const existe = await prisma.usuario.findUnique({ 
+      where: { email: "agustingonzalezfiad@outlook.com" } 
+    })
+    
+    if (existe) return { success: true, mensaje: "El administrador ya está configurado." }
+
+    // La contraseña inicial será Loreto2026! (luego podrás cambiarla)
+    const passwordEncriptada = await hash("Loreto2026!", 10)
+
+    await prisma.usuario.create({
+      data: {
+        nombre: "Agustín González Fiad",
+        email: "agustingonzalezfiad@outlook.com",
+        password: passwordEncriptada,
+        rol: "SUPERADMIN"
+      }
+    })
+    
+    return { success: true, mensaje: "Cuenta SuperAdmin creada con éxito." }
+  } catch (error: any) {
+    return { success: false, error: error.message }
   }
 }

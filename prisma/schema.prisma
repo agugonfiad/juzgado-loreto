@@ -114,4 +114,20 @@ model Auditoria {
   timestamp       DateTime @default(now())
 
   usuario         UsuarioInterno @relation(fields: [usuarioId], references: [id])
+}enum Rol {
+  SUPERADMIN
+  JUEZ
+  LETRADO
+  CONTABLE
+  ADMINISTRATIVO
+}
+
+model Usuario {
+  id        String   @id @default(uuid())
+  nombre    String
+  email     String   @unique
+  password  String
+  rol       Rol      @default(ADMINISTRATIVO)
+  activo    Boolean  @default(true)
+  creadoEn  DateTime @default(now())
 }

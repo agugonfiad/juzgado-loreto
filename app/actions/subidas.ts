@@ -18,7 +18,6 @@ export async function procesarTramiteCiudadano(formData: FormData) {
 
     let urlArchivo = ""
     if (archivo && archivo.size > 0) {
-      // CORREGIDO: Se agregó addRandomSuffix para evitar choques de nombres
       const blob = await put(archivo.name, archivo, { 
         access: 'public',
         addRandomSuffix: true
@@ -42,6 +41,7 @@ export async function procesarTramiteCiudadano(formData: FormData) {
 
       const textoEstructurado = `TITULAR: ${nombre}\nEMAIL: ${email}\n\nDEFENSA:\n${motivo}`
 
+      // Se crea el descargo con su estado correspondiente
       await prisma.descargo.create({
         data: {
           infraccionId,
@@ -51,11 +51,8 @@ export async function procesarTramiteCiudadano(formData: FormData) {
           expedienteNro: expedienteNro
         }
       })
-
-      await prisma.infraccion.update({
-        where: { id: infraccionId },
-        data: { estado: estadoDescargo } 
-      })
+      
+      // ELIMINADA la actualización forzada de infraccion.estado para respetar el esquema de la base de datos
 
       if (email) {
         await resend.emails.send({

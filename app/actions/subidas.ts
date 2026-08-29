@@ -16,10 +16,8 @@ export async function procesarTramiteCiudadano(formData: FormData) {
     const infraccion = await prisma.infraccion.findUnique({ where: { id: infraccionId } })
     if (!infraccion) return { success: false, error: "Acta no encontrada en el sistema." }
 
-    // 1. Subir el archivo físico a Vercel Blob (la nube)
     let urlArchivo = ""
     if (archivo && archivo.size > 0) {
-      // Sube el archivo y lo hace de acceso público para poder leerlo luego
       const blob = await put(archivo.name, archivo, { access: 'public' })
       urlArchivo = blob.url
     } else {
@@ -38,15 +36,16 @@ export async function procesarTramiteCiudadano(formData: FormData) {
       const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
       const expedienteNro = `EXP-${hoy.getFullYear()}-${randomNum}`
 
-      const textoEstructurado = `EXPEDIENTE: ${expedienteNro}\nTITULAR: ${nombre}\nEMAIL: ${email}\n\nDEFENSA:\n${motivo}`
+      const textoEstructurado = `TITULAR: ${nombre}\nEMAIL: ${email}\n\nDEFENSA:\n${motivo}`
 
-      // 2. Guardar los datos en PostgreSQL vinculando la URL del archivo real
+      // CORREGIDO: Se agregó expedienteNro a la carga de la base de datos
       await prisma.descargo.create({
         data: {
           infraccionId,
           motivo: textoEstructurado,
           archivosUrl: [urlArchivo], 
-          estado: estadoDescargo
+          estado: estadoDescargo,
+          expedienteNro: expedienteNro
         }
       })
 
@@ -55,7 +54,6 @@ export async function procesarTramiteCiudadano(formData: FormData) {
         data: { estado: estadoDescargo } 
       })
 
-      // 3. Enviar correo de confirmación al ciudadano
       if (email) {
         await resend.emails.send({
           from: 'Juzgado de Faltas Loreto <onboarding@resend.dev>',
@@ -87,7 +85,7 @@ export async function procesarTramiteCiudadano(formData: FormData) {
         data: {
           infraccionId,
           montoInformado: monto,
-          comprobanteUrl: urlArchivo, // Vincula la URL del archivo real
+          comprobanteUrl: urlArchivo,
           estado: 'PENDIENTE_CONCILIACION'
         }
       })

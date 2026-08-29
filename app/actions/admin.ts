@@ -199,4 +199,15 @@ export async function toggleEstadoUsuario(id: string, estadoActual: boolean) {
   } catch (error: any) {
     return { success: false, error: error.message }
   }
+}export async function obtenerNoticiasAdmin() {
+  try {
+    return await prisma.noticia.findMany({ orderBy: { creadoEn: 'desc' } })
+  } catch (error) { return [] }
+}
+
+export async function eliminarNoticia(id: string) {
+  try {
+    await prisma.noticia.delete({ where: { id } })
+    return { success: true }
+  } catch (error: any) { return { success: false, error: error.message } }
 }

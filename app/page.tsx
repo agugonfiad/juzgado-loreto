@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { buscarInfraccionPorDni } from "./actions/actas"
-import { procesarTramiteCiudadano } from "./actions/subidas"
-import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena } from "./actions/admin"
+import { procesarTramiteCiudadano, procesarNoticia } from "./actions/subidas"
+import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia } from "./actions/admin"
 
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
-  const [vista, setVista] = useState<'publica' | 'admin_actas' | 'admin_descargos' | 'admin_pagos' | 'admin_usuarios'>('publica')
+  const [vista, setVista] = useState<'publica' | 'admin_actas' | 'admin_descargos' | 'admin_pagos' | 'admin_usuarios' | 'admin_noticias'>('publica')
 
   const [autenticado, setAutenticado] = useState(false)
   const [email, setEmail] = useState("")
@@ -15,6 +15,7 @@ export default function JuzgadoFaltasUnificado() {
   const [usuario, setUsuario] = useState<{nombre: string, rol: string} | null>(null)
   
   const [datosAdmin, setDatosAdmin] = useState<any[]>([])
+  const [noticiasPublicas, setNoticiasPublicas] = useState<any[]>([])
   const [cargandoAdmin, setCargandoAdmin] = useState(false)
   
   const [itemModal, setItemModal] = useState<any>(null)
@@ -28,18 +29,16 @@ export default function JuzgadoFaltasUnificado() {
   const [tramiteActivo, setTramiteActivo] = useState<{ id: string, tipo: 'pago' | 'descargo' } | null>(null)
   const [enviando, setEnviando] = useState(false)
 
-  // Estados para Actas
+  // Estados Formularios
   const [nuevoNroActa, setNuevoNroActa] = useState(""); const [nuevoNombre, setNuevoNombre] = useState(""); const [nuevoDni, setNuevoDni] = useState(""); const [nuevoLugar, setNuevoLugar] = useState(""); const [nuevoArticulo, setNuevoArticulo] = useState(""); const [nuevoInspector, setNuevoInspector] = useState(""); const [nuevoMonto, setNuevoMonto] = useState(""); const [guardandoActa, setGuardandoActa] = useState(false);
-
-  // Estados para Usuarios
   const [nuevoUsuarioNombre, setNuevoUsuarioNombre] = useState(""); const [nuevoUsuarioEmail, setNuevoUsuarioEmail] = useState(""); const [nuevoUsuarioRol, setNuevoUsuarioRol] = useState("ADMINISTRATIVO"); const [guardandoUsuario, setGuardandoUsuario] = useState(false);
+  
+  const [modalPassword, setModalPassword] = useState(false); const [passActual, setPassActual] = useState(""); const [passNueva, setPassNueva] = useState(""); const [passConfirmar, setPassConfirmar] = useState(""); const [cambiandoPass, setCambiandoPass] = useState(false);
 
-  // Estados para Cambio de Contraseña
-  const [modalPassword, setModalPassword] = useState(false);
-  const [passActual, setPassActual] = useState("");
-  const [passNueva, setPassNueva] = useState("");
-  const [passConfirmar, setPassConfirmar] = useState("");
-  const [cambiandoPass, setCambiandoPass] = useState(false);
+  // Cargar noticias públicas al abrir la web
+  useEffect(() => {
+    obtenerNoticiasAdmin().then(setNoticiasPublicas)
+  }, [])
 
   const manejarBusqueda = async (e: React.FormEvent) => {
     e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null);
@@ -56,9 +55,7 @@ export default function JuzgadoFaltasUnificado() {
     const formData = new FormData(e.currentTarget)
     const respuesta = await procesarTramiteCiudadano(formData)
     if (respuesta.success) {
-      if (respuesta.expedienteNro) {
-        alert(respuesta.esExtemporaneo ? `Trámite EXTEMPORÁNEO.\nExpediente: ${respuesta.expedienteNro}` : `¡Descargo presentado!\nExpediente: ${respuesta.expedienteNro}`)
-      } else { alert("¡Trámite de pago enviado con éxito!") }
+      if (respuesta.expedienteNro) { alert(respuesta.esExtemporaneo ? `Trámite EXTEMPORÁNEO.\nExpediente: ${respuesta.expedienteNro}` : `¡Descargo presentado!\nExpediente: ${respuesta.expedienteNro}`) } else { alert("¡Trámite de pago enviado con éxito!") }
       setTramiteActivo(null); manejarBusqueda(new Event('submit') as any);
     } else { alert("Error: " + respuesta.error) }
     setEnviando(false)
@@ -86,6 +83,7 @@ export default function JuzgadoFaltasUnificado() {
     if (vistaDestino === 'admin_descargos') setDatosAdmin(await obtenerDescargosAdmin())
     if (vistaDestino === 'admin_pagos') setDatosAdmin(await obtenerPagosAdmin())
     if (vistaDestino === 'admin_usuarios') setDatosAdmin(await obtenerUsuariosAdmin())
+    if (vistaDestino === 'admin_noticias') setDatosAdmin(await obtenerNoticiasAdmin())
     setCargandoAdmin(false)
   }
 
@@ -94,25 +92,33 @@ export default function JuzgadoFaltasUnificado() {
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
     const res = await crearActa({ nroActa: nuevoNroActa, nombreTitular: nuevoNombre, dniTitular: nuevoDni, monto: Number(nuevoMonto), lugar: nuevoLugar, articulo: nuevoArticulo, inspector: nuevoInspector })
-    if (res.success) {
-      setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto("");
-      cargarDatosPanel(vista)
-    } else { alert(res.error) }
+    if (res.success) { setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto(""); cargarDatosPanel(vista) } else { alert(res.error) }
     setGuardandoActa(false)
   }
 
-  const manejarEliminarActa = async (id: string) => {
-    if (!confirm("¿Seguro que desea ELIMINAR esta acta?")) return
-    const res = await eliminarActa(id)
-    if (res.success) cargarDatosPanel(vista); else alert(res.error);
+  const manejarCrearNoticia = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); setProcesando(true);
+    const formData = new FormData(e.currentTarget)
+    const res = await procesarNoticia(formData)
+    if (res.success) {
+      alert("Noticia publicada con éxito.");
+      (e.target as HTMLFormElement).reset();
+      cargarDatosPanel(vista);
+      obtenerNoticiasAdmin().then(setNoticiasPublicas); // Refrescar vista pública
+    } else { alert("Error: " + res.error) }
+    setProcesando(false)
+  }
+
+  const manejarEliminarDato = async (id: string, tipo: 'acta'|'noticia') => {
+    if (!confirm(`¿Seguro que desea ELIMINAR ${tipo === 'acta' ? 'esta acta' : 'esta noticia'}?`)) return
+    const res = tipo === 'acta' ? await eliminarActa(id) : await eliminarNoticia(id)
+    if (res.success) { cargarDatosPanel(vista); if(tipo==='noticia') obtenerNoticiasAdmin().then(setNoticiasPublicas); } else { alert(res.error); }
   }
 
   const auditarDescargo = async (estado: string) => {
     if (estado === 'RECHAZADO' && !textoResolucion) return alert("Debe justificar el rechazo.")
-    setProcesando(true)
-    await resolverDescargo(itemModal.id, estado, textoResolucion)
-    setItemModal(null); setTextoResolucion(""); setProcesando(false);
-    cargarDatosPanel(vista)
+    setProcesando(true); await resolverDescargo(itemModal.id, estado, textoResolucion);
+    setItemModal(null); setTextoResolucion(""); setProcesando(false); cargarDatosPanel(vista);
   }
 
   const auditarPago = async (estado: string) => {
@@ -123,10 +129,7 @@ export default function JuzgadoFaltasUnificado() {
   const manejarCrearUsuario = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoUsuario(true);
     const res = await crearUsuarioAdmin({ nombre: nuevoUsuarioNombre, email: nuevoUsuarioEmail, rol: nuevoUsuarioRol })
-    if (res.success) {
-      setNuevoUsuarioNombre(""); setNuevoUsuarioEmail(""); setNuevoUsuarioRol("ADMINISTRATIVO");
-      cargarDatosPanel(vista)
-    } else { alert(res.error) }
+    if (res.success) { setNuevoUsuarioNombre(""); setNuevoUsuarioEmail(""); setNuevoUsuarioRol("ADMINISTRATIVO"); cargarDatosPanel(vista) } else { alert(res.error) }
     setGuardandoUsuario(false)
   }
 
@@ -134,15 +137,10 @@ export default function JuzgadoFaltasUnificado() {
     e.preventDefault();
     if (passNueva !== passConfirmar) return alert("Las contraseñas nuevas no coinciden.");
     if (passNueva.length < 6) return alert("La nueva contraseña debe tener al menos 6 caracteres.");
-    
     setCambiandoPass(true);
     const res = await cambiarContrasena(email, passActual, passNueva);
     setCambiandoPass(false);
-    
-    if (res.success) {
-      alert("Contraseña actualizada con éxito.");
-      setModalPassword(false); setPassActual(""); setPassNueva(""); setPassConfirmar("");
-    } else { alert(res.error); }
+    if (res.success) { alert("Contraseña actualizada con éxito."); setModalPassword(false); setPassActual(""); setPassNueva(""); setPassConfirmar(""); } else { alert(res.error); }
   }
 
   const forzarAltaAdmin = async () => { const res = await inicializarSistema(); alert(res.mensaje || res.error); }
@@ -162,15 +160,16 @@ export default function JuzgadoFaltasUnificado() {
         header.site { background: var(--papel); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 100; } .nav-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; gap: 20px; }
         .brand { display: flex; align-items: center; gap: 14px; text-decoration: none; } .brand__logo { height: 55px; width: auto; flex: none; } .brand__text .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin: 0 0 2px; } .brand__text strong { display: block; font-family: 'Fraunces', serif; font-weight: 600; font-size: 17px; color: var(--azul-loreto); line-height: 1.2; }
         nav.primary { display: flex; align-items: center; gap: 28px; } nav.primary ul { list-style: none; display: flex; gap: 26px; margin: 0; padding: 0; } nav.primary a { text-decoration: none; font-weight: 600; font-size: 14.5px; color: var(--tinta); padding: 6px 2px; border-bottom: 2px solid transparent; cursor: pointer; } nav.primary a:hover, nav.primary a.active { border-color: var(--rojo-loreto); color: var(--azul-loreto); }
-        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; border-radius: var(--radius-s); font-weight: 700; font-size: 14.5px; text-decoration: none; border: 1.5px solid transparent; cursor: pointer; font-family: 'Public Sans', sans-serif; } .btn--primary { background: var(--celeste-loreto); color: #fff; } .btn--ghost { background: transparent; color: var(--azul-loreto); border-color: var(--azul-loreto); } .btn--ghost:hover { background: var(--azul-loreto); color: #fff; } .btn--sm { padding: 8px 14px; font-size: 13.5px; } .btn--block { width: 100%; } .btn--success { background: #10B981; color: white; border: none; } .btn--danger { background: #EF4444; color: white; border: none; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; border-radius: var(--radius-s); font-weight: 700; font-size: 14.5px; text-decoration: none; border: 1.5px solid transparent; cursor: pointer; font-family: 'Public Sans', sans-serif; transition: all 0.2s; } .btn--primary { background: #205c87; color: #fff; border-radius: 24px; } .btn--primary:hover { background: var(--azul-loreto); } .btn--ghost { background: transparent; color: var(--azul-loreto); border-color: var(--azul-loreto); } .btn--ghost:hover { background: var(--azul-loreto); color: #fff; } .btn--sm { padding: 8px 14px; font-size: 13.5px; border-radius: 4px; } .btn--block { width: 100%; border-radius: 4px; background: var(--celeste-loreto); } .btn--success { background: #10B981; color: white; border: none; border-radius: 4px; } .btn--danger { background: #EF4444; color: white; border: none; border-radius: 4px; }
         .hero { padding: 64px 0 56px; background: radial-gradient(circle at 88% 15%, rgba(0, 178, 214, 0.08), transparent 45%), var(--papel-alto); border-bottom: 1px solid var(--linea); } .hero .wrap { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 56px; align-items: center; } .hero .eyebrow { font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; letter-spacing: .09em; text-transform: uppercase; color: var(--celeste-loreto); margin-bottom: 14px; font-weight: 500; } .hero h1 { font-size: clamp(30px, 4vw, 44px); max-width: 14ch; } .hero p.lead { font-size: 17.5px; color: var(--tinta-suave); max-width: 46ch; margin: 14px 0 28px; }
         section { padding: 72px 0; } .section-head { max-width: 60ch; margin-bottom: 40px; } .section-head .kicker { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin-bottom: 10px; font-weight: 500; }
         .art-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--linea); border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; } .art-card { background: var(--papel); padding: 30px 26px; } 
+        .news-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; } .news-card img { width: 100%; aspect-ratio: 3/2; object-fit: cover; margin-bottom: 16px; border-radius: 2px; } .news-card h3 { font-size: 14px; text-transform: uppercase; color: var(--tinta-suave); line-height: 1.4; font-family: 'Public Sans', sans-serif; font-weight: 700; letter-spacing: 0.2px; }
         .consulta-panel { background: var(--azul-loreto); color: #F8F9FA; border-radius: var(--radius-m); padding: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; } .consulta-form { background: var(--papel); border-radius: var(--radius-m); padding: 26px; color: var(--tinta); } .field { margin-bottom: 16px; } .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--tinta); } .field input, .field textarea, .field select { width: 100%; padding: 11px 12px; border: 1.5px solid var(--linea); border-radius: var(--radius-s); font-family: 'IBM Plex Mono', monospace; font-size: 14px; background: #fff; color: var(--tinta); }
         .admin-table { width: 100%; text-align: left; border-collapse: collapse; background: #fff; border-radius: var(--radius-m); overflow: hidden; border: 1px solid var(--linea); box-shadow: 0 2px 8px rgba(0,0,0,0.05); } .admin-table th { background: var(--papel-alto); padding: 16px; font-weight: 600; border-bottom: 2px solid var(--linea); font-size: 14px; color: var(--azul-loreto); } .admin-table td { padding: 16px; border-bottom: 1px solid var(--linea); font-size: 14.5px; } .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; } .modal-content { background: var(--papel); padding: 32px; border-radius: var(--radius-m); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .contacto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; } .contacto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 20px; } .contacto-list li { display: flex; gap: 14px; align-items: flex-start; } .contacto-list .ico { width: 36px; height: 36px; border-radius: 50%; background: rgba(235, 33, 40, 0.1); color: var(--rojo-loreto); display: flex; align-items: center; justify-content: center; flex: none; } .contacto-list strong { display: block; font-size: 14px; color: var(--azul-loreto); } .contacto-list span, .contacto-list a { font-size: 14.5px; color: var(--tinta-suave); text-decoration: none; } .contacto-list a:hover { color: var(--rojo-loreto); text-decoration: underline; } .map-frame { border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; height: 360px; } .map-frame iframe { width: 100%; height: 100%; border: 0; }
-        @media (max-width: 980px) { .contacto-grid { grid-template-columns: 1fr; } .consulta-panel { grid-template-columns: 1fr; } .hero .wrap { grid-template-columns: 1fr; } }
+        @media (max-width: 980px) { .contacto-grid { grid-template-columns: 1fr; } .consulta-panel { grid-template-columns: 1fr; } .hero .wrap { grid-template-columns: 1fr; } .news-grid { grid-template-columns: 1fr; } }
       `}} />
 
       <div className="topbar">
@@ -191,15 +190,20 @@ export default function JuzgadoFaltasUnificado() {
           </a>
           
           {vista === 'publica' ? (
-            <nav className="primary"><ul><li><a href="#inicio">Inicio</a></li><li><a href="#institucion">Competencia</a></li><li><a href="#consulta">Trámites</a></li></ul></nav>
+            <nav className="primary"><ul><li><a href="#inicio">Inicio</a></li><li><a href="#institucion">Competencia</a></li><li><a href="#noticias">Noticias</a></li><li><a href="#consulta">Trámites</a></li></ul></nav>
           ) : (
             <nav className="primary">
               {autenticado && (
                 <ul>
                   {puedeActas && <li><a className={vista === 'admin_actas' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_actas')}>Gestión Actas</a></li>}
-                  {puedeDescargos && <li><a className={vista === 'admin_descargos' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_descargos')}>Auditoría Descargos</a></li>}
-                  {puedePagos && <li><a className={vista === 'admin_pagos' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_pagos')}>Conciliación BSE</a></li>}
-                  {rol === 'SUPERADMIN' && <li><a className={vista === 'admin_usuarios' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_usuarios')}>Personal</a></li>}
+                  {puedeDescargos && <li><a className={vista === 'admin_descargos' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_descargos')}>Auditoría</a></li>}
+                  {puedePagos && <li><a className={vista === 'admin_pagos' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_pagos')}>Conciliación</a></li>}
+                  {rol === 'SUPERADMIN' && (
+                    <>
+                      <li><a className={vista === 'admin_noticias' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_noticias')}>Noticias</a></li>
+                      <li><a className={vista === 'admin_usuarios' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_usuarios')}>Personal</a></li>
+                    </>
+                  )}
                 </ul>
               )}
             </nav>
@@ -208,10 +212,7 @@ export default function JuzgadoFaltasUnificado() {
           <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
             {autenticado && <span style={{fontSize: '13px', color: 'var(--tinta-suave)', fontWeight: 600}}>👤 {usuario?.nombre}</span>}
             {autenticado && <a onClick={() => setModalPassword(true)} style={{fontSize: '13px', cursor: 'pointer', color: 'var(--celeste-loreto)', fontWeight: 600}}>Cambiar Clave</a>}
-            <button onClick={() => {
-                if (vista === 'publica') { setVista('admin_actas'); }
-                else { setVista('publica'); setAutenticado(false); setUsuario(null); setPassword(""); }
-              }} className="btn btn--ghost btn--sm">
+            <button onClick={() => { if (vista === 'publica') { setVista('admin_actas'); } else { setVista('publica'); setAutenticado(false); setUsuario(null); setPassword(""); } }} className="btn btn--ghost btn--sm">
               {vista === 'publica' ? 'Acceso Personal' : 'Cerrar Sesión'}
             </button>
           </div>
@@ -223,7 +224,7 @@ export default function JuzgadoFaltasUnificado() {
           <>
             <section className="hero" id="inicio">
               <div className="wrap">
-                <div><p className="eyebrow">Municipalidad de Loreto · Provincia de Santiago del Estero</p><h1>Juzgado de Faltas Municipal de Loreto</h1><p className="lead">Consultá el estado de tus infracciones de tránsito, presentá tu descargo y gestioná tus trámites con el Juzgado desde un mismo lugar.</p><a href="#consulta" className="btn btn--primary">Consultar mi infracción</a></div>
+                <div><p className="eyebrow">Municipalidad de Loreto · Provincia de Santiago del Estero</p><h1>Juzgado de Faltas Municipal de Loreto</h1><p className="lead">Consultá el estado de tus infracciones de tránsito, presentá tu descargo y gestioná tus trámites con el Juzgado desde un mismo lugar.</p><a href="#consulta" className="btn btn--primary" style={{borderRadius: '4px'}}>Consultar mi infracción</a></div>
                 <div style={{display: 'flex', justifyContent: 'center'}}><img src="/logojdf.png" alt="Sello institucional" style={{width: 'min(380px, 100%)'}} /></div>
               </div>
             </section>
@@ -233,18 +234,41 @@ export default function JuzgadoFaltasUnificado() {
                 <div className="section-head">
                   <p className="kicker">Código de Faltas Municipal</p>
                   <h2>Qué hace el Juzgado de Faltas</h2>
-                  <p>El Juzgado interviene una vez agotada la instancia administrativa, cuando un vecino o vecina apela una infracción labrada por los inspectores o por la autoridad de control de tránsito.</p>
+                  <p>El Juzgado interviene una vez agotada la instancia administrativa, cuando un vecino apela una infracción labrada por la autoridad de control de tránsito.</p>
                 </div>
                 <div className="art-grid">
-                  <div className="art-card"><h3>Jurisdicción</h3><p>Entiende en las faltas y contravenciones de tránsito cometidas dentro del ejido municipal de Loreto, conforme a la ordenanza vigente.</p></div>
-                  <div className="art-card"><h3>Imparcialidad</h3><p>Actúa como órgano autónomo, garantizando a cada infractor el derecho a ser oído antes de que se confirme cualquier sanción.</p></div>
+                  <div className="art-card"><h3>Jurisdicción</h3><p>Entiende en las faltas cometidas dentro del ejido municipal de Loreto, conforme a la ordenanza vigente.</p></div>
+                  <div className="art-card"><h3>Imparcialidad</h3><p>Actúa como órgano autónomo, garantizando al infractor el derecho a ser oído antes de la sanción.</p></div>
                   <div className="art-card"><h3>Debido proceso</h3><p>Toda infracción admite descargo, prueba y, si correspondiera, apelación, antes de quedar firme.</p></div>
-                  <div className="art-card"><h3>Educación vial</h3><p>Promueve el conocimiento de las normas de tránsito como herramienta central para reducir siniestros en la vía pública.</p></div>
+                  <div className="art-card"><h3>Educación vial</h3><p>Promueve el conocimiento de las normas de tránsito como herramienta central para reducir siniestros.</p></div>
                 </div>
               </div>
             </section>
 
-            <section id="consulta">
+            {noticiasPublicas.length > 0 && (
+              <section id="noticias" style={{background: '#FFFFFF', paddingTop: '40px', paddingBottom: '80px'}}>
+                <div className="wrap">
+                  <div style={{textAlign: 'center', marginBottom: '50px'}}>
+                    <h2 style={{fontSize: '36px', color: 'var(--tinta)', fontFamily: 'Public Sans', fontWeight: 800}}>Noticias</h2>
+                  </div>
+                  <div className="news-grid">
+                    {noticiasPublicas.slice(0, 3).map(n => (
+                      <div className="news-card" key={n.id}>
+                        <img src={n.imagenUrl} alt={n.titulo} />
+                        <h3>{n.titulo}</h3>
+                      </div>
+                    ))}
+                  </div>
+                  {noticiasPublicas.length > 3 && (
+                    <div style={{textAlign: 'center', marginTop: '50px'}}>
+                      <button className="btn btn--primary">Ver más noticias</button>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            <section id="consulta" style={{background: 'var(--papel-alto)'}}>
               <div className="wrap">
                 <div className="consulta-panel">
                   <div><p className="kicker" style={{color: 'var(--celeste-loreto)'}}>Consulta de infracciones</p><h3 style={{color: '#fff'}}>Consultá tus actas pendientes</h3><p>Ingresá tu DNI para verificar el estado de infracciones y adjuntar documentación a tu expediente en la nube.</p></div>
@@ -260,7 +284,7 @@ export default function JuzgadoFaltasUnificado() {
                           <div key={acta.id} style={{padding: '15px', borderLeft: '3px solid var(--rojo-loreto)', background: 'var(--papel-alto)', marginBottom: '10px'}}>
                             <strong>Acta N° {acta.nroActa}</strong> - ${acta.monto.toString()} <br/><span style={{fontSize: '13px', color: 'var(--tinta-suave)'}}>Estado: {acta.estado}</span>
                             {acta.estado === 'PENDIENTE' && (
-                              <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'pago' })} className="btn btn--ghost btn--sm">Informar Pago</button><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'descargo' })} className="btn btn--primary btn--sm">Descargo</button></div>
+                              <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'pago' })} className="btn btn--ghost btn--sm">Informar Pago</button><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'descargo' })} className="btn btn--primary btn--sm" style={{borderRadius: '4px'}}>Descargo</button></div>
                             )}
                             {tramiteActivo?.id === acta.id && (
                               <form onSubmit={manejarEnvioTramite} style={{marginTop: '15px', paddingTop: '15px', borderTop: '1px solid var(--linea)'}}>
@@ -292,14 +316,14 @@ export default function JuzgadoFaltasUnificado() {
               </div>
             </section>
 
-            <section id="contacto" style={{background: 'var(--papel-alto)', borderTop: '1px solid var(--linea)'}}>
+            <section id="contacto" style={{background: 'var(--papel)', borderTop: '1px solid var(--linea)'}}>
               <div className="wrap">
                 <div className="section-head"><p className="kicker">Contacto</p><h2>Ubicación y contacto</h2></div>
                 <div className="contacto-grid">
                   <ul className="contacto-list">
                     <li><span className="ico">📍</span><div><strong>Dirección</strong><span>Isla Soledad S/N, Bº Islas Malvinas<br/>Loreto, Santiago del Estero</span></div></li>
                     <li><span className="ico">☎</span><div><strong>Teléfono / Celular</strong><a href="tel:+5493854743310">385 474-3310</a></div></li>
-                    <li><span className="ico">📧</span><div><strong>Correo electrónico</strong><a href="mailto:juzgadodefaltasloreto@outlook.com">juzgadodefaltasloreto@outlook.com</a><br/><a href="mailto:juzgadodefaltas@gmail.com" style={{display: 'inline-block', marginTop: '4px'}}>juzgadodefaltas@gmail.com</a></div></li>
+                    <li><span className="ico">📧</span><div><strong>Correo electrónico</strong><a href="mailto:juzgadodefaltasloreto@outlook.com">juzgadodefaltasloreto@outlook.com</a></div></li>
                     <li><span className="ico">🕗</span><div><strong>Horario de atención</strong><span>Lunes a viernes de 07:00 a 13:00 y 16:00 a 20:00 hs</span></div></li>
                   </ul>
                   <div className="map-frame"><iframe src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3527.794711317769!2d-64.1893188!3d-28.3031456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMjjCsDE4JzExLjMiUyA2NMKwMTEnMjEuNSJX!5e0!3m2!1sen!2sar!4v1700000000000!5m2!1sen!2sar" title="Mapa de ubicación del Juzgado de Faltas de Loreto" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
@@ -318,7 +342,7 @@ export default function JuzgadoFaltasUnificado() {
                   <form onSubmit={procesarLogin}>
                     <div className="field"><label>Correo Electrónico</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
                     <div className="field"><label>Contraseña</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
-                    <button type="submit" className="btn btn--primary btn--block">Ingresar al Sistema</button>
+                    <button type="submit" className="btn btn--primary btn--block" style={{borderRadius: '4px'}}>Ingresar al Sistema</button>
                   </form>
                   <div style={{textAlign: 'center', marginTop: '20px'}}>
                     <button onClick={forzarAltaAdmin} style={{background: 'none', border: 'none', color: 'var(--tinta-suave)', textDecoration: 'underline', fontSize: '12px', cursor: 'pointer'}}>Inicializar mi cuenta (Solo 1ra vez)</button>
@@ -326,8 +350,20 @@ export default function JuzgadoFaltasUnificado() {
                 </div>
               ) : (
                 <>
-                  <div className="section-head"><p className="kicker">Panel Interno de Trabajo</p><h2>{vista === 'admin_actas' ? 'Gestión General de Actas' : vista === 'admin_descargos' ? 'Auditoría de Descargos Presentados' : vista === 'admin_usuarios' ? 'Gestión de Personal' : 'Conciliación de Transferencias BSE'}</h2></div>
+                  <div className="section-head"><p className="kicker">Panel Interno</p><h2>{vista === 'admin_actas' ? 'Gestión de Actas' : vista === 'admin_descargos' ? 'Auditoría de Descargos' : vista === 'admin_usuarios' ? 'Personal' : vista === 'admin_noticias' ? 'Portal de Noticias' : 'Conciliación BSE'}</h2></div>
                   
+                  {/* SECCIÓN CREAR NOTICIA (Solo SuperAdmin) */}
+                  {vista === 'admin_noticias' && (
+                    <div style={{background: 'var(--papel)', padding: '24px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '24px'}}>
+                      <h3 style={{fontSize: '16px', marginBottom: '16px'}}>Publicar Nueva Noticia</h3>
+                      <form onSubmit={manejarCrearNoticia} style={{display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
+                        <div className="field" style={{marginBottom: 0, flex: 2}}><label>Título de la Noticia (en mayúsculas automáticamente)</label><input type="text" name="titulo" required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1}}><label>Fotografía (JPG/PNG)</label><input type="file" name="archivo" accept=".jpg, .jpeg, .png" required /></div>
+                        <button type="submit" disabled={procesando} className="btn btn--primary" style={{borderRadius: '4px'}}>{procesando ? 'Subiendo...' : 'Publicar en Portada'}</button>
+                      </form>
+                    </div>
+                  )}
+
                   {/* SECCIÓN CREAR USUARIO (Solo SuperAdmin) */}
                   {vista === 'admin_usuarios' && (
                     <div style={{background: 'var(--papel)', padding: '24px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '24px'}}>
@@ -344,9 +380,8 @@ export default function JuzgadoFaltasUnificado() {
                             <option value="ADMINISTRATIVO">Mesa de Entradas</option>
                           </select>
                         </div>
-                        <button type="submit" disabled={guardandoUsuario} className="btn btn--primary">{guardandoUsuario ? 'Creando...' : 'Crear Cuenta'}</button>
+                        <button type="submit" disabled={guardandoUsuario} className="btn btn--primary" style={{borderRadius: '4px'}}>{guardandoUsuario ? 'Creando...' : 'Crear Cuenta'}</button>
                       </form>
-                      <p style={{fontSize: '12px', color: 'var(--tinta-suave)', marginTop: '10px'}}>Nota: La contraseña inicial para todos los empleados nuevos será: <strong>Loreto2026!</strong></p>
                     </div>
                   )}
 
@@ -357,12 +392,12 @@ export default function JuzgadoFaltasUnificado() {
                       <form onSubmit={manejarCrearActa} style={{display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '90px'}}><label>N° Acta</label><input type="text" value={nuevoNroActa} onChange={(e) => setNuevoNroActa(e.target.value)} required /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '130px'}}><label>Nombre Infractor</label><input type="text" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '110px'}}><label>DNI Infractor</label><input type="text" value={nuevoDni} onChange={(e) => setNuevoDni(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '110px'}}><label>DNI</label><input type="text" value={nuevoDni} onChange={(e) => setNuevoDni(e.target.value)} required /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '110px'}}><label>Lugar</label><input type="text" value={nuevoLugar} onChange={(e) => setNuevoLugar(e.target.value)} required /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '90px'}}><label>Art.</label><input type="text" value={nuevoArticulo} onChange={(e) => setNuevoArticulo(e.target.value)} required /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '130px'}}><label>Inspector</label><input type="text" value={nuevoInspector} onChange={(e) => setNuevoInspector(e.target.value)} required /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '100px'}}><label>Monto ($)</label><input type="number" value={nuevoMonto} onChange={(e) => setNuevoMonto(e.target.value)} required /></div>
-                        <button type="submit" disabled={guardandoActa} className="btn btn--primary">{guardandoActa ? 'Guardando...' : 'Registrar'}</button>
+                        <button type="submit" disabled={guardandoActa} className="btn btn--primary" style={{borderRadius: '4px'}}>{guardandoActa ? 'Guardando...' : 'Registrar'}</button>
                       </form>
                     </div>
                   )}
@@ -372,9 +407,9 @@ export default function JuzgadoFaltasUnificado() {
                       <table className="admin-table">
                         <thead>
                           <tr>
-                            <th>{vista === 'admin_usuarios' ? 'Nombre / Correo' : vista === 'admin_actas' ? 'N° Acta' : 'Expediente / Acta'}</th>
-                            <th>{vista === 'admin_usuarios' ? 'Rol' : vista === 'admin_actas' ? 'DNI Titular' : 'Estado'}</th>
-                            <th>{vista === 'admin_usuarios' ? 'Estado' : vista === 'admin_actas' ? 'Monto' : 'Fecha'}</th>
+                            <th>{vista === 'admin_usuarios' ? 'Nombre / Correo' : vista === 'admin_noticias' ? 'Imagen' : vista === 'admin_actas' ? 'N° Acta' : 'Expediente / Acta'}</th>
+                            <th>{vista === 'admin_usuarios' ? 'Rol' : vista === 'admin_noticias' ? 'Título Público' : vista === 'admin_actas' ? 'DNI Titular' : 'Estado'}</th>
+                            <th>{vista === 'admin_usuarios' ? 'Estado' : vista === 'admin_noticias' ? 'Fecha de Publicación' : vista === 'admin_actas' ? 'Monto' : 'Fecha'}</th>
                             <th>Acción</th>
                           </tr>
                         </thead>
@@ -385,36 +420,26 @@ export default function JuzgadoFaltasUnificado() {
                                 <>
                                   <td><strong>{item.nombre}</strong><br/><span style={{fontSize: '12px', color: 'var(--tinta-suave)'}}>{item.email}</span></td>
                                   <td><span className="badge" style={{background: 'rgba(11, 74, 130, 0.1)', color: 'var(--azul-loreto)'}}>{item.rol}</span></td>
-                                  <td>
-                                    <span className="badge" style={{background: item.activo ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: item.activo ? '#047857' : '#DC2626'}}>
-                                      {item.activo ? 'Activo' : 'Suspendido'}
-                                    </span>
-                                  </td>
-                                  <td>
-                                    {item.rol !== 'SUPERADMIN' && (
-                                      <button onClick={async () => { await toggleEstadoUsuario(item.id, item.activo); cargarDatosPanel('admin_usuarios'); }} className="btn btn--ghost btn--sm">
-                                        {item.activo ? 'Suspender' : 'Reactivar'}
-                                      </button>
-                                    )}
-                                  </td>
+                                  <td><span className="badge" style={{background: item.activo ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: item.activo ? '#047857' : '#DC2626'}}>{item.activo ? 'Activo' : 'Suspendido'}</span></td>
+                                  <td>{item.rol !== 'SUPERADMIN' && (<button onClick={async () => { await toggleEstadoUsuario(item.id, item.activo); cargarDatosPanel('admin_usuarios'); }} className="btn btn--ghost btn--sm">{item.activo ? 'Suspender' : 'Reactivar'}</button>)}</td>
+                                </>
+                              ) : vista === 'admin_noticias' ? (
+                                <>
+                                  <td><img src={item.imagenUrl} alt="miniatura" style={{width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px'}} /></td>
+                                  <td><strong>{item.titulo}</strong></td>
+                                  <td>{new Date(item.creadoEn).toLocaleDateString('es-AR')}</td>
+                                  <td><button onClick={() => manejarEliminarDato(item.id, 'noticia')} className="btn btn--danger btn--sm" style={{padding: '6px 10px', fontSize: '12.5px'}}>Eliminar Noticia</button></td>
                                 </>
                               ) : (
                                 <>
                                   <td><strong>{item.nroActa || item.expedienteNro || item.infraccion?.nroActa}</strong></td>
-                                  <td>
-                                    <span className="badge" style={{
-                                      background: item.estado === 'EXTEMPORANEO' ? 'rgba(239, 68, 68, 0.15)' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)'),
-                                      color: item.estado === 'EXTEMPORANEO' ? '#DC2626' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? '#B45309' : '#047857')
-                                    }}>
-                                      {item.estado || item.dniTitular}
-                                    </span>
-                                  </td>
+                                  <td><span className="badge" style={{background: item.estado === 'EXTEMPORANEO' ? 'rgba(239, 68, 68, 0.15)' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)'), color: item.estado === 'EXTEMPORANEO' ? '#DC2626' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? '#B45309' : '#047857')}}>{item.estado || item.dniTitular}</span></td>
                                   <td>{item.monto ? `$${item.monto}` : new Date(item.creadoEn || item.fechaPago || item.fechaInfraccion).toLocaleDateString('es-AR')}</td>
                                   <td>
                                     {vista !== 'admin_actas' ? (
                                       <button onClick={() => setItemModal(item)} className="btn btn--ghost btn--sm">Ver Detalles</button>
                                     ) : (
-                                      <button onClick={() => manejarEliminarActa(item.id)} className="btn btn--danger btn--sm" style={{padding: '6px 10px', fontSize: '12.5px'}}>Eliminar</button>
+                                      <button onClick={() => manejarEliminarDato(item.id, 'acta')} className="btn btn--danger btn--sm" style={{padding: '6px 10px', fontSize: '12.5px'}}>Eliminar</button>
                                     )}
                                   </td>
                                 </>
@@ -433,7 +458,7 @@ export default function JuzgadoFaltasUnificado() {
         )}
       </main>
 
-      {/* MODAL DE CAMBIO DE CONTRASEÑA */}
+      {/* VENTANAS MODALES (Clave y Auditoría) se mantienen sin cambios estructurales */}
       {modalPassword && (
         <div className="modal-overlay" onClick={() => setModalPassword(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '400px'}}>
@@ -443,15 +468,14 @@ export default function JuzgadoFaltasUnificado() {
               <div className="field"><label>Nueva Contraseña</label><input type="password" value={passNueva} onChange={(e) => setPassNueva(e.target.value)} required /></div>
               <div className="field"><label>Confirmar Nueva Contraseña</label><input type="password" value={passConfirmar} onChange={(e) => setPassConfirmar(e.target.value)} required /></div>
               <div style={{display: 'flex', gap: '10px', marginTop: '20px'}}>
-                <button type="button" onClick={() => setModalPassword(false)} className="btn btn--ghost" style={{flex: 1}}>Cancelar</button>
-                <button type="submit" disabled={cambiandoPass} className="btn btn--primary" style={{flex: 1}}>{cambiandoPass ? 'Guardando...' : 'Actualizar'}</button>
+                <button type="button" onClick={() => setModalPassword(false)} className="btn btn--ghost" style={{flex: 1, borderRadius: '4px'}}>Cancelar</button>
+                <button type="submit" disabled={cambiandoPass} className="btn btn--primary" style={{flex: 1, borderRadius: '4px'}}>{cambiandoPass ? 'Guardando...' : 'Actualizar'}</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL DE AUDITORÍA */}
       {itemModal && (
         <div className="modal-overlay" onClick={() => setItemModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -461,14 +485,12 @@ export default function JuzgadoFaltasUnificado() {
               {vista === 'admin_descargos' && <p style={{whiteSpace: 'pre-wrap'}}><strong>Información Presentada:</strong><br/>{itemModal.motivo}</p>}
               {vista === 'admin_pagos' && <p><strong>Monto Informado:</strong> ${itemModal.montoInformado}</p>}
             </div>
-            <div style={{marginBottom: '20px'}}><a href={vista === 'admin_descargos' ? itemModal.archivosUrl?.[0] : itemModal.comprobanteUrl} target="_blank" rel="noreferrer" className="btn btn--ghost btn--block">Abrir Documento Adjunto (Nube)</a></div>
+            <div style={{marginBottom: '20px'}}><a href={vista === 'admin_descargos' ? itemModal.archivosUrl?.[0] : itemModal.comprobanteUrl} target="_blank" rel="noreferrer" className="btn btn--ghost btn--block" style={{borderRadius: '4px'}}>Abrir Documento Adjunto</a></div>
             
             {(itemModal.estado === 'PRESENTADO' || itemModal.estado === 'EXTEMPORANEO' || itemModal.estado === 'PENDIENTE_CONCILIACION') ? (
               <div style={{borderTop: '1px solid var(--linea)', paddingTop: '20px'}}>
                 {itemModal.estado === 'EXTEMPORANEO' && (
-                  <div style={{background: 'rgba(239, 68, 68, 0.1)', color: '#DC2626', padding: '10px', borderRadius: '4px', marginBottom: '15px', fontSize: '13.5px', fontWeight: 'bold'}}>
-                    ⚠️ Atención: Esta presentación superó el plazo legal de 5 días hábiles.
-                  </div>
+                  <div style={{background: 'rgba(239, 68, 68, 0.1)', color: '#DC2626', padding: '10px', borderRadius: '4px', marginBottom: '15px', fontSize: '13.5px', fontWeight: 'bold'}}>⚠️ Atención: Esta presentación superó el plazo legal.</div>
                 )}
                 {vista === 'admin_descargos' && (
                   <div className="field"><label>Escribir Dictamen / Resolución Corta</label><textarea value={textoResolucion} onChange={(e) => setTextoResolucion(e.target.value)} placeholder="Ej: Se comprueba error en patente..." rows={2} /></div>

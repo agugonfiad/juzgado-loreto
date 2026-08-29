@@ -130,4 +130,9 @@ model Usuario {
   rol       Rol      @default(ADMINISTRATIVO)
   activo    Boolean  @default(true)
   creadoEn  DateTime @default(now())
+}model Noticia {
+  id        String   @id @default(uuid())
+  titulo    String
+  imagenUrl String
+  creadoEn  DateTime @default(now())
 }

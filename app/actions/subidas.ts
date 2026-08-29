@@ -100,4 +100,20 @@ export async function procesarTramiteCiudadano(formData: FormData) {
   } catch (error: any) {
     return { success: false, error: "Error interno: " + error.message }
   }
+}export async function procesarNoticia(formData: FormData) {
+  try {
+    const titulo = formData.get('titulo') as string
+    const archivo = formData.get('archivo') as File
+
+    if (!archivo || archivo.size === 0) return { success: false, error: "Debe adjuntar una imagen." }
+    
+    const blob = await put(archivo.name, archivo, { access: 'public', addRandomSuffix: true })
+    
+    await prisma.noticia.create({
+      data: { titulo, imagenUrl: blob.url }
+    })
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
 }

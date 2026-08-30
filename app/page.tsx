@@ -34,7 +34,7 @@ export default function JuzgadoFaltasUnificado() {
   const [nuevoUsuarioNombre, setNuevoUsuarioNombre] = useState(""); const [nuevoUsuarioEmail, setNuevoUsuarioEmail] = useState(""); const [nuevoUsuarioRol, setNuevoUsuarioRol] = useState("ADMINISTRATIVO"); const [guardandoUsuario, setGuardandoUsuario] = useState(false);
   const [modalPassword, setModalPassword] = useState(false); const [passActual, setPassActual] = useState(""); const [passNueva, setPassNueva] = useState(""); const [passConfirmar, setPassConfirmar] = useState(""); const [cambiandoPass, setCambiandoPass] = useState(false);
 
-  // Estados Buscador Avanzado (Multicriterio)
+  // Estados Buscador Avanzado
   const [filtroActa, setFiltroActa] = useState("")
   const [filtroDniAdmin, setFiltroDniAdmin] = useState("")
   const [filtroInspector, setFiltroInspector] = useState("")
@@ -147,7 +147,6 @@ export default function JuzgadoFaltasUnificado() {
     if (res.success) { alert("Contraseña actualizada con éxito."); setModalPassword(false); setPassActual(""); setPassNueva(""); setPassConfirmar(""); } else { alert(res.error); }
   }
 
-  // Lógica del filtro en tiempo real para Actas
   const actasFiltradas = datosAdmin.filter(item => {
     if (vista !== 'admin_actas') return true;
     const coincideActa = item.nroActa?.toLowerCase().includes(filtroActa.toLowerCase());
@@ -155,7 +154,6 @@ export default function JuzgadoFaltasUnificado() {
     const coincideInspector = item.inspector?.toLowerCase().includes(filtroInspector.toLowerCase());
     const coincideDireccion = filtroDireccion ? item.tipoInfraccion === filtroDireccion : true;
     const coincideEstado = filtroEstado ? item.estado === filtroEstado : true;
-    
     return coincideActa && coincideDni && coincideInspector && coincideDireccion && coincideEstado;
   });
 
@@ -219,7 +217,7 @@ export default function JuzgadoFaltasUnificado() {
           </a>
           
           {vista === 'publica' ? (
-            <nav className="primary"><ul><li><a href="#inicio">Inicio</a></li><li><a href="#autoridades">Autoridades</a></li><li><a href="#noticias">Noticias</a></li><li><a href="#consulta">Trámites</a></li></ul></nav>
+            <nav className="primary"><ul><li><a href="#inicio">Inicio</a></li><li><a href="#autoridades">Autoridades</a></li><li><a href="#normativa">Normativa</a></li><li><a href="#noticias">Noticias</a></li><li><a href="#consulta">Trámites</a></li></ul></nav>
           ) : (
             <nav className="primary">
               {autenticado && (
@@ -302,6 +300,25 @@ export default function JuzgadoFaltasUnificado() {
                   <div className="art-card"><h3>Imparcialidad</h3><p>Actúa como órgano autónomo, garantizando al infractor el derecho a ser oído antes de la sanción.</p></div>
                   <div className="art-card"><h3>Debido proceso</h3><p>Toda infracción admite descargo, prueba y, si correspondiera, apelación, antes de quedar firme.</p></div>
                   <div className="art-card"><h3>Educación vial</h3><p>Promueve el conocimiento de las normas de tránsito como herramienta central para reducir siniestros.</p></div>
+                </div>
+              </div>
+            </section>
+
+            {/* SECCIÓN NUEVA DE NORMATIVA Y CÓDIGO QR */}
+            <section id="normativa" style={{ background: '#FFFFFF', padding: '80px 0', borderBottom: '1px solid var(--linea)' }}>
+              <div className="wrap">
+                <div style={{ background: 'var(--papel-alto)', borderRadius: 'var(--radius-m)', padding: '40px', display: 'flex', alignItems: 'center', gap: '40px', flexWrap: 'wrap', border: '1px solid var(--linea)' }}>
+                  <div style={{ flex: 1, minWidth: '300px' }}>
+                    <p className="kicker" style={{ color: 'var(--rojo-loreto)', fontFamily: 'IBM Plex Mono, monospace', fontSize: '12px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '10px' }}>Transparencia Municipal</p>
+                    <h2 style={{ fontSize: '32px', marginBottom: '16px', color: 'var(--azul-loreto)' }}>Código de Convivencia y Faltas de Tránsito</h2>
+                    <p style={{ fontSize: '16px', color: 'var(--tinta-suave)', lineHeight: '1.6' }}>
+                      Accedé de forma directa a la normativa oficial vigente de la Ciudad de Loreto. Conocé tus derechos, obligaciones ciudadanas y las normativas de tránsito escaneando el código QR con la cámara de tu celular.
+                    </p>
+                  </div>
+                  <div style={{ flex: 'none', background: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.06)', textAlign: 'center', border: '1px solid var(--linea)', margin: '0 auto' }}>
+                    <img src="/qrparacodigo.png" alt="QR Código de Convivencia" style={{ width: '180px', height: '180px', display: 'block', margin: '0 auto' }} />
+                    <span style={{ display: 'block', marginTop: '12px', fontSize: '13.5px', fontWeight: 700, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Escanear para leer</span>
+                  </div>
                 </div>
               </div>
             </section>
@@ -483,7 +500,6 @@ export default function JuzgadoFaltasUnificado() {
                     </div>
                   )}
 
-                  {/* AQUÍ COMIENZA EL BUSCADOR AVANZADO (SOLO EN GESTIÓN DE ACTAS) */}
                   {vista === 'admin_actas' && (
                     <div className="filter-grid">
                       <div className="field" style={{marginBottom: 0}}><label>N° Acta</label><input type="text" placeholder="Ej: 0001" value={filtroActa} onChange={e => setFiltroActa(e.target.value)} /></div>
@@ -512,7 +528,6 @@ export default function JuzgadoFaltasUnificado() {
                   <div style={{overflowX: 'auto'}}>
                     {cargandoAdmin ? <p style={{textAlign: 'center', padding: '40px'}}>Cargando registros...</p> : (
                       <>
-                        {/* TABLA DE USUARIOS */}
                         {vista === 'admin_usuarios' && (
                           <table className="admin-table">
                             <thead><tr><th>Nombre / Correo</th><th>Rol</th><th>Estado</th><th>Acción</th></tr></thead>
@@ -537,7 +552,6 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* TABLA DE NOTICIAS */}
                         {vista === 'admin_noticias' && (
                           <table className="admin-table">
                             <thead><tr><th>Imagen</th><th>Título Público</th><th>Fecha de Publicación</th><th>Acción</th></tr></thead>
@@ -555,7 +569,6 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* TABLA DE ACTAS FILTRADA */}
                         {vista === 'admin_actas' && (
                           <table className="admin-table">
                             <thead><tr><th>N° Acta</th><th>Dirección</th><th>DNI Titular</th><th>Estado</th><th>Monto</th><th>Acción</th></tr></thead>
@@ -577,7 +590,6 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* TABLA DE DESCARGOS Y PAGOS */}
                         {(vista === 'admin_descargos' || vista === 'admin_pagos') && (
                           <table className="admin-table">
                             <thead><tr><th>Expediente / Acta</th><th>Estado</th><th>Fecha</th><th>Acción</th></tr></thead>
@@ -606,7 +618,6 @@ export default function JuzgadoFaltasUnificado() {
         )}
       </main>
 
-      {/* MODALES REUTILIZADOS (CLAVE Y DETALLE DE EXPEDIENTE) */}
       {modalPassword && (
         <div className="modal-overlay" onClick={() => setModalPassword(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '400px'}}>

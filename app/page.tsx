@@ -41,7 +41,16 @@ export default function JuzgadoFaltasUnificado() {
   const [filtroDireccion, setFiltroDireccion] = useState("")
   const [filtroEstado, setFiltroEstado] = useState("")
 
+  // Paginación
+  const [paginaActual, setPaginaActual] = useState(1);
+  const filasPorPagina = 10; // Cantidad de filas que se muestran por pantalla
+
   useEffect(() => { obtenerNoticiasAdmin().then(setNoticiasPublicas) }, [])
+
+  // Reiniciar la paginación a 1 si el usuario escribe en el buscador o cambia de pestaña
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [filtroActa, filtroDniAdmin, filtroInspector, filtroDireccion, filtroEstado, vista]);
 
   const manejarBusqueda = async (e: React.FormEvent) => {
     e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null);
@@ -147,6 +156,7 @@ export default function JuzgadoFaltasUnificado() {
     if (res.success) { alert("Contraseña actualizada con éxito."); setModalPassword(false); setPassActual(""); setPassNueva(""); setPassConfirmar(""); } else { alert(res.error); }
   }
 
+  // Filtrado de Actas
   const actasFiltradas = datosAdmin.filter(item => {
     if (vista !== 'admin_actas') return true;
     const coincideActa = item.nroActa?.toLowerCase().includes(filtroActa.toLowerCase());
@@ -156,6 +166,14 @@ export default function JuzgadoFaltasUnificado() {
     const coincideEstado = filtroEstado ? item.estado === filtroEstado : true;
     return coincideActa && coincideDni && coincideInspector && coincideDireccion && coincideEstado;
   });
+
+  // Cálculos matemáticos para la Paginación
+  const listaBase = vista === 'admin_actas' ? actasFiltradas : datosAdmin;
+  const totalItems = listaBase.length;
+  const totalPaginas = Math.max(1, Math.ceil(totalItems / filasPorPagina));
+  const indicePrimerItem = (paginaActual - 1) * filasPorPagina;
+  const indiceUltimoItem = paginaActual * filasPorPagina;
+  const listaPaginada = listaBase.slice(indicePrimerItem, indiceUltimoItem); // Solo envía a la tabla los 10 registros de la página actual
 
   const rol = usuario?.rol || ''
   const puedeActas = ['SUPERADMIN', 'JUEZ', 'ADMINISTRATIVO'].includes(rol)
@@ -352,7 +370,7 @@ export default function JuzgadoFaltasUnificado() {
                     </p>
                   </div>
                   <div style={{ flex: 'none', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 8px 32px rgba(11,74,130,0.08)', textAlign: 'center', border: '1px solid var(--linea)', margin: '0 auto' }}>
-                    <img src="/qrparacodigo.png" alt="QR Código de Convivencia" style={{ width: '180px', height: '180px', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
+                    <img src="/image_bc828b.png" alt="QR Código de Convivencia" style={{ width: '180px', height: '180px', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
                     <span style={{ display: 'block', marginTop: '16px', fontSize: '12px', fontWeight: 800, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>Escanear para acceder</span>
                   </div>
                 </div>
@@ -575,7 +593,7 @@ export default function JuzgadoFaltasUnificado() {
                           <table className="admin-table">
                             <thead><tr><th>Funcionario / Contacto</th><th>Jerarquía</th><th>Estado de Cuenta</th><th>Acciones Administrativas</th></tr></thead>
                             <tbody>
-                              {datosAdmin.map(item => (
+                              {listaPaginada.map((item: any) => (
                                 <tr key={item.id}>
                                   <td><strong style={{fontSize: '15px'}}>{item.nombre}</strong><br/><span style={{fontSize: '13px', color: 'var(--tinta-suave)'}}>{item.email}</span></td>
                                   <td><span className="badge" style={{background: 'rgba(11, 74, 130, 0.1)', color: 'var(--azul-loreto)'}}>{item.rol}</span></td>
@@ -590,7 +608,7 @@ export default function JuzgadoFaltasUnificado() {
                                   </td>
                                 </tr>
                               ))}
-                              {datosAdmin.length === 0 && (<tr><td colSpan={4} style={{textAlign: 'center', padding: '40px'}}>No hay registros activos.</td></tr>)}
+                              {listaPaginada.length === 0 && (<tr><td colSpan={4} style={{textAlign: 'center', padding: '40px'}}>No hay registros activos.</td></tr>)}
                             </tbody>
                           </table>
                         )}
@@ -599,7 +617,7 @@ export default function JuzgadoFaltasUnificado() {
                           <table className="admin-table">
                             <thead><tr><th>Previsualización</th><th>Titular Emitido</th><th>Fecha de Publicación</th><th>Acción</th></tr></thead>
                             <tbody>
-                              {datosAdmin.map(item => (
+                              {listaPaginada.map((item: any) => (
                                 <tr key={item.id}>
                                   <td><img src={item.imagenUrl} alt="miniatura" style={{width: '70px', height: '45px', objectFit: 'cover', borderRadius: '4px'}} /></td>
                                   <td><strong style={{fontSize: '15px'}}>{item.titulo}</strong></td>
@@ -607,7 +625,7 @@ export default function JuzgadoFaltasUnificado() {
                                   <td><button onClick={() => manejarEliminarDato(item.id, 'noticia')} className="btn btn--danger btn--sm">Retirar Comunicado</button></td>
                                 </tr>
                               ))}
-                              {datosAdmin.length === 0 && (<tr><td colSpan={4} style={{textAlign: 'center', padding: '40px'}}>No hay comunicados activos.</td></tr>)}
+                              {listaPaginada.length === 0 && (<tr><td colSpan={4} style={{textAlign: 'center', padding: '40px'}}>No hay comunicados activos.</td></tr>)}
                             </tbody>
                           </table>
                         )}
@@ -616,7 +634,7 @@ export default function JuzgadoFaltasUnificado() {
                           <table className="admin-table">
                             <thead><tr><th>N° Acta Físico</th><th>Área Competente</th><th>Identificación (DNI)</th><th>Fase Procesal</th><th>Monto Base</th><th>Acción</th></tr></thead>
                             <tbody>
-                              {actasFiltradas.map((item: any) => {
+                              {listaPaginada.map((item: any) => {
                                 const esBroma = item.tipoInfraccion === 'BROMATOLOGIA';
                                 return (
                                 <tr key={item.id}>
@@ -628,7 +646,7 @@ export default function JuzgadoFaltasUnificado() {
                                   <td><button onClick={() => manejarEliminarDato(item.id, 'acta')} className="btn btn--danger btn--sm">Anular Acta</button></td>
                                 </tr>
                               )})}
-                              {actasFiltradas.length === 0 && (<tr><td colSpan={6} style={{textAlign: 'center', padding: '40px'}}>La búsqueda no arrojó resultados en la base de datos.</td></tr>)}
+                              {listaPaginada.length === 0 && (<tr><td colSpan={6} style={{textAlign: 'center', padding: '40px'}}>La búsqueda no arrojó resultados en la base de datos.</td></tr>)}
                             </tbody>
                           </table>
                         )}
@@ -637,7 +655,7 @@ export default function JuzgadoFaltasUnificado() {
                           <table className="admin-table">
                             <thead><tr><th>Identificador Expediente</th><th>Fase Procesal</th><th>Fecha de Ingreso</th><th>Acción de Auditoría</th></tr></thead>
                             <tbody>
-                              {datosAdmin.map(item => (
+                              {listaPaginada.map((item: any) => (
                                 <tr key={item.id}>
                                   <td><strong style={{fontSize: '15px'}}>{item.expedienteNro || item.infraccion?.nroActa}</strong></td>
                                   <td>
@@ -647,9 +665,23 @@ export default function JuzgadoFaltasUnificado() {
                                   <td><button onClick={() => setItemModal(item)} className="btn btn--primary btn--sm">Abrir Expediente</button></td>
                                 </tr>
                               ))}
-                              {datosAdmin.length === 0 && (<tr><td colSpan={4} style={{textAlign: 'center', padding: '40px'}}>Bandeja de entrada vacía.</td></tr>)}
+                              {listaPaginada.length === 0 && (<tr><td colSpan={4} style={{textAlign: 'center', padding: '40px'}}>Bandeja de entrada vacía.</td></tr>)}
                             </tbody>
                           </table>
+                        )}
+
+                        {/* CONTROLES DE PAGINACIÓN */}
+                        {totalPaginas > 1 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'var(--papel-alto)', borderTop: '1px solid var(--linea)', borderBottomLeftRadius: 'var(--radius-m)', borderBottomRightRadius: 'var(--radius-m)' }}>
+                            <span style={{ fontSize: '13px', color: 'var(--tinta-suave)' }}>
+                              Mostrando registros <strong>{indicePrimerItem + 1}</strong> al <strong>{Math.min(indiceUltimoItem, totalItems)}</strong> (Total: {totalItems})
+                            </span>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <button onClick={() => setPaginaActual(p => Math.max(1, p - 1))} disabled={paginaActual === 1} className="btn btn--ghost btn--sm" style={{padding: '6px 12px'}}>Anterior</button>
+                              <span style={{ fontSize: '13px', fontWeight: 600, padding: '0 8px' }}>Página {paginaActual} de {totalPaginas}</span>
+                              <button onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))} disabled={paginaActual === totalPaginas} className="btn btn--ghost btn--sm" style={{padding: '6px 12px'}}>Siguiente</button>
+                            </div>
+                          </div>
                         )}
                       </>
                     )}

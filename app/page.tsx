@@ -43,11 +43,10 @@ export default function JuzgadoFaltasUnificado() {
 
   // Paginación
   const [paginaActual, setPaginaActual] = useState(1);
-  const filasPorPagina = 10; // Cantidad de filas que se muestran por pantalla
+  const filasPorPagina = 10; 
 
   useEffect(() => { obtenerNoticiasAdmin().then(setNoticiasPublicas) }, [])
 
-  // Reiniciar la paginación a 1 si el usuario escribe en el buscador o cambia de pestaña
   useEffect(() => {
     setPaginaActual(1);
   }, [filtroActa, filtroDniAdmin, filtroInspector, filtroDireccion, filtroEstado, vista]);
@@ -77,7 +76,7 @@ export default function JuzgadoFaltasUnificado() {
     e.preventDefault()
     const auth = await iniciarSesion(email, password)
     if (!auth.success) return alert(auth.error)
-    setUsuario(auth.usuario); setAutenticado(true);
+    setUsuario(auth.usuario); setAutenticado(true); setMenuAbierto(false);
     let vistaInicial = 'admin_actas'
     if (auth.usuario.rol === 'LETRADO') vistaInicial = 'admin_descargos'
     if (auth.usuario.rol === 'CONTABLE') vistaInicial = 'admin_pagos'
@@ -94,7 +93,7 @@ export default function JuzgadoFaltasUnificado() {
     setCargandoAdmin(false)
   }
 
-  const cambiarVistaAdmin = (nuevaVista: string) => { setVista(nuevaVista as any); cargarDatosPanel(nuevaVista); }
+  const cambiarVistaAdmin = (nuevaVista: string) => { setVista(nuevaVista as any); cargarDatosPanel(nuevaVista); setMenuAbierto(false); }
 
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
@@ -156,7 +155,6 @@ export default function JuzgadoFaltasUnificado() {
     if (res.success) { alert("Contraseña actualizada con éxito."); setModalPassword(false); setPassActual(""); setPassNueva(""); setPassConfirmar(""); } else { alert(res.error); }
   }
 
-  // Filtrado de Actas
   const actasFiltradas = datosAdmin.filter(item => {
     if (vista !== 'admin_actas') return true;
     const coincideActa = item.nroActa?.toLowerCase().includes(filtroActa.toLowerCase());
@@ -167,13 +165,12 @@ export default function JuzgadoFaltasUnificado() {
     return coincideActa && coincideDni && coincideInspector && coincideDireccion && coincideEstado;
   });
 
-  // Cálculos matemáticos para la Paginación
   const listaBase = vista === 'admin_actas' ? actasFiltradas : datosAdmin;
   const totalItems = listaBase.length;
   const totalPaginas = Math.max(1, Math.ceil(totalItems / filasPorPagina));
   const indicePrimerItem = (paginaActual - 1) * filasPorPagina;
   const indiceUltimoItem = paginaActual * filasPorPagina;
-  const listaPaginada = listaBase.slice(indicePrimerItem, indiceUltimoItem); // Solo envía a la tabla los 10 registros de la página actual
+  const listaPaginada = listaBase.slice(indicePrimerItem, indiceUltimoItem);
 
   const rol = usuario?.rol || ''
   const puedeActas = ['SUPERADMIN', 'JUEZ', 'ADMINISTRATIVO'].includes(rol)
@@ -186,8 +183,8 @@ export default function JuzgadoFaltasUnificado() {
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap');
         
         :root { --azul-loreto: #0B4A82; --celeste-loreto: #00B2D6; --rojo-loreto: #EB2128; --papel: #FFFFFF; --papel-alto: #F8F9FA; --tinta: #212529; --tinta-suave: #495057; --linea: #DEE2E6; --radius-s: 4px; --radius-m: 10px; --maxw: 1180px; }
-        * { box-sizing: border-box; } html { scroll-behavior: smooth; } 
-        body { margin: 0; background: var(--papel); color: var(--tinta); font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.55; }
+        * { box-sizing: border-box; } html { scroll-behavior: smooth; overflow-x: hidden; } 
+        body { margin: 0; background: var(--papel); color: var(--tinta); font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.55; overflow-x: hidden; }
         h1, h2, h3, h4 { font-family: 'Montserrat', sans-serif; color: var(--azul-loreto); margin: 0 0 0.5em; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; } 
         a { color: inherit; } .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
         
@@ -195,15 +192,20 @@ export default function JuzgadoFaltasUnificado() {
         .topbar .wrap { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; padding-bottom: 8px; gap: 16px; flex-wrap: wrap; } 
         .topbar a { text-decoration: none; opacity: .9; } .topbar a:hover { opacity: 1; text-decoration: underline; } .topbar__item { display: inline-flex; align-items: center; gap: 6px; margin-right: 18px; }
         
-        header.site { background: var(--papel); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 100; } .nav-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; gap: 20px; }
-        .brand { display: flex; align-items: center; gap: 14px; text-decoration: none; } .brand__logo { height: 55px; width: auto; flex: none; } 
+        header.site { background: var(--papel); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 100; } 
+        .nav-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; gap: 20px; flex-wrap: wrap; }
+        .brand { display: flex; align-items: center; gap: 14px; text-decoration: none; z-index: 101; } .brand__logo { height: 55px; width: auto; flex: none; } 
         .brand__text .eyebrow { font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin: 0 0 2px; font-weight: 600; } 
         .brand__text strong { display: block; font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 18px; color: var(--azul-loreto); line-height: 1.1; letter-spacing: -0.02em; }
+        
+        .menu-toggle { display: none; background: none; border: none; font-size: 28px; color: var(--azul-loreto); cursor: pointer; padding: 5px; z-index: 101; }
         
         nav.primary { display: flex; align-items: center; gap: 28px; } nav.primary ul { list-style: none; display: flex; gap: 26px; margin: 0; padding: 0; } 
         nav.primary a { text-decoration: none; font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 14px; color: var(--tinta); padding: 6px 2px; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; } 
         nav.primary a:hover, nav.primary a.active { border-color: var(--rojo-loreto); color: var(--azul-loreto); }
         
+        .header-actions { display: flex; align-items: center; gap: 15px; }
+
         .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 22px; border-radius: var(--radius-s); font-weight: 600; font-size: 14px; text-decoration: none; border: 1.5px solid transparent; cursor: pointer; font-family: 'Montserrat', sans-serif; transition: all 0.2s; letter-spacing: 0.02em; } 
         .btn--primary { background: var(--azul-loreto); color: #fff; border-radius: 4px; } .btn--primary:hover { background: #083863; } 
         .btn--ghost { background: transparent; color: var(--azul-loreto); border-color: var(--azul-loreto); } .btn--ghost:hover { background: var(--azul-loreto); color: #fff; } 
@@ -251,7 +253,31 @@ export default function JuzgadoFaltasUnificado() {
         
         .contacto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; } .contacto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 24px; } .contacto-list li { display: flex; gap: 16px; align-items: flex-start; } .contacto-list .ico { width: 40px; height: 40px; border-radius: 50%; background: rgba(235, 33, 40, 0.1); color: var(--rojo-loreto); display: flex; align-items: center; justify-content: center; flex: none; font-size: 18px; } .contacto-list strong { display: block; font-size: 15px; color: var(--azul-loreto); font-weight: 600; margin-bottom: 4px; } .contacto-list span, .contacto-list a { font-size: 14.5px; color: var(--tinta-suave); text-decoration: none; } .contacto-list a:hover { color: var(--rojo-loreto); text-decoration: underline; } .map-frame { border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; height: 380px; } .map-frame iframe { width: 100%; height: 100%; border: 0; }
         
-        @media (max-width: 980px) { .contacto-grid { grid-template-columns: 1fr; } .consulta-panel { grid-template-columns: 1fr; } .hero .wrap { grid-template-columns: 1fr; } .news-grid, .autoridades-grid { grid-template-columns: 1fr; } }
+        /* RESPONSIVO MOBILE */
+        @media (max-width: 980px) { 
+          .contacto-grid, .consulta-panel, .hero .wrap, .news-grid, .autoridades-grid, .art-grid { grid-template-columns: 1fr; } 
+          
+          /* Ajustes de tipografía para celular */
+          .hero { text-align: center; padding: 40px 0; }
+          .hero h1 { font-size: 28px; margin-left: auto; margin-right: auto; }
+          .brand__logo { height: 45px; }
+          .brand__text strong { font-size: 16px; }
+          .brand__text .eyebrow { font-size: 10px; }
+          
+          /* Menú Hamburguesa */
+          .menu-toggle { display: block; }
+          nav.primary { display: none; width: 100%; order: 3; padding: 20px 0; border-top: 1px solid var(--linea); margin-top: 15px; }
+          nav.primary.abierto { display: flex; flex-direction: column; align-items: flex-start; }
+          nav.primary ul { flex-direction: column; gap: 15px; width: 100%; }
+          nav.primary a { display: block; width: 100%; padding: 5px 0; }
+          
+          .header-actions { display: none; width: 100%; order: 4; flex-direction: column; padding-bottom: 20px; gap: 15px; }
+          .header-actions.abierto { display: flex; }
+          .header-actions .btn { width: 100%; }
+
+          /* Tabla responsive */
+          .admin-table { display: block; overflow-x: auto; white-space: nowrap; }
+        }
       `}} />
 
       <div className="topbar">
@@ -263,7 +289,7 @@ export default function JuzgadoFaltasUnificado() {
 
       <header className="site">
         <div className="wrap nav-row">
-          <a className="brand" href="#" onClick={(e) => { e.preventDefault(); setVista('publica'); }}>
+          <a className="brand" href="#" onClick={(e) => { e.preventDefault(); setVista('publica'); setMenuAbierto(false); }}>
             <img src="/logojdf.png" alt="Logo Juzgado" className="brand__logo" />
             <span className="brand__text">
               <span className="eyebrow">Municipalidad de Loreto</span>
@@ -271,10 +297,22 @@ export default function JuzgadoFaltasUnificado() {
             </span>
           </a>
           
+          <button className="menu-toggle" onClick={() => setMenuAbierto(!menuAbierto)}>
+            {menuAbierto ? '✖' : '☰'}
+          </button>
+
           {vista === 'publica' ? (
-            <nav className="primary"><ul><li><a href="#inicio">Inicio</a></li><li><a href="#autoridades">Autoridades</a></li><li><a href="#normativa">Normativa</a></li><li><a href="#noticias">Noticias</a></li><li><a href="#consulta">Trámites</a></li></ul></nav>
+            <nav className={`primary ${menuAbierto ? 'abierto' : ''}`}>
+              <ul>
+                <li><a href="#inicio" onClick={() => setMenuAbierto(false)}>Inicio</a></li>
+                <li><a href="#autoridades" onClick={() => setMenuAbierto(false)}>Autoridades</a></li>
+                <li><a href="#normativa" onClick={() => setMenuAbierto(false)}>Normativa</a></li>
+                <li><a href="#noticias" onClick={() => setMenuAbierto(false)}>Noticias</a></li>
+                <li><a href="#consulta" onClick={() => setMenuAbierto(false)}>Trámites</a></li>
+              </ul>
+            </nav>
           ) : (
-            <nav className="primary">
+            <nav className={`primary ${menuAbierto ? 'abierto' : ''}`}>
               {autenticado && (
                 <ul>
                   {puedeActas && <li><a className={vista === 'admin_actas' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_actas')}>Gestión Actas</a></li>}
@@ -291,10 +329,10 @@ export default function JuzgadoFaltasUnificado() {
             </nav>
           )}
 
-          <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
+          <div className={`header-actions ${menuAbierto ? 'abierto' : ''}`}>
             {autenticado && <span style={{fontSize: '13px', color: 'var(--tinta-suave)', fontWeight: 600, fontFamily: 'Montserrat, sans-serif'}}>👤 {usuario?.nombre}</span>}
-            {autenticado && <a onClick={() => setModalPassword(true)} style={{fontSize: '13px', cursor: 'pointer', color: 'var(--celeste-loreto)', fontWeight: 700, fontFamily: 'Montserrat, sans-serif'}}>Cambiar Clave</a>}
-            <button onClick={() => { if (vista === 'publica') { setVista('admin_actas'); } else { setVista('publica'); setAutenticado(false); setUsuario(null); setPassword(""); } }} className="btn btn--ghost btn--sm">
+            {autenticado && <a onClick={() => { setModalPassword(true); setMenuAbierto(false); }} style={{fontSize: '13px', cursor: 'pointer', color: 'var(--celeste-loreto)', fontWeight: 700, fontFamily: 'Montserrat, sans-serif'}}>Cambiar Clave</a>}
+            <button onClick={() => { if (vista === 'publica') { setVista('admin_actas'); } else { setVista('publica'); setAutenticado(false); setUsuario(null); setPassword(""); } setMenuAbierto(false); }} className="btn btn--ghost btn--sm">
               {vista === 'publica' ? 'Acceso Personal' : 'Cerrar Sesión'}
             </button>
           </div>
@@ -307,7 +345,7 @@ export default function JuzgadoFaltasUnificado() {
             <section className="hero" id="inicio">
               <div className="wrap">
                 <div><p className="eyebrow">Municipalidad de Loreto · Provincia de Santiago del Estero</p><h1>Juzgado de Faltas Municipal</h1><p className="lead">Consulte el estado de sus infracciones, presente su descargo de forma remota y gestione sus trámites de manera ágil, transparente y segura.</p><a href="#consulta" className="btn btn--primary">Consultar Infracción</a></div>
-                <div style={{display: 'flex', justifyContent: 'center'}}><img src="/logojdf.png" alt="Sello institucional" style={{width: 'min(380px, 100%)'}} /></div>
+                <div style={{display: 'flex', justifyContent: 'center'}}><img src="/logojdf.png" alt="Sello institucional" style={{width: 'min(380px, 100%)', maxWidth: '80%'}} /></div>
               </div>
             </section>
 
@@ -362,15 +400,15 @@ export default function JuzgadoFaltasUnificado() {
             <section id="normativa" style={{ background: '#FFFFFF', padding: '80px 0', borderBottom: '1px solid var(--linea)' }}>
               <div className="wrap">
                 <div style={{ background: 'var(--papel-alto)', borderRadius: 'var(--radius-m)', padding: '48px', display: 'flex', alignItems: 'center', gap: '48px', flexWrap: 'wrap', border: '1px solid var(--linea)' }}>
-                  <div style={{ flex: 1, minWidth: '300px' }}>
+                  <div style={{ flex: 1, minWidth: '250px' }}>
                     <p className="kicker" style={{ color: 'var(--rojo-loreto)', fontFamily: 'Montserrat, sans-serif', fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '12px' }}>Transparencia Municipal</p>
                     <h2 style={{ fontSize: '32px', marginBottom: '16px', color: 'var(--azul-loreto)' }}>Código de Convivencia y Faltas de Tránsito</h2>
                     <p style={{ fontSize: '16px', color: 'var(--tinta-suave)', lineHeight: '1.6' }}>
                       Acceda de forma directa a la normativa oficial de la Ciudad de Loreto. Conozca sus derechos, obligaciones ciudadanas y las reglamentaciones de tránsito vigentes escaneando el código QR con la cámara de su dispositivo móvil.
                     </p>
                   </div>
-                  <div style={{ flex: 'none', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 8px 32px rgba(11,74,130,0.08)', textAlign: 'center', border: '1px solid var(--linea)', margin: '0 auto' }}>
-                    <img src="/qrparacodigo.png" alt="QR Código de Convivencia" style={{ width: '180px', height: '180px', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
+                  <div style={{ flex: 'none', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 8px 32px rgba(11,74,130,0.08)', textAlign: 'center', border: '1px solid var(--linea)', margin: '0 auto', maxWidth: '100%' }}>
+                    <img src="/image_bc828b.png" alt="QR Código de Convivencia" style={{ width: '100%', maxWidth: '180px', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
                     <span style={{ display: 'block', marginTop: '16px', fontSize: '12px', fontWeight: 800, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>Escanear para acceder</span>
                   </div>
                 </div>
@@ -425,7 +463,7 @@ export default function JuzgadoFaltasUnificado() {
                               <div style={{marginTop: '6px'}}><span className="badge" style={{background: acta.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: acta.estado === 'PENDIENTE' ? '#B45309' : '#047857'}}>{acta.estado}</span></div>
                               
                               {acta.estado === 'PENDIENTE' && (
-                                <div style={{display: 'flex', gap: '12px', marginTop: '16px'}}><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'pago' })} className="btn btn--ghost btn--sm">Informar Pago</button><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'descargo' })} className="btn btn--primary btn--sm">Presentar Descargo</button></div>
+                                <div style={{display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap'}}><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'pago' })} className="btn btn--ghost btn--sm">Informar Pago</button><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'descargo' })} className="btn btn--primary btn--sm">Presentar Descargo</button></div>
                               )}
                               
                               {tramiteActivo?.id === acta.id && (
@@ -522,9 +560,9 @@ export default function JuzgadoFaltasUnificado() {
                     <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
                       <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Alta de Nuevo Funcionario / Empleado</h3>
                       <form onSubmit={manejarCrearUsuario} style={{display: 'flex', gap: '20px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
-                        <div className="field" style={{marginBottom: 0, flex: 1}}><label>Nombre y Apellido</label><input type="text" value={nuevoUsuarioNombre} onChange={(e) => setNuevoUsuarioNombre(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1}}><label>Casilla de Correo</label><input type="email" value={nuevoUsuarioEmail} onChange={(e) => setNuevoUsuarioEmail(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1}}>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}><label>Nombre y Apellido</label><input type="text" value={nuevoUsuarioNombre} onChange={(e) => setNuevoUsuarioNombre(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}><label>Casilla de Correo</label><input type="email" value={nuevoUsuarioEmail} onChange={(e) => setNuevoUsuarioEmail(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}>
                           <label>Jerarquía / Rol en el Sistema</label>
                           <select value={nuevoUsuarioRol} onChange={(e) => setNuevoUsuarioRol(e.target.value)}>
                             <option value="JUEZ">Juez de Faltas</option>
@@ -670,9 +708,8 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* CONTROLES DE PAGINACIÓN */}
                         {totalPaginas > 1 && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'var(--papel-alto)', borderTop: '1px solid var(--linea)', borderBottomLeftRadius: 'var(--radius-m)', borderBottomRightRadius: 'var(--radius-m)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'var(--papel-alto)', borderTop: '1px solid var(--linea)', borderBottomLeftRadius: 'var(--radius-m)', borderBottomRightRadius: 'var(--radius-m)', flexWrap: 'wrap', gap: '10px' }}>
                             <span style={{ fontSize: '13px', color: 'var(--tinta-suave)' }}>
                               Mostrando registros <strong>{indicePrimerItem + 1}</strong> al <strong>{Math.min(indiceUltimoItem, totalItems)}</strong> (Total: {totalItems})
                             </span>
@@ -693,7 +730,6 @@ export default function JuzgadoFaltasUnificado() {
         )}
       </main>
 
-      {/* MODAL CLAVES */}
       {modalPassword && (
         <div className="modal-overlay" onClick={() => setModalPassword(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '440px'}}>
@@ -711,7 +747,6 @@ export default function JuzgadoFaltasUnificado() {
         </div>
       )}
 
-      {/* MODAL EXPEDIENTE */}
       {itemModal && (
         <div className="modal-overlay" onClick={() => setItemModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>

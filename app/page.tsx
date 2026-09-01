@@ -7,7 +7,7 @@ import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosA
 
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
-  const [vista, setVista] = useState<'publica' | 'admin_actas' | 'admin_descargos' | 'admin_pagos' | 'admin_usuarios' | 'admin_noticias'>('publica')
+  const [vista, setVista] = useState<'publica' | 'admin_actas' | 'admin_descargos' | 'admin_pagos' | 'admin_usuarios' | 'admin_noticias' | 'admin_calculadora'>('publica')
 
   const [autenticado, setAutenticado] = useState(false)
   const [email, setEmail] = useState("")
@@ -40,6 +40,14 @@ export default function JuzgadoFaltasUnificado() {
   const [filtroInspector, setFiltroInspector] = useState("")
   const [filtroDireccion, setFiltroDireccion] = useState("")
   const [filtroEstado, setFiltroEstado] = useState("")
+
+  // Estados Calculadora
+  const [calcArticulo, setCalcArticulo] = useState("")
+  const [calcUemValor, setCalcUemValor] = useState("")
+  const [calcUemCantidad, setCalcUemCantidad] = useState("")
+  const calcTotal = (Number(calcUemValor) * Number(calcUemCantidad)) || 0;
+  const calcVoluntario = calcTotal / 2;
+  const calcNotificacion = calcTotal > 0 ? calcVoluntario + 5000 : 0;
 
   // Paginación
   const [paginaActual, setPaginaActual] = useState(1);
@@ -253,29 +261,21 @@ export default function JuzgadoFaltasUnificado() {
         
         .contacto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; } .contacto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 24px; } .contacto-list li { display: flex; gap: 16px; align-items: flex-start; } .contacto-list .ico { width: 40px; height: 40px; border-radius: 50%; background: rgba(235, 33, 40, 0.1); color: var(--rojo-loreto); display: flex; align-items: center; justify-content: center; flex: none; font-size: 18px; } .contacto-list strong { display: block; font-size: 15px; color: var(--azul-loreto); font-weight: 600; margin-bottom: 4px; } .contacto-list span, .contacto-list a { font-size: 14.5px; color: var(--tinta-suave); text-decoration: none; } .contacto-list a:hover { color: var(--rojo-loreto); text-decoration: underline; } .map-frame { border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; height: 380px; } .map-frame iframe { width: 100%; height: 100%; border: 0; }
         
-        /* RESPONSIVO MOBILE */
         @media (max-width: 980px) { 
           .contacto-grid, .consulta-panel, .hero .wrap, .news-grid, .autoridades-grid, .art-grid { grid-template-columns: 1fr; } 
-          
-          /* Ajustes de tipografía para celular */
           .hero { text-align: center; padding: 40px 0; }
           .hero h1 { font-size: 28px; margin-left: auto; margin-right: auto; }
           .brand__logo { height: 45px; }
           .brand__text strong { font-size: 16px; }
           .brand__text .eyebrow { font-size: 10px; }
-          
-          /* Menú Hamburguesa */
           .menu-toggle { display: block; }
           nav.primary { display: none; width: 100%; order: 3; padding: 20px 0; border-top: 1px solid var(--linea); margin-top: 15px; }
           nav.primary.abierto { display: flex; flex-direction: column; align-items: flex-start; }
           nav.primary ul { flex-direction: column; gap: 15px; width: 100%; }
           nav.primary a { display: block; width: 100%; padding: 5px 0; }
-          
           .header-actions { display: none; width: 100%; order: 4; flex-direction: column; padding-bottom: 20px; gap: 15px; }
           .header-actions.abierto { display: flex; }
           .header-actions .btn { width: 100%; }
-
-          /* Tabla responsive */
           .admin-table { display: block; overflow-x: auto; white-space: nowrap; }
         }
       `}} />
@@ -316,6 +316,7 @@ export default function JuzgadoFaltasUnificado() {
               {autenticado && (
                 <ul>
                   {puedeActas && <li><a className={vista === 'admin_actas' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_actas')}>Gestión Actas</a></li>}
+                  {puedeActas && <li><a className={vista === 'admin_calculadora' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_calculadora')}>Calculadora</a></li>}
                   {puedeDescargos && <li><a className={vista === 'admin_descargos' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_descargos')}>Auditoría</a></li>}
                   {puedePagos && <li><a className={vista === 'admin_pagos' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_pagos')}>Conciliación</a></li>}
                   {rol === 'SUPERADMIN' && (
@@ -408,7 +409,7 @@ export default function JuzgadoFaltasUnificado() {
                     </p>
                   </div>
                   <div style={{ flex: 'none', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 8px 32px rgba(11,74,130,0.08)', textAlign: 'center', border: '1px solid var(--linea)', margin: '0 auto', maxWidth: '100%' }}>
-                    <img src="/qrparacodigo.png" alt="QR Código de Convivencia" style={{ width: '100%', maxWidth: '180px', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
+                    <img src="/image_bc828b.png" alt="QR Código de Convivencia" style={{ width: '100%', maxWidth: '180px', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
                     <span style={{ display: 'block', marginTop: '16px', fontSize: '12px', fontWeight: 800, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>Escanear para acceder</span>
                   </div>
                 </div>
@@ -542,8 +543,48 @@ export default function JuzgadoFaltasUnificado() {
                 </div>
               ) : (
                 <>
-                  <div className="section-head"><p className="kicker">Panel de Administración</p><h2>{vista === 'admin_actas' ? 'Gestión Documental de Actas' : vista === 'admin_descargos' ? 'Auditoría Legal de Descargos' : vista === 'admin_usuarios' ? 'Gestión de Recursos Humanos' : vista === 'admin_noticias' ? 'Publicación Institucional' : 'Conciliación Bancaria y Pagos'}</h2></div>
+                  <div className="section-head"><p className="kicker">Panel de Administración</p><h2>{vista === 'admin_actas' ? 'Gestión Documental de Actas' : vista === 'admin_descargos' ? 'Auditoría Legal de Descargos' : vista === 'admin_usuarios' ? 'Gestión de Recursos Humanos' : vista === 'admin_noticias' ? 'Publicación Institucional' : vista === 'admin_calculadora' ? 'Calculadora de Multas (UEM)' : 'Conciliación Bancaria y Pagos'}</h2></div>
                   
+                  {vista === 'admin_calculadora' && (
+                    <div style={{background: 'var(--papel)', padding: '40px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', maxWidth: '900px', margin: '0 auto'}}>
+                      <h3 style={{fontSize: '18px', marginBottom: '8px'}}>Simulador Rápido de Infracciones</h3>
+                      <p style={{fontSize: '14px', color: 'var(--tinta-suave)', marginBottom: '32px'}}>Ingrese el valor actual de la Unidad Económica Municipal y la cantidad de UEM correspondientes a la falta para obtener los montos finales.</p>
+                      
+                      <div style={{display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '32px'}}>
+                        <div className="field" style={{flex: 1, minWidth: '150px'}}>
+                          <label>Artículo (Referencia)</label>
+                          <input type="text" placeholder="Ej: Art. 45" value={calcArticulo} onChange={e => setCalcArticulo(e.target.value)} />
+                        </div>
+                        <div className="field" style={{flex: 1, minWidth: '180px'}}>
+                          <label>Valor 1 UEM ($)</label>
+                          <input type="number" placeholder="Ej: 850" value={calcUemValor} onChange={e => setCalcUemValor(e.target.value)} />
+                        </div>
+                        <div className="field" style={{flex: 1, minWidth: '180px'}}>
+                          <label>Cantidad de UEM</label>
+                          <input type="number" placeholder="Ej: 150" value={calcUemCantidad} onChange={e => setCalcUemCantidad(e.target.value)} />
+                        </div>
+                      </div>
+
+                      {calcTotal > 0 && (
+                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px'}}>
+                          <div style={{background: 'rgba(11, 74, 130, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(11, 74, 130, 0.2)'}}>
+                            <span style={{fontSize: '12px', fontWeight: 700, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Pago Voluntario (50%)</span>
+                            <p style={{fontSize: '32px', fontWeight: 800, color: 'var(--azul-loreto)', margin: '12px 0 0 0', fontFamily: 'Montserrat, sans-serif'}}>${calcVoluntario.toLocaleString('es-AR')}</p>
+                          </div>
+                          <div style={{background: 'rgba(245, 158, 11, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)'}}>
+                            <span style={{fontSize: '12px', fontWeight: 700, color: '#B45309', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Pago Notificación</span>
+                            <p style={{fontSize: '32px', fontWeight: 800, color: '#B45309', margin: '12px 0 4px 0', fontFamily: 'Montserrat, sans-serif'}}>${calcNotificacion.toLocaleString('es-AR')}</p>
+                            <span style={{fontSize: '11px', color: '#B45309', opacity: 0.8, fontWeight: 600}}>Incluye $5.000 de gastos admin.</span>
+                          </div>
+                          <div style={{background: 'rgba(239, 68, 68, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)'}}>
+                            <span style={{fontSize: '12px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Con Sentencia (100%)</span>
+                            <p style={{fontSize: '32px', fontWeight: 800, color: '#DC2626', margin: '12px 0 0 0', fontFamily: 'Montserrat, sans-serif'}}>${calcTotal.toLocaleString('es-AR')}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {vista === 'admin_noticias' && (
                     <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
                       <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Emitir Nuevo Comunicado</h3>
@@ -708,7 +749,7 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {totalPaginas > 1 && (
+                        {totalPaginas > 1 && vista !== 'admin_calculadora' && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'var(--papel-alto)', borderTop: '1px solid var(--linea)', borderBottomLeftRadius: 'var(--radius-m)', borderBottomRightRadius: 'var(--radius-m)', flexWrap: 'wrap', gap: '10px' }}>
                             <span style={{ fontSize: '13px', color: 'var(--tinta-suave)' }}>
                               Mostrando registros <strong>{indicePrimerItem + 1}</strong> al <strong>{Math.min(indiceUltimoItem, totalItems)}</strong> (Total: {totalItems})
@@ -730,6 +771,7 @@ export default function JuzgadoFaltasUnificado() {
         )}
       </main>
 
+      {/* MODAL CLAVES */}
       {modalPassword && (
         <div className="modal-overlay" onClick={() => setModalPassword(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '440px'}}>
@@ -747,6 +789,7 @@ export default function JuzgadoFaltasUnificado() {
         </div>
       )}
 
+      {/* MODAL EXPEDIENTE */}
       {itemModal && (
         <div className="modal-overlay" onClick={() => setItemModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>

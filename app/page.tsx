@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano, procesarNoticia } from "./actions/subidas"
-import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario } from "./actions/admin"
+import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearContrasena } from "./actions/admin"
 
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
@@ -149,7 +149,7 @@ export default function JuzgadoFaltasUnificado() {
   const manejarCrearUsuario = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoUsuario(true);
     const res = await crearUsuarioAdmin({ nombre: nuevoUsuarioNombre, email: nuevoUsuarioEmail, rol: nuevoUsuarioRol })
-    if (res.success) { setNuevoUsuarioNombre(""); setNuevoUsuarioEmail(""); setNuevoUsuarioRol("ADMINISTRATIVO"); cargarDatosPanel(vista) } else { alert(res.error) }
+    if (res.success) { setNuevoUsuarioNombre(""); setNuevoUsuarioEmail(""); setNuevoUsuarioRol("ADMINISTRATIVO"); cargarDatosPanel(vista); alert(`Usuario creado.\nLa clave de acceso temporal es: Loreto2026`) } else { alert(res.error) }
     setGuardandoUsuario(false)
   }
 
@@ -161,6 +161,18 @@ export default function JuzgadoFaltasUnificado() {
     const res = await cambiarContrasena(email, passActual, passNueva);
     setCambiandoPass(false);
     if (res.success) { alert("Contraseña actualizada con éxito."); setModalPassword(false); setPassActual(""); setPassNueva(""); setPassConfirmar(""); } else { alert(res.error); }
+  }
+
+  // Nueva función para el botón de "Blanquear Clave"
+  const manejarBlanquearClave = async (id: string, nombre: string) => {
+    if (!confirm(`¿Estás seguro de BLANQUEAR la contraseña de ${nombre}?\n\nSe le asignará una clave temporal y el empleado no podrá ingresar con su clave actual.`)) return;
+    
+    const res = await blanquearContrasena(id);
+    if (res.success) {
+      alert(`✅ CLAVE RESTABLECIDA CON ÉXITO\n\nLa nueva clave temporal para ${nombre} es: ${res.tempPass}\n\nPor favor, comuníqueselo al empleado para que inicie sesión y cambie su clave inmediatamente por seguridad.`);
+    } else {
+      alert("Error al restablecer: " + res.error);
+    }
   }
 
   const actasFiltradas = datosAdmin.filter(item => {
@@ -409,7 +421,7 @@ export default function JuzgadoFaltasUnificado() {
                     </p>
                   </div>
                   <div style={{ flex: 'none', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 8px 32px rgba(11,74,130,0.08)', textAlign: 'center', border: '1px solid var(--linea)', margin: '0 auto', maxWidth: '100%' }}>
-                    <img src="/qrparacodigo.png" alt="QR Código de Convivencia" style={{ width: '100%', maxWidth: '180px', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
+                    <img src="/image_bc828b.png" alt="QR Código de Convivencia" style={{ width: '100%', maxWidth: '180px', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
                     <span style={{ display: 'block', marginTop: '16px', fontSize: '12px', fontWeight: 800, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>Escanear para acceder</span>
                   </div>
                 </div>
@@ -679,8 +691,9 @@ export default function JuzgadoFaltasUnificado() {
                                   <td><span className="badge" style={{background: item.activo ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)', color: item.activo ? '#047857' : '#DC2626'}}>{item.activo ? 'Operativa' : 'Suspendida'}</span></td>
                                   <td>
                                     {item.rol !== 'SUPERADMIN' && (
-                                      <div style={{display: 'flex', gap: '8px'}}>
+                                      <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
                                         <button onClick={async () => { await toggleEstadoUsuario(item.id, item.activo); cargarDatosPanel('admin_usuarios'); }} className="btn btn--ghost btn--sm">{item.activo ? 'Bloquear Acceso' : 'Restituir Acceso'}</button>
+                                        <button onClick={() => manejarBlanquearClave(item.id, item.nombre)} className="btn btn--ghost btn--sm" style={{borderColor: 'var(--celeste-loreto)', color: 'var(--celeste-loreto)'}}>Blanquear Clave</button>
                                         <button onClick={() => manejarEliminarUsuario(item.id)} className="btn btn--danger btn--sm">Baja Definitiva</button>
                                       </div>
                                     )}

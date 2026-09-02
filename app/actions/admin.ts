@@ -1,3 +1,4 @@
+import { hash, compare } from 'bcryptjs'
 "use server"
 
 import { PrismaClient } from '@prisma/client'
@@ -133,22 +134,25 @@ export async function eliminarActa(id: string) {
   } catch (error: any) {
     return { success: false, error: error.message }
   }
-}export async function iniciarSesion(email: string, passwordPlana: string) {
+export async function iniciarSesion(email: string, pass: string) {
   try {
-    const usuario = await prisma.usuario.findUnique({ where: { email } })
-    if (!usuario) return { success: false, error: "Credenciales incorrectas." }
-    if (!usuario.activo) return { success: false, error: "Cuenta deshabilitada." }
+    const user = await prisma.usuario.findUnique({ where: { email } })
+    if (!user || !user.activo) return { success: false, error: "Usuario inactivo o no encontrado." }
 
-    const passwordValida = await compare(passwordPlana, usuario.password)
-    if (!passwordValida) return { success: false, error: "Credenciales incorrectas." }
-
-    return { 
-      success: true, 
-      usuario: { id: usuario.id, nombre: usuario.nombre, rol: usuario.rol } 
+    let esValida = false;
+    // Sistema inteligente: si la clave ya está encriptada la compara con seguridad, si no, usa la vieja
+    if (user.password.startsWith('$2a$')) {
+      esValida = await compare(pass, user.password);
+    } else {
+      esValida = (pass === user.password);
     }
+
+    if (!esValida) return { success: false, error: "Contraseña incorrecta." }
+    return { success: true, usuario: { id: user.id, nombre: user.nombre, rol: user.rol, email: user.email } }
   } catch (error: any) {
-    return { success: false, error: "Error de servidor: " + error.message }
+    return { success: false, error: error.message }
   }
+}
 }export async function obtenerUsuariosAdmin() {
   try {
     return await prisma.usuario.findMany({
@@ -160,19 +164,20 @@ export async function eliminarActa(id: string) {
   }
 }
 
-export async function crearUsuarioAdmin(data: { nombre: string, email: string, rol: any }) {
+export async function crearUsuarioAdmin(data: { nombre: string, email: string, rol: string }) {
   try {
     const existe = await prisma.usuario.findUnique({ where: { email: data.email } })
     if (existe) return { success: false, error: "El correo ya está registrado." }
 
-    // La contraseña por defecto para el equipo será Loreto2026!
-    const passwordEncriptada = await hash("Loreto2026!", 10)
+    // Encriptamos la clave temporal por defecto antes de enviarla a la base de datos
+    const hashedPass = await hash("Loreto2026", 10)
+
     await prisma.usuario.create({
       data: {
         nombre: data.nombre,
         email: data.email,
         rol: data.rol,
-        password: passwordEncriptada
+        password: hashedPass
       }
     })
     return { success: true }
@@ -191,24 +196,47 @@ export async function toggleEstadoUsuario(id: string, estadoActual: boolean) {
   } catch (error: any) {
     return { success: false, error: error.message }
   }
-}export async function cambiarContrasena(email: string, actual: string, nueva: string) {
+export async function cambiarContrasena(email: string, passActual: string, passNueva: string) {
   try {
-    const usuario = await prisma.usuario.findUnique({ where: { email } })
-    if (!usuario) return { success: false, error: "Usuario no encontrado." }
+    const user = await prisma.usuario.findUnique({ where: { email } })
+    if (!user) return { success: false, error: "Usuario no encontrado." }
 
-    const passwordValida = await compare(actual, usuario.password)
-    if (!passwordValida) return { success: false, error: "La contraseña actual es incorrecta." }
+    let esValida = false;
+    if (user.password.startsWith('$2a$')) {
+      esValida = await compare(passActual, user.password);
+    } else {
+      esValida = (passActual === user.password);
+    }
 
-    const passwordEncriptada = await hash(nueva, 10)
+    if (!esValida) return { success: false, error: "La contraseña actual es incorrecta." }
+
+    // Encriptamos la clave nueva que eligió el empleado
+    const hashedNueva = await hash(passNueva, 10)
+
     await prisma.usuario.update({
       where: { email },
-      data: { password: passwordEncriptada }
+      data: { password: hashedNueva }
     })
-
     return { success: true }
   } catch (error: any) {
     return { success: false, error: error.message }
   }
+}
+
+export async function blanquearContrasena(id: string) {
+  try {
+    const claveTemporal = "Loreto2026";
+    // Generamos un hash seguro para la clave temporal
+    const hashedPass = await hash(claveTemporal, 10);
+    await prisma.usuario.update({
+      where: { id },
+      data: { password: hashedPass }
+    });
+    return { success: true, tempPass: claveTemporal };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
 }export async function obtenerNoticiasAdmin() {
   try {
     return await prisma.noticia.findMany({ orderBy: { creadoEn: 'desc' } })

@@ -2,6 +2,7 @@
 
 import { hash, compare } from 'bcryptjs'
 import { PrismaClient } from '@prisma/client'
+
 const prisma = new PrismaClient()
 
 export async function inicializarSistema() {
@@ -59,7 +60,12 @@ export async function conciliarPago(id: string, estado: string) {
 
 export async function crearActa(data: any) {
   try {
-    await prisma.infraccion.create({ data: { ...data, estado: 'PENDIENTE' } })
+    const payload = { ...data, estado: 'PENDIENTE' }
+    if (payload.fechaInfraccion) {
+      // Compensamos la zona horaria para que no guarde el día anterior
+      payload.fechaInfraccion = new Date(payload.fechaInfraccion + 'T12:00:00Z')
+    }
+    await prisma.infraccion.create({ data: payload })
     return { success: true }
   } catch (error: any) {
     return { success: false, error: error.message }

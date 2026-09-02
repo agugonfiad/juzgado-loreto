@@ -30,7 +30,7 @@ export default function JuzgadoFaltasUnificado() {
   const [enviando, setEnviando] = useState(false)
 
   // Estados Formularios Carga
-  const [nuevoNroActa, setNuevoNroActa] = useState(""); const [nuevoNombre, setNuevoNombre] = useState(""); const [nuevoDni, setNuevoDni] = useState(""); const [nuevoLugar, setNuevoLugar] = useState(""); const [nuevoArticulo, setNuevoArticulo] = useState(""); const [nuevoInspector, setNuevoInspector] = useState(""); const [nuevoMonto, setNuevoMonto] = useState(""); const [nuevoTipo, setNuevoTipo] = useState("TRANSITO"); const [guardandoActa, setGuardandoActa] = useState(false);
+  const [nuevoNroActa, setNuevoNroActa] = useState(""); const [nuevoNombre, setNuevoNombre] = useState(""); const [nuevoDni, setNuevoDni] = useState(""); const [nuevoLugar, setNuevoLugar] = useState(""); const [nuevoArticulo, setNuevoArticulo] = useState(""); const [nuevoInspector, setNuevoInspector] = useState(""); const [nuevoMonto, setNuevoMonto] = useState(""); const [nuevoTipo, setNuevoTipo] = useState("TRANSITO"); const [nuevaFecha, setNuevaFecha] = useState(""); const [guardandoActa, setGuardandoActa] = useState(false);
   const [nuevoUsuarioNombre, setNuevoUsuarioNombre] = useState(""); const [nuevoUsuarioEmail, setNuevoUsuarioEmail] = useState(""); const [nuevoUsuarioRol, setNuevoUsuarioRol] = useState("ADMINISTRATIVO"); const [guardandoUsuario, setGuardandoUsuario] = useState(false);
   const [modalPassword, setModalPassword] = useState(false); const [passActual, setPassActual] = useState(""); const [passNueva, setPassNueva] = useState(""); const [passConfirmar, setPassConfirmar] = useState(""); const [cambiandoPass, setCambiandoPass] = useState(false);
 
@@ -105,9 +105,26 @@ export default function JuzgadoFaltasUnificado() {
 
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
-    const res = await crearActa({ nroActa: nuevoNroActa, nombreTitular: nuevoNombre, dniTitular: nuevoDni, monto: Number(nuevoMonto), lugar: nuevoLugar, articulo: nuevoArticulo, inspector: nuevoInspector, tipoInfraccion: nuevoTipo as any })
-    if (res.success) { setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto(""); setNuevoTipo("TRANSITO"); cargarDatosPanel(vista) } else { alert(res.error) }
-    setGuardandoActa(false)
+    
+    // Armamos el paquete de datos, sumando la fecha seleccionada en el calendario
+    const datosActa = {
+      nroActa: nuevoNroActa, nombreTitular: nuevoNombre, dniTitular: nuevoDni, 
+      monto: Number(nuevoMonto), lugar: nuevoLugar, articulo: nuevoArticulo, 
+      inspector: nuevoInspector, tipoInfraccion: nuevoTipo as any,
+      fechaInfraccion: nuevaFecha ? new Date(nuevaFecha + "T12:00:00Z") : undefined
+    };
+
+    const res = await crearActa(datosActa);
+    
+    if (res.success) { 
+      setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); 
+      setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto(""); setNuevoTipo("TRANSITO"); 
+      setNuevaFecha(""); // Limpiamos el calendario
+      cargarDatosPanel(vista);
+    } else { 
+      alert(res.error); 
+    }
+    setGuardandoActa(false);
   }
 
   const manejarCrearNoticia = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -639,6 +656,9 @@ export default function JuzgadoFaltasUnificado() {
                           </select>
                         </div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '110px'}}><label>N° Físico de Acta</label><input type="text" value={nuevoNroActa} onChange={(e) => setNuevoNroActa(e.target.value)} required /></div>
+                        
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Fecha del Hecho</label><input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} required /></div>
+                        
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '160px'}}><label>Nombre del Imputado</label><input type="text" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} required /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>DNI / CUIT</label><input type="text" value={nuevoDni} onChange={(e) => setNuevoDni(e.target.value)} required /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '130px'}}><label>Ubicación del Hecho</label><input type="text" value={nuevoLugar} onChange={(e) => setNuevoLugar(e.target.value)} required /></div>

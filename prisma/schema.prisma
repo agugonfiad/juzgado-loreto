@@ -42,7 +42,7 @@ enum TipoInfraccion {
 model Infraccion {
   id             String           @id @default(uuid())
   nroActa        String           @unique
-  fechaInfraccion DateTime
+  fechaInfraccion DateTime?
   lugar          String
   articulo       String
   monto          Decimal          @db.Decimal(10, 2)

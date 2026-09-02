@@ -163,10 +163,8 @@ export default function JuzgadoFaltasUnificado() {
     if (res.success) { alert("Contraseña actualizada con éxito."); setModalPassword(false); setPassActual(""); setPassNueva(""); setPassConfirmar(""); } else { alert(res.error); }
   }
 
-  // Nueva función para el botón de "Blanquear Clave"
   const manejarBlanquearClave = async (id: string, nombre: string) => {
     if (!confirm(`¿Estás seguro de BLANQUEAR la contraseña de ${nombre}?\n\nSe le asignará una clave temporal y el empleado no podrá ingresar con su clave actual.`)) return;
-    
     const res = await blanquearContrasena(id);
     if (res.success) {
       alert(`✅ CLAVE RESTABLECIDA CON ÉXITO\n\nLa nueva clave temporal para ${nombre} es: ${res.tempPass}\n\nPor favor, comuníqueselo al empleado para que inicie sesión y cambie su clave inmediatamente por seguridad.`);

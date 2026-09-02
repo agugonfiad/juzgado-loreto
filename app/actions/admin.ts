@@ -1,6 +1,6 @@
-import { hash, compare } from 'bcryptjs'
 "use server"
 
+import { hash, compare } from 'bcryptjs'
 import { PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'
 import { compare } from 'bcryptjs'

@@ -134,6 +134,7 @@ export async function eliminarActa(id: string) {
   } catch (error: any) {
     return { success: false, error: error.message }
   }
+}
 export async function iniciarSesion(email: string, pass: string) {
   try {
     const user = await prisma.usuario.findUnique({ where: { email } })

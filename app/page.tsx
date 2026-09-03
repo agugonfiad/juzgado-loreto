@@ -106,12 +106,24 @@ export default function JuzgadoFaltasUnificado() {
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
     
-    // Traductor seguro de fechas para evitar el "Invalid Date"
-    let fechaValida = undefined;
+    // Traductor blindado de fechas
+    let fechaValida = new Date().toISOString(); // Por defecto usa el momento actual si algo falla
+    
     if (nuevaFecha) {
-      const partes = nuevaFecha.split('-'); 
-      if (partes.length === 3) {
-        fechaValida = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2])).toISOString();
+      try {
+        if (nuevaFecha.includes('-')) {
+          // Si el navegador la manda como YYYY-MM-DD
+          const [anio, mes, dia] = nuevaFecha.split('-');
+          fechaValida = new Date(Number(anio), Number(mes) - 1, Number(dia), 12).toISOString();
+        } else if (nuevaFecha.includes('/')) {
+          // Si el navegador la manda como DD/MM/YYYY
+          const [dia, mes, anio] = nuevaFecha.split('/');
+          fechaValida = new Date(Number(anio), Number(mes) - 1, Number(dia), 12).toISOString();
+        } else {
+          fechaValida = new Date(nuevaFecha).toISOString();
+        }
+      } catch (error) {
+        console.log("Formato irreconocible, aplicando fecha por defecto.");
       }
     }
 

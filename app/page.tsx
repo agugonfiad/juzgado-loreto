@@ -106,12 +106,25 @@ export default function JuzgadoFaltasUnificado() {
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
     
-    // Armamos el paquete de datos, sumando la fecha seleccionada en el calendario
+    // Traductor seguro de fechas para evitar el "Invalid Date"
+    let fechaValida = undefined;
+    if (nuevaFecha) {
+      const partes = nuevaFecha.split('-'); 
+      if (partes.length === 3) {
+        fechaValida = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2])).toISOString();
+      }
+    }
+
     const datosActa = {
-      nroActa: nuevoNroActa, nombreTitular: nuevoNombre, dniTitular: nuevoDni, 
-      monto: Number(nuevoMonto), lugar: nuevoLugar, articulo: nuevoArticulo, 
-      inspector: nuevoInspector, tipoInfraccion: nuevoTipo as any,
-      fechaInfraccion: nuevaFecha ? new Date(nuevaFecha + "T12:00:00Z") : undefined
+      nroActa: nuevoNroActa, 
+      nombreTitular: nuevoNombre, 
+      dniTitular: nuevoDni, 
+      monto: Number(nuevoMonto), 
+      lugar: nuevoLugar, 
+      articulo: nuevoArticulo, 
+      inspector: nuevoInspector, 
+      tipoInfraccion: nuevoTipo as any,
+      fechaInfraccion: fechaValida
     };
 
     const res = await crearActa(datosActa);
@@ -119,7 +132,7 @@ export default function JuzgadoFaltasUnificado() {
     if (res.success) { 
       setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); 
       setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto(""); setNuevoTipo("TRANSITO"); 
-      setNuevaFecha(""); // Limpiamos el calendario
+      setNuevaFecha(""); 
       cargarDatosPanel(vista);
     } else { 
       alert(res.error); 

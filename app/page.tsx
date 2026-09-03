@@ -54,7 +54,23 @@ export default function JuzgadoFaltasUnificado() {
   const [paginaActual, setPaginaActual] = useState(1);
   const filasPorPagina = 10; 
 
-  useEffect(() => { obtenerNoticiasAdmin().then(setNoticiasPublicas) }, [])
+  useEffect(() => { 
+    obtenerNoticiasAdmin().then(setNoticiasPublicas);
+
+    // Recuperación automática de sesión al recargar la página
+    const sesion = localStorage.getItem('juzgado_sesion');
+    if (sesion) {
+      try {
+        const data = JSON.parse(sesion);
+        if (data && data.usuario) {
+          setUsuario(data.usuario);
+          setAutenticado(true);
+          setVista(data.vista);
+          cargarDatosPanel(data.vista);
+        }
+      } catch (e) {}
+    }
+  }, [])
 
   useEffect(() => {
     setPaginaActual(1);
@@ -89,7 +105,11 @@ export default function JuzgadoFaltasUnificado() {
     let vistaInicial = 'admin_actas'
     if (auth.usuario.rol === 'LETRADO') vistaInicial = 'admin_descargos'
     if (auth.usuario.rol === 'CONTABLE') vistaInicial = 'admin_pagos'
-    setVista(vistaInicial as any); cargarDatosPanel(vistaInicial);
+    
+    setVista(vistaInicial as any); 
+    // Guardar sesión segura en el navegador
+    localStorage.setItem('juzgado_sesion', JSON.stringify({ usuario: auth.usuario, vista: vistaInicial }));
+    cargarDatosPanel(vistaInicial);
   }
 
   const cargarDatosPanel = async (vistaDestino: string) => {
@@ -113,7 +133,18 @@ export default function JuzgadoFaltasUnificado() {
     setCargandoAdmin(false)
   }
 
-  const cambiarVistaAdmin = (nuevaVista: string) => { setVista(nuevaVista as any); cargarDatosPanel(nuevaVista); setMenuAbierto(false); }
+  const cambiarVistaAdmin = (nuevaVista: string) => { 
+    setVista(nuevaVista as any); 
+    cargarDatosPanel(nuevaVista); 
+    setMenuAbierto(false); 
+    
+    // Actualizar la pestaña activa en la sesión
+    const sesionActual = localStorage.getItem('juzgado_sesion');
+    if (sesionActual) {
+      const data = JSON.parse(sesionActual);
+      localStorage.setItem('juzgado_sesion', JSON.stringify({ ...data, vista: nuevaVista }));
+    }
+  }
 
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
@@ -322,7 +353,7 @@ export default function JuzgadoFaltasUnificado() {
 
         .news-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; } 
         .news-card { background: var(--papel); padding: 24px; border-radius: var(--radius-m); border: 1px solid var(--linea); box-shadow: 0 4px 16px rgba(0,0,0,0.03); }
-        .news-card img { width: 100%; aspect-ratio: 3/2; object-fit: cover; margin-bottom: 20px; border-radius: 6px; } 
+        .news-card img { width: 100%; aspect-ratio: 3/2; object-fit: cover; margin-bottom: 16px; border-radius: 6px; } 
         .news-card h3 { font-size: 16px; text-transform: uppercase; color: var(--azul-loreto); line-height: 1.4; font-weight: 800; letter-spacing: 0.02em; margin-bottom: 10px; }
         .news-card p { font-size: 14.5px; color: var(--tinta-suave); line-height: 1.6; white-space: pre-wrap; margin: 0; }
         
@@ -416,7 +447,18 @@ export default function JuzgadoFaltasUnificado() {
           <div className={`header-actions ${menuAbierto ? 'abierto' : ''}`}>
             {autenticado && <span style={{fontSize: '13px', color: 'var(--tinta-suave)', fontWeight: 600, fontFamily: 'Montserrat, sans-serif'}}>👤 {usuario?.nombre}</span>}
             {autenticado && <a onClick={() => { setModalPassword(true); setMenuAbierto(false); }} style={{fontSize: '13px', cursor: 'pointer', color: 'var(--celeste-loreto)', fontWeight: 700, fontFamily: 'Montserrat, sans-serif'}}>Cambiar Clave</a>}
-            <button onClick={() => { if (vista === 'publica') { setVista('admin_actas'); } else { setVista('publica'); setAutenticado(false); setUsuario(null); setPassword(""); } setMenuAbierto(false); }} className="btn btn--ghost btn--sm">
+            <button onClick={() => { 
+              if (vista === 'publica') { 
+                setVista('admin_actas'); 
+              } else { 
+                localStorage.removeItem('juzgado_sesion');
+                setVista('publica'); 
+                setAutenticado(false); 
+                setUsuario(null); 
+                setPassword(""); 
+              } 
+              setMenuAbierto(false); 
+            }} className="btn btn--ghost btn--sm">
               {vista === 'publica' ? 'Acceso Personal' : 'Cerrar Sesión'}
             </button>
           </div>
@@ -494,6 +536,7 @@ export default function JuzgadoFaltasUnificado() {
                   <div style={{ flex: 'none', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 8px 32px rgba(11,74,130,0.08)', textAlign: 'center', border: '1px solid var(--linea)', margin: '0 auto', maxWidth: '100%' }}>
                     <img src="/qrparacodigo.png" alt="QR Código de Convivencia" style={{ width: '100%', maxWidth: '180px', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
                     <span style={{ display: 'block', marginTop: '16px', fontSize: '12px', fontWeight: 800, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>Escanear para acceder</span>
+                    <a href="/codigo-convivencia.pdf" download className="btn btn--ghost btn--block" style={{marginTop: '16px', fontSize: '12px', padding: '8px', borderStyle: 'dashed'}}>📥 Descargar PDF al celular</a>
                   </div>
                 </div>
               </div>
@@ -509,6 +552,7 @@ export default function JuzgadoFaltasUnificado() {
                     {noticiasPublicas.slice(0, 3).map(n => (
                       <div className="news-card" key={n.id}>
                         <img src={n.imagenUrl} alt={n.titulo} />
+                        <span style={{display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--celeste-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px'}}>📅 {new Date(n.creadoEn).toLocaleDateString('es-AR')}</span>
                         <h3>{n.titulo}</h3>
                         {n.contenido && <p>{n.contenido}</p>}
                       </div>
@@ -544,7 +588,11 @@ export default function JuzgadoFaltasUnificado() {
                             <div key={acta.id} style={{padding: '20px', borderLeft: `4px solid ${colorBorde}`, background: 'var(--papel-alto)', marginBottom: '12px', borderRadius: '0 8px 8px 0', borderTop: '1px solid var(--linea)', borderRight: '1px solid var(--linea)', borderBottom: '1px solid var(--linea)'}}>
                               <span style={{fontSize: '11px', fontWeight: 700, color: colorBorde, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em'}}>{nombreOrigen}</span><br/>
                               <strong style={{fontSize: '16px', display: 'inline-block', marginTop: '4px'}}>Acta N° {acta.nroActa}</strong> <span style={{fontSize: '16px', color: 'var(--tinta-suave)'}}>— ${acta.monto.toString()}</span> <br/>
-                              <div style={{marginTop: '6px'}}><span className="badge" style={{background: acta.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: acta.estado === 'PENDIENTE' ? '#B45309' : '#047857'}}>{acta.estado}</span></div>
+                              <div style={{marginTop: '6px'}}>
+                                <span className="badge" style={{background: acta.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: acta.estado === 'PENDIENTE' ? '#B45309' : '#047857'}}>
+                                  {acta.estado === 'PRESENTADO' ? 'DESCARGO EN REVISIÓN' : acta.estado === 'PENDIENTE_CONCILIACION' ? 'PAGO EN REVISIÓN' : acta.estado}
+                                </span>
+                              </div>
                               
                               {acta.estado === 'PENDIENTE' && (
                                 <div style={{display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap'}}><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'pago' })} className="btn btn--ghost btn--sm">Informar Pago</button><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'descargo' })} className="btn btn--primary btn--sm">Presentar Descargo</button></div>

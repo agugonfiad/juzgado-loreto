@@ -38,16 +38,18 @@ export async function obtenerDescargosAdmin() {
 
 export async function obtenerPagosAdmin() {
   try {
-    // Le decimos a la base de datos que busque estrictamente las que están en conciliación
-    const pagos = await prisma.infraccion.findMany({
-      where: {
-        estado: 'PENDIENTE_CONCILIACION'
+    // Buscamos en la tabla original de comprobantes para recuperar la imagen adjunta
+    const pagos = await prisma.pago.findMany({
+      include: {
+        infraccion: true
       },
       orderBy: {
-        fechaInfraccion: 'desc'
+        creadoEn: 'desc' 
       }
     });
-    return pagos;
+    
+    // Filtramos la bandeja para ver solo los pendientes de la Contadora
+    return pagos.filter((p: any) => p.infraccion?.estado === 'PENDIENTE_CONCILIACION');
   } catch (error) {
     console.error("Error al obtener pagos:", error);
     return [];

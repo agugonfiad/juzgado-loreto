@@ -859,23 +859,20 @@ export default function JuzgadoFaltasUnificado() {
 
       {/* MODAL EXPEDIENTE */}
       {itemModal && (
-        <div className="modal-overlay" onClick={() => setItemModal(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 style={{marginBottom: '24px', fontSize: '22px'}}>Revisión de Expediente Electrónico</h3>
-            <div style={{background: 'var(--papel-alto)', padding: '24px', borderRadius: '8px', marginBottom: '24px', fontSize: '15px', border: '1px solid var(--linea)'}}>
-              <p style={{margin: '0 0 8px 0'}}><strong>Acta de Infracción Relacionada:</strong> N° {itemModal.infraccion?.nroActa}</p>
-              <p style={{margin: '0 0 16px 0'}}><strong>Identificación Imputado:</strong> DNI {itemModal.infraccion?.dniTitular}</p>
+        <div style={{background: 'var(--papel-alto)', padding: '24px', borderRadius: '8px', marginBottom: '24px', fontSize: '15px', border: '1px solid var(--linea)'}}>
+              <p style={{margin: '0 0 8px 0'}}><strong>Acta de Infracción Relacionada:</strong> N° {itemModal.infraccion?.nroActa || itemModal.nroActa || "No especificado"}</p>
+              <p style={{margin: '0 0 16px 0'}}><strong>Identificación Imputado:</strong> DNI {itemModal.infraccion?.dniTitular || itemModal.dniTitular || "No especificado"}</p>
               {vista === 'admin_descargos' && (
                 <div style={{background: '#fff', padding: '16px', borderRadius: '6px', border: '1px solid var(--linea)'}}>
                   <strong style={{color: 'var(--azul-loreto)', display: 'block', marginBottom: '8px'}}>Fundamentos Jurídicos Presentados:</strong>
                   <p style={{whiteSpace: 'pre-wrap', margin: 0, fontStyle: 'italic', color: 'var(--tinta-suave)'}}>"{itemModal.motivo}"</p>
                 </div>
               )}
-              {vista === 'admin_pagos' && <p style={{margin: '0', fontSize: '18px', fontWeight: 700, color: '#10B981'}}>Monto Declarado: ${itemModal.montoInformado}</p>}
+              {vista === 'admin_pagos' && <p style={{margin: '0', fontSize: '18px', fontWeight: 700, color: '#10B981'}}>Monto Declarado: ${itemModal.montoInformado || itemModal.monto || "0"}</p>}
             </div>
             
             <div style={{marginBottom: '32px'}}>
-              <a href={vista === 'admin_descargos' ? itemModal.archivosUrl?.[0] : itemModal.comprobanteUrl} target="_blank" rel="noreferrer" className="btn btn--ghost btn--block" style={{borderStyle: 'dashed'}}>Visualizar Documento / Prueba Adjunta</a>
+              <a href={vista === 'admin_descargos' ? (itemModal.archivosUrl?.[0] || itemModal.archivoUrl || "#") : (itemModal.comprobanteUrl || itemModal.archivoUrl || "#")} target="_blank" rel="noreferrer" className="btn btn--ghost btn--block" style={{borderStyle: 'dashed'}}>Visualizar Documento / Prueba Adjunta</a>
             </div>
             
             {(itemModal.estado === 'PRESENTADO' || itemModal.estado === 'EXTEMPORANEO' || itemModal.estado === 'PENDIENTE_CONCILIACION') ? (

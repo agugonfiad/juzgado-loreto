@@ -57,7 +57,6 @@ export default function JuzgadoFaltasUnificado() {
   useEffect(() => { 
     obtenerNoticiasAdmin().then(setNoticiasPublicas);
 
-    // Recuperación automática de sesión al recargar la página
     const sesion = localStorage.getItem('juzgado_sesion');
     if (sesion) {
       try {
@@ -107,7 +106,6 @@ export default function JuzgadoFaltasUnificado() {
     if (auth.usuario.rol === 'CONTABLE') vistaInicial = 'admin_pagos'
     
     setVista(vistaInicial as any); 
-    // Guardar sesión segura en el navegador
     localStorage.setItem('juzgado_sesion', JSON.stringify({ usuario: auth.usuario, vista: vistaInicial }));
     cargarDatosPanel(vistaInicial);
   }
@@ -138,7 +136,6 @@ export default function JuzgadoFaltasUnificado() {
     cargarDatosPanel(nuevaVista); 
     setMenuAbierto(false); 
     
-    // Actualizar la pestaña activa en la sesión
     const sesionActual = localStorage.getItem('juzgado_sesion');
     if (sesionActual) {
       const data = JSON.parse(sesionActual);
@@ -246,12 +243,31 @@ export default function JuzgadoFaltasUnificado() {
 
   const auditarDescargo = async (estado: string) => {
     if (estado === 'RECHAZADO' && !textoResolucion) return alert("Debe justificar el rechazo.")
-    setProcesando(true); await resolverDescargo(itemModal.id, estado, textoResolucion);
+    setProcesando(true); 
+    
+    // 1. Resolvemos el descargo
+    await resolverDescargo(itemModal.id, estado, textoResolucion);
+    
+    // 2. Actualizamos el estado del acta principal vinculada
+    if (itemModal.infraccionId) {
+      const nuevoEstadoActa = estado === 'RESUELTO_A_FAVOR' ? 'SOBRESEIDO' : 'CONFIRMADO';
+      await editarActa(itemModal.infraccionId, { estado: nuevoEstadoActa });
+    }
+
     setItemModal(null); setTextoResolucion(""); setProcesando(false); cargarDatosPanel(vista);
   }
 
   const auditarPago = async (estado: string) => {
-    setProcesando(true); await conciliarPago(itemModal.id, estado);
+    setProcesando(true); 
+    
+    // 1. Conciliamos el pago
+    await conciliarPago(itemModal.id, estado);
+    
+    // 2. Actualizamos el estado del acta principal vinculada si se aprobó
+    if (itemModal.infraccionId && estado === 'CONCILIADO') {
+      await editarActa(itemModal.infraccionId, { estado: 'PAGADO' });
+    }
+
     setItemModal(null); setProcesando(false); cargarDatosPanel(vista);
   }
 
@@ -274,7 +290,7 @@ export default function JuzgadoFaltasUnificado() {
 
   const manejarBlanquearClave = async (id: string, nombre: string) => {
     if (!confirm(`¿Estás seguro de BLANQUEAR la contraseña de ${nombre}?\n\nSe le asignará una clave temporal y el empleado no podrá ingresar con su clave actual.`)) return;
-    const res = await blanquearContrasena(id);
+    const res = await blanquearClave(id);
     if (res.success) { alert(`✅ CLAVE RESTABLECIDA\n\nLa nueva clave para ${nombre} es: ${res.tempPass}`); } else { alert("Error al restablecer: " + res.error); }
   }
 
@@ -613,19 +629,26 @@ export default function JuzgadoFaltasUnificado() {
                                         <p style={{margin: '0 0 6px 0'}}><strong>CBU:</strong> 32101205300000012431389</p>
                                         <p style={{margin: '0'}}><strong>ALIAS:</strong> LoretoRecaudacion</p>
                                       </div>
-                                      <div className="field"><label>Monto transferido exacto ($)</label><input type="number" name="monto" required /></div>
+                                      <div className="field">
+                                        <label>Monto transferido exacto ($)</label>
+                                        <input type="number" name="monto" required />
+                                      </div>
+                                      <div className="field">
+                                        <label>Comprobante de Pago (PDF o Imagen — Máx. recomendado: 4 MB)</label>
+                                        <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required style={{padding: '8px'}} />
+                                      </div>
                                     </>
                                   ) : (
                                     <>
                                       <div className="field"><label>Nombre y Apellido del Presentante</label><input type="text" name="nombre" required /></div>
                                       <div className="field"><label>Correo Electrónico (Constitución de Domicilio Digital)</label><input type="email" name="email" required /></div>
                                       <div className="field"><label>Fundamentos del Descargo</label><textarea name="motivo" rows={4} required></textarea></div>
+                                      <div className="field">
+                                        <label>Documentación / Prueba Adjunta (PDF o Imagen — Máx. recomendado: 4 MB)</label>
+                                        <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required style={{padding: '8px'}} />
+                                      </div>
                                     </>
                                   )}
-                                  <div className="field">
-                                    <label>Adjuntar Prueba / Comprobante (Formato PDF o Imagen)</label>
-                                    <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required style={{padding: '8px'}} />
-                                  </div>
                                   <button type="submit" disabled={enviando} className="btn btn--primary btn--block">{enviando ? 'Procesando envío...' : 'Ingresar Documentación al Juzgado'}</button>
                                 </form>
                               )}
@@ -722,7 +745,10 @@ export default function JuzgadoFaltasUnificado() {
                       <form onSubmit={manejarCrearNoticia}>
                         <div className="field"><label>Titular Principal</label><input type="text" name="titulo" required /></div>
                         <div className="field"><label>Cuerpo del Comunicado</label><textarea name="contenido" rows={5} required></textarea></div>
-                        <div className="field"><label>Material Fotográfico (JPG/PNG)</label><input type="file" name="archivo" accept=".jpg, .jpeg, .png" required style={{padding: '10px'}} /></div>
+                        <div className="field">
+                          <label>Material Fotográfico (JPG/PNG — Máx. recomendado: 4 MB)</label>
+                          <input type="file" name="archivo" accept=".jpg, .jpeg, .png" required style={{padding: '10px'}} />
+                        </div>
                         <button type="submit" disabled={procesando} className="btn btn--primary">{procesando ? 'Procesando...' : 'Publicar Comunicado'}</button>
                       </form>
                     </div>
@@ -848,7 +874,6 @@ export default function JuzgadoFaltasUnificado() {
                             <thead><tr><th>N° Acta Físico</th><th>Infractor</th><th>DNI</th><th>Domicilio</th><th>Fecha del Hecho</th><th>Art. Infringido</th><th>Fase Procesal</th><th>Monto Base</th><th>Acción</th></tr></thead>
                             <tbody>
                               {listaPaginada.map((item: any) => {
-                                // Calculo de reincidencia cruzada
                                 const actasMismoOrganismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion);
                                 const esReincidente = actasMismoOrganismo.length > 1;
 
@@ -1037,4 +1062,4 @@ export default function JuzgadoFaltasUnificado() {
       </footer>
     </>
   )
-} 
+}

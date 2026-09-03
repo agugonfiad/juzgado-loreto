@@ -106,24 +106,18 @@ export default function JuzgadoFaltasUnificado() {
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
     
-    // Traductor blindado de fechas
-    let fechaValida = new Date().toISOString(); // Por defecto usa el momento actual si algo falla
+    // TRUCO DEFINITIVO: Armamos el objeto Date matemáticamente para que no falle jamás
+    let fechaFinal = new Date(); // Si todo falla, usa el día de hoy
     
     if (nuevaFecha) {
-      try {
-        if (nuevaFecha.includes('-')) {
-          // Si el navegador la manda como YYYY-MM-DD
-          const [anio, mes, dia] = nuevaFecha.split('-');
-          fechaValida = new Date(Number(anio), Number(mes) - 1, Number(dia), 12).toISOString();
-        } else if (nuevaFecha.includes('/')) {
-          // Si el navegador la manda como DD/MM/YYYY
-          const [dia, mes, anio] = nuevaFecha.split('/');
-          fechaValida = new Date(Number(anio), Number(mes) - 1, Number(dia), 12).toISOString();
-        } else {
-          fechaValida = new Date(nuevaFecha).toISOString();
-        }
-      } catch (error) {
-        console.log("Formato irreconocible, aplicando fecha por defecto.");
+      const partes = nuevaFecha.split('-'); // El calendario web devuelve siempre "YYYY-MM-DD"
+      if (partes.length === 3) {
+        const anio = parseInt(partes[0], 10);
+        const mes = parseInt(partes[1], 10) - 1; // En programación los meses van de 0 a 11
+        const dia = parseInt(partes[2], 10);
+        
+        // Creamos la fecha clavada al mediodía para evitar saltos de zona horaria
+        fechaFinal = new Date(anio, mes, dia, 12, 0, 0); 
       }
     }
 
@@ -136,7 +130,7 @@ export default function JuzgadoFaltasUnificado() {
       articulo: nuevoArticulo, 
       inspector: nuevoInspector, 
       tipoInfraccion: nuevoTipo as any,
-      fechaInfraccion: fechaValida
+      fechaInfraccion: fechaFinal
     };
 
     const res = await crearActa(datosActa);

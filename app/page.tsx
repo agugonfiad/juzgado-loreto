@@ -101,11 +101,10 @@ export default function JuzgadoFaltasUnificado() {
       if (vistaDestino === 'admin_usuarios') datos = await obtenerUsuariosAdmin();
       if (vistaDestino === 'admin_noticias') datos = await obtenerNoticiasAdmin();
       
-      // Filtro de seguridad: Solo mostramos la tabla si recibimos un listado válido
       if (Array.isArray(datos)) {
         setDatosAdmin(datos);
       } else {
-        setDatosAdmin([]); // Si el servidor manda error, vacía la tabla pero no congela la página
+        setDatosAdmin([]);
         console.error("Respuesta inesperada del servidor:", datos);
       }
     } catch (error) {
@@ -119,7 +118,6 @@ export default function JuzgadoFaltasUnificado() {
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
     
-    // TRUCO A PRUEBA DE BALAS: Mandamos la fecha como un Texto ISO
     let fechaSegura = new Date().toISOString(); 
     
     if (nuevaFecha) {
@@ -148,7 +146,7 @@ export default function JuzgadoFaltasUnificado() {
       articulo: nuevoArticulo, 
       inspector: nuevoInspector, 
       tipoInfraccion: nuevoTipo as any,
-      fechaInfraccion: fechaSegura // Se envía un texto simple, imposible de romper
+      fechaInfraccion: fechaSegura
     };
 
     const res = await crearActa(datosActa);
@@ -903,37 +901,9 @@ export default function JuzgadoFaltasUnificado() {
                   )}
                 </div>
               </div>
-            ) : (<p style={{textAlign: 'center', color: 'var(--tinta-suave)', fontWeight: 600, fontSize: '15px'}}>El presente expediente se encuentra con resolución firme.</p>)}
-            <button onClick={() => setItemModal(null)} className="btn btn--ghost btn--block" style={{marginTop: '24px', border: 'none', background: 'var(--papel-alto)'}}>Volver a la bandeja</button>
-          </div>
-        </div>
-      )}
-            
-            {(itemModal.estado === 'PRESENTADO' || itemModal.estado === 'EXTEMPORANEO' || itemModal.estado === 'PENDIENTE_CONCILIACION') ? (
-              <div style={{borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>
-                {itemModal.estado === 'EXTEMPORANEO' && (
-                  <div style={{background: 'rgba(239, 68, 68, 0.1)', color: '#DC2626', padding: '12px 16px', borderRadius: '4px', marginBottom: '20px', fontSize: '14px', fontWeight: 600, borderLeft: '4px solid #DC2626'}}>
-                    ALERTA LEGAL: La presente interposición supera los plazos procesales vigentes.
-                  </div>
-                )}
-                {vista === 'admin_descargos' && (
-                  <div className="field"><label>Fundamentación del Fallo (Dictamen de Juez)</label><textarea value={textoResolucion} onChange={(e) => setTextoResolucion(e.target.value)} placeholder="Redacte aquí la justificación resolutiva..." rows={3} /></div>
-                )}
-                <div style={{display: 'flex', gap: '12px', marginTop: '16px'}}>
-                  {vista === 'admin_descargos' ? (
-                    <>
-                      <button onClick={() => auditarDescargo('RESUELTO_A_FAVOR')} disabled={procesando} className="btn btn--success" style={{flex: 1}}>Dictar Sobreseimiento</button>
-                      <button onClick={() => auditarDescargo('RECHAZADO')} disabled={procesando} className="btn btn--danger" style={{flex: 1}}>Confirmar Sanción</button>
-                    </>
-                  ) : (
-                    <>
-                      <button onClick={() => auditarPago('CONCILIADO')} disabled={procesando} className="btn btn--success" style={{flex: 1}}>Acreditar Impacto Bancario</button>
-                      <button onClick={() => auditarPago('RECHAZADO')} disabled={procesando} className="btn btn--danger" style={{flex: 1}}>Rechazar Comprobante Apócrifo</button>
-                    </>
-                  )}
-                </div>
-              </div>
-            ) : (<p style={{textAlign: 'center', color: 'var(--tinta-suave)', fontWeight: 600, fontSize: '15px'}}>El presente expediente se encuentra con resolución firme.</p>)}
+            ) : (
+              <p style={{textAlign: 'center', color: 'var(--tinta-suave)', fontWeight: 600, fontSize: '15px'}}>El presente expediente se encuentra con resolución firme.</p>
+            )}
             <button onClick={() => setItemModal(null)} className="btn btn--ghost btn--block" style={{marginTop: '24px', border: 'none', background: 'var(--papel-alto)'}}>Volver a la bandeja</button>
           </div>
         </div>

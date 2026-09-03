@@ -50,7 +50,6 @@ model Infraccion {
   dniTitular     String
   nombreTitular  String
   inspector      String
-  plazoDescargo  DateTime
   tipoInfraccion TipoInfraccion   @default(TRANSITO)
   estado         EstadoInfraccion @default(PENDIENTE)
   creadoEn       DateTime         @default(now())

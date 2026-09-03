@@ -1037,4 +1037,4 @@ export default function JuzgadoFaltasUnificado() {
       </footer>
     </>
   )
-}
+} 

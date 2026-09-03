@@ -100,10 +100,18 @@ export async function crearActa(data: any) {
 
 export async function eliminarActa(id: string) {
   try {
-    await prisma.infraccion.delete({ where: { id } })
-    return { success: true }
+    // 1. Barrido de seguridad: eliminamos los descargos asociados (si existen)
+    await prisma.descargo.deleteMany({ where: { infraccionId: id } });
+    
+    // 2. Barrido de seguridad: eliminamos los pagos informados (si existen)
+    await prisma.pago.deleteMany({ where: { infraccionId: id } });
+    
+    // 3. Finalmente, eliminamos el acta principal libre de ataduras
+    await prisma.infraccion.delete({ where: { id } });
+    
+    return { success: true };
   } catch (error: any) {
-    return { success: false, error: error.message }
+    return { success: false, error: error.message };
   }
 }
 

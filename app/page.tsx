@@ -289,7 +289,7 @@ export default function JuzgadoFaltasUnificado() {
     if (res.success) { alert(`✅ CLAVE RESTABLECIDA\n\nLa nueva clave para ${nombre} es: ${res.tempPass}`); } else { alert("Error al restablecer: " + res.error); }
   }
 
-  // Métricas para el Dashboard Estadístico (Cambio 2)
+  // Métricas para el Dashboard Estadístico
   const totalActasCount = datosAdmin.length;
   const actasPendientesCount = datosAdmin.filter(d => d.estado === 'PENDIENTE').length;
   const montoRecaudadoTotal = pagosAdmin
@@ -360,11 +360,11 @@ export default function JuzgadoFaltasUnificado() {
         .btn--ghost { background: transparent; color: var(--azul-loreto); border-color: var(--azul-loreto); } .btn--ghost:hover { background: var(--azul-loreto); color: #fff; } 
         .btn--sm { padding: 8px 14px; font-size: 13px; } .btn--block { width: 100%; } .btn--success { background: #10B981; color: white; border: none; } .btn--danger { background: #EF4444; color: white; border: none; }
         
-        .hero { padding: 72px 0 64px; background: radial-gradient(circle at 88% 15%, rgba(0, 178, 214, 0.06), transparent 45%), var(--papel-alto); border-bottom: 1px solid var(--linea); } 
-        .hero .wrap { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 56px; align-items: center; } 
-        .hero .eyebrow { font-family: 'Montserrat', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--celeste-loreto); margin-bottom: 16px; font-weight: 700; } 
-        .hero h1 { font-size: clamp(32px, 4vw, 48px); max-width: 14ch; font-weight: 800; letter-spacing: -0.02em; } 
-        .hero p.lead { font-size: 18px; color: var(--tinta-suave); max-width: 46ch; margin: 16px 0 32px; font-weight: 400; }
+        .hero { padding: 48px 0 32px; background: radial-gradient(circle at 88% 15%, rgba(0, 178, 214, 0.06), transparent 45%), var(--papel-alto); border-bottom: 1px solid var(--linea); } 
+        .hero .wrap { display: grid; grid-template-columns: 1fr; text-align: center; max-width: 800px; } 
+        .hero .eyebrow { font-family: 'Montserrat', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--celeste-loreto); margin-bottom: 12px; font-weight: 700; } 
+        .hero h1 { font-size: clamp(28px, 3.5vw, 42px); font-weight: 800; letter-spacing: -0.02em; } 
+        .hero p.lead { font-size: 16.5px; color: var(--tinta-suave); max-width: 55ch; margin: 12px auto 24px; font-weight: 400; }
         
         section { padding: 80px 0; } .section-head { max-width: 60ch; margin-bottom: 48px; } 
         .section-head .kicker { font-family: 'Montserrat', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin-bottom: 12px; font-weight: 700; }
@@ -384,9 +384,9 @@ export default function JuzgadoFaltasUnificado() {
         .news-card h3 { font-size: 16px; text-transform: uppercase; color: var(--azul-loreto); line-height: 1.4; font-weight: 800; letter-spacing: 0.02em; margin-bottom: 10px; }
         .news-card p { font-size: 14.5px; color: var(--tinta-suave); line-height: 1.6; white-space: pre-wrap; margin: 0; }
         
-        .consulta-panel { background: var(--azul-loreto); color: #F8F9FA; border-radius: var(--radius-m); padding: 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; } 
-        .consulta-panel h3 { color: #fff; font-size: 28px; }
-        .consulta-form { background: var(--papel); border-radius: var(--radius-m); padding: 32px; color: var(--tinta); } 
+        .consulta-panel { background: var(--azul-loreto); color: #F8F9FA; border-radius: var(--radius-m); padding: 48px; max-width: 900px; margin: 0 auto; box-shadow: 0 16px 40px rgba(11,74,130,0.15); } 
+        .consulta-panel h3 { color: #fff; font-size: 28px; text-align: center; }
+        .consulta-form { background: var(--papel); border-radius: var(--radius-m); padding: 32px; color: var(--tinta); margin-top: 24px; } 
         .field { margin-bottom: 20px; } .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--tinta); font-family: 'Montserrat', sans-serif; } 
         .field input, .field textarea, .field select { width: 100%; padding: 12px 14px; border: 1.5px solid var(--linea); border-radius: var(--radius-s); font-family: 'Inter', sans-serif; font-size: 14.5px; background: #fff; color: var(--tinta); transition: border-color 0.2s; }
         .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--celeste-loreto); }
@@ -401,6 +401,21 @@ export default function JuzgadoFaltasUnificado() {
         .modal-content { background: var(--papel); padding: 40px; border-radius: var(--radius-m); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.15); border: 1px solid var(--linea); }
         
         .contacto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; } .contacto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 24px; } .contacto-list li { display: flex; gap: 16px; align-items: flex-start; } .contacto-list .ico { width: 40px; height: 40px; border-radius: 50%; background: rgba(235, 33, 40, 0.1); color: var(--rojo-loreto); display: flex; align-items: center; justify-content: center; flex: none; font-size: 18px; } .contacto-list strong { display: block; font-size: 15px; color: var(--azul-loreto); font-weight: 600; margin-bottom: 4px; } .contacto-list span, .contacto-list a { font-size: 14.5px; color: var(--tinta-suave); text-decoration: none; } .contacto-list a:hover { color: var(--rojo-loreto); text-decoration: underline; } .map-frame { border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; height: 380px; } .map-frame iframe { width: 100%; height: 100%; border: 0; }
+
+        @media (max-width: 980px) { 
+          .contacto-grid, .hero .wrap, .news-grid, .autoridades-grid, .art-grid { grid-template-columns: 1fr; } 
+          .hero { padding: 30px 0; }
+          .consulta-panel { padding: 24px 16px; }
+          .menu-toggle { display: block; }
+          nav.primary { display: none; width: 100%; order: 3; padding: 20px 0; border-top: 1px solid var(--linea); margin-top: 15px; }
+          nav.primary.abierto { display: flex; flex-direction: column; align-items: flex-start; }
+          nav.primary ul { flex-direction: column; gap: 15px; width: 100%; }
+          nav.primary a { display: block; width: 100%; padding: 5px 0; }
+          .header-actions { display: none; width: 100%; order: 4; flex-direction: column; padding-bottom: 20px; gap: 15px; }
+          .header-actions.abierto { display: flex; }
+          .header-actions .btn { width: 100%; }
+          .admin-table { display: block; overflow-x: auto; white-space: nowrap; }
+        }
       `}} />
 
       <div className="topbar">
@@ -428,10 +443,10 @@ export default function JuzgadoFaltasUnificado() {
             <nav className={`primary ${menuAbierto ? 'abierto' : ''}`}>
               <ul>
                 <li><a href="#inicio" onClick={() => setMenuAbierto(false)}>Inicio</a></li>
+                <li><a href="#consulta" onClick={() => setMenuAbierto(false)}>Trámites Online</a></li>
                 <li><a href="#autoridades" onClick={() => setMenuAbierto(false)}>Autoridades</a></li>
                 <li><a href="#normativa" onClick={() => setMenuAbierto(false)}>Normativa</a></li>
                 <li><a href="#noticias" onClick={() => setMenuAbierto(false)}>Noticias</a></li>
-                <li><a href="#consulta" onClick={() => setMenuAbierto(false)}>Trámites</a></li>
               </ul>
             </nav>
           ) : (
@@ -477,10 +492,103 @@ export default function JuzgadoFaltasUnificado() {
       <main id="contenido">
         {vista === 'publica' && (
           <>
+            {/* HERO PRINCIPAL + BUSCADOR DESTACADO ARRIBA */}
             <section className="hero" id="inicio">
               <div className="wrap">
-                <div><p className="eyebrow">Municipalidad de Loreto · Provincia de Santiago del Estero</p><h1>Juzgado de Faltas Municipal</h1><p className="lead">Consulte el estado de sus infracciones, presente su descargo de forma remota y gestione sus trámites de manera ágil, transparente y segura.</p><a href="#consulta" className="btn btn--primary">Consultar Infracción</a></div>
-                <div style={{display: 'flex', justifyContent: 'center'}}><img src="/logojdf.png" alt="Sello institucional" style={{width: 'min(380px, 100%)', maxWidth: '80%'}} /></div>
+                <div>
+                  <p className="eyebrow">Municipalidad de Loreto · Santiago del Estero</p>
+                  <h1>Juzgado de Faltas Municipal</h1>
+                  <p className="lead">Plataforma digital oficial para la consulta de actas, presentación de descargos y gestión de pagos sin necesidad de trámites presenciales.</p>
+                </div>
+              </div>
+            </section>
+
+            {/* SECCIÓN DE CONSULTA ELEVADA AL INICIO */}
+            <section id="consulta" style={{background: '#fff', padding: '60px 0'}}>
+              <div className="wrap">
+                <div className="consulta-panel">
+                  <div style={{textAlign: 'center', marginBottom: '24px'}}>
+                    <span style={{fontSize: '36px', display: 'inline-block', marginBottom: '10px'}}>🔍</span>
+                    <h3 style={{fontSize: '28px', color: '#fff', marginBottom: '10px'}}>Portal de Autogestión Ciudadana</h3>
+                    <p style={{fontSize: '15px', color: 'rgba(255,255,255,0.9)', maxWidth: '55ch', margin: '0 auto'}}>
+                      Ingrese su número de documento para acceder al sistema. Podrá <strong>verificar el estado de sus infracciones</strong>, <strong>informar transferencias bancarias</strong> o <strong>presentar descargos formales</strong> adjuntando su documentación digital.
+                    </p>
+                  </div>
+                  
+                  <div className="consulta-form">
+                    <form onSubmit={manejarBusqueda}>
+                      <div className="field"><label>Número de Documento (DNI / CUIT)</label><input type="text" value={dni} onChange={(e) => setDni(e.target.value)} placeholder="Ej: 35123456 (sin puntos)" required /></div>
+                      <button type="submit" disabled={buscando} className="btn btn--primary btn--block" style={{padding: '14px', fontSize: '15px'}}>{buscando ? 'Consultando base de datos...' : 'Consultar Infracciones y Trámites'}</button>
+                    </form>
+                    {mensaje && <p style={{marginTop: '16px', fontSize: '14.5px', color: 'var(--rojo-loreto)', fontWeight: 500, textAlign: 'center'}}>{mensaje}</p>}
+                    
+                    {resultados.length > 0 && (
+                      <div style={{marginTop: '28px', borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>
+                        <h4 style={{fontSize: '16px', color: 'var(--azul-loreto)', marginBottom: '16px'}}>Expedientes Registrados en el Sistema:</h4>
+                        {resultados.map((acta) => {
+                          const esBroma = acta.tipoInfraccion === 'BROMATOLOGIA';
+                          const colorBorde = esBroma ? '#10B981' : 'var(--azul-loreto)';
+                          const nombreOrigen = esBroma ? 'BROMATOLOGÍA Y CALIDAD DE VIDA' : 'DIRECCIÓN DE TRÁNSITO';
+
+                          return (
+                            <div key={acta.id} style={{padding: '20px', borderLeft: `4px solid ${colorBorde}`, background: 'var(--papel-alto)', marginBottom: '16px', borderRadius: '0 8px 8px 0', borderTop: '1px solid var(--linea)', borderRight: '1px solid var(--linea)', borderBottom: '1px solid var(--linea)'}}>
+                              <span style={{fontSize: '11px', fontWeight: 700, color: colorBorde, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em'}}>{nombreOrigen}</span><br/>
+                              <strong style={{fontSize: '16px', display: 'inline-block', marginTop: '4px'}}>Acta N° {acta.nroActa}</strong> <span style={{fontSize: '16px', color: 'var(--tinta-suave)'}}>— ${acta.monto.toString()}</span> <br/>
+                              <div style={{marginTop: '8px'}}>
+                                <span className="badge" style={{background: acta.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: acta.estado === 'PENDIENTE' ? '#B45309' : '#047857'}}>
+                                  {acta.estado === 'PRESENTADO' ? 'DESCARGO EN REVISIÓN' : acta.estado === 'PENDIENTE_CONCILIACION' ? 'PAGO EN REVISIÓN' : acta.estado}
+                                </span>
+                              </div>
+                              
+                              {acta.estado === 'PENDIENTE' && (
+                                <div style={{display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap'}}><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'pago' })} className="btn btn--ghost btn--sm">Informar Pago</button><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'descargo' })} className="btn btn--primary btn--sm">Presentar Descargo</button></div>
+                              )}
+                              
+                              {tramiteActivo?.id === acta.id && (
+                                <form onSubmit={manejarEnvioTramite} style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--linea)'}}>
+                                  <input type="hidden" name="infraccionId" value={acta.id} />
+                                  <input type="hidden" name="tipo" value={tramiteActivo.tipo} />
+                                  
+                                  {tramiteActivo.tipo === 'pago' ? (
+                                    <>
+                                      <div style={{background: 'rgba(0, 178, 214, 0.08)', border: '1px solid rgba(0, 178, 214, 0.2)', padding: '20px', borderRadius: '6px', marginBottom: '20px', fontSize: '14.5px'}}>
+                                        <h4 style={{fontSize: '14px', margin: '0 0 12px 0', color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.02em'}}>Datos Oficiales de Recaudación</h4>
+                                        <p style={{margin: '0 0 6px 0'}}><strong>Titular:</strong> Municipalidad de Loreto - Sgo. del Estero</p>
+                                        <p style={{margin: '0 0 6px 0'}}><strong>Entidad:</strong> Banco Santiago del Estero</p>
+                                        <p style={{margin: '0 0 6px 0'}}><strong>Cuenta N°:</strong> 12000000001243138</p>
+                                        <p style={{margin: '0 0 6px 0'}}><strong>CBU:</strong> 32101205300000012431389</p>
+                                        <p style={{margin: '0'}}><strong>ALIAS:</strong> LoretoRecaudacion</p>
+                                      </div>
+                                      <div className="field">
+                                        <label>Monto transferido exacto ($)</label>
+                                        <input type="number" name="monto" required />
+                                      </div>
+                                      <div className="field">
+                                        <label>Comprobante de Pago (PDF o Imagen — Máx. recomendado: 4 MB)</label>
+                                        <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required style={{padding: '8px'}} />
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="field"><label>Nombre y Apellido del Presentante</label><input type="text" name="nombre" required /></div>
+                                      <div className="field"><label>Correo Electrónico (Constitución de Domicilio Digital)</label><input type="email" name="email" required /></div>
+                                      <div className="field"><label>Fundamentos del Descargo</label><textarea name="motivo" rows={4} required></textarea></div>
+                                      <div className="field">
+                                        <label>Documentación / Prueba Adjunta (PDF o Imagen — Máx. recomendado: 4 MB)</label>
+                                        <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required style={{padding: '8px'}} />
+                                      </div>
+                                    </>
+                                  )}
+                                  <button type="submit" disabled={enviando} className="btn btn--primary btn--block">{enviando ? 'Procesando envío...' : 'Ingresar Documentación al Juzgado'}</button>
+                                </form>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -576,85 +684,6 @@ export default function JuzgadoFaltasUnificado() {
               </section>
             )}
 
-            <section id="consulta" style={{background: 'var(--papel-alto)'}}>
-              <div className="wrap">
-                <div className="consulta-panel">
-                  <div><p className="kicker" style={{color: 'var(--celeste-loreto)', fontFamily: 'Montserrat, sans-serif'}}>Plataforma de Autogestión</p><h3>Consulta de Infracciones</h3><p style={{fontSize: '16px', opacity: 0.9}}>Ingrese su número de documento para verificar el estado de sus actas, informar transferencias bancarias o presentar descargos formales adjuntando documentación en formato digital.</p></div>
-                  <div className="consulta-form">
-                    <form onSubmit={manejarBusqueda}>
-                      <div className="field"><label>Número de Documento (DNI)</label><input type="text" value={dni} onChange={(e) => setDni(e.target.value)} placeholder="Ej: 35123456 (sin puntos)" required /></div>
-                      <button type="submit" disabled={buscando} className="btn btn--primary btn--block">{buscando ? 'Consultando base de datos...' : 'Buscar Expedientes'}</button>
-                    </form>
-                    {mensaje && <p style={{marginTop: '16px', fontSize: '14.5px', color: 'var(--rojo-loreto)', fontWeight: 500}}>{mensaje}</p>}
-                    {resultados.length > 0 && (
-                      <div style={{marginTop: '24px'}}>
-                        {resultados.map((acta) => {
-                          const esBroma = acta.tipoInfraccion === 'BROMATOLOGIA';
-                          const colorBorde = esBroma ? '#10B981' : 'var(--azul-loreto)';
-                          const nombreOrigen = esBroma ? 'BROMATOLOGÍA Y CALIDAD DE VIDA' : 'DIRECCIÓN DE TRÁNSITO';
-
-                          return (
-                            <div key={acta.id} style={{padding: '20px', borderLeft: `4px solid ${colorBorde}`, background: 'var(--papel-alto)', marginBottom: '12px', borderRadius: '0 8px 8px 0', borderTop: '1px solid var(--linea)', borderRight: '1px solid var(--linea)', borderBottom: '1px solid var(--linea)'}}>
-                              <span style={{fontSize: '11px', fontWeight: 700, color: colorBorde, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em'}}>{nombreOrigen}</span><br/>
-                              <strong style={{fontSize: '16px', display: 'inline-block', marginTop: '4px'}}>Acta N° {acta.nroActa}</strong> <span style={{fontSize: '16px', color: 'var(--tinta-suave)'}}>— ${acta.monto.toString()}</span> <br/>
-                              <div style={{marginTop: '6px'}}>
-                                <span className="badge" style={{background: acta.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: acta.estado === 'PENDIENTE' ? '#B45309' : '#047857'}}>
-                                  {acta.estado === 'PRESENTADO' ? 'DESCARGO EN REVISIÓN' : acta.estado === 'PENDIENTE_CONCILIACION' ? 'PAGO EN REVISIÓN' : acta.estado}
-                                </span>
-                              </div>
-                              
-                              {acta.estado === 'PENDIENTE' && (
-                                <div style={{display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap'}}><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'pago' })} className="btn btn--ghost btn--sm">Informar Pago</button><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'descargo' })} className="btn btn--primary btn--sm">Presentar Descargo</button></div>
-                              )}
-                              
-                              {tramiteActivo?.id === acta.id && (
-                                <form onSubmit={manejarEnvioTramite} style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--linea)'}}>
-                                  <input type="hidden" name="infraccionId" value={acta.id} />
-                                  <input type="hidden" name="tipo" value={tramiteActivo.tipo} />
-                                  
-                                  {tramiteActivo.tipo === 'pago' ? (
-                                    <>
-                                      <div style={{background: 'rgba(0, 178, 214, 0.08)', border: '1px solid rgba(0, 178, 214, 0.2)', padding: '20px', borderRadius: '6px', marginBottom: '20px', fontSize: '14.5px'}}>
-                                        <h4 style={{fontSize: '14px', margin: '0 0 12px 0', color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.02em'}}>Datos Oficiales de Recaudación</h4>
-                                        <p style={{margin: '0 0 6px 0'}}><strong>Titular:</strong> Municipalidad de Loreto - Sgo. del Estero</p>
-                                        <p style={{margin: '0 0 6px 0'}}><strong>Entidad:</strong> Banco Santiago del Estero</p>
-                                        <p style={{margin: '0 0 6px 0'}}><strong>Cuenta N°:</strong> 12000000001243138</p>
-                                        <p style={{margin: '0 0 6px 0'}}><strong>CBU:</strong> 32101205300000012431389</p>
-                                        <p style={{margin: '0'}}><strong>ALIAS:</strong> LoretoRecaudacion</p>
-                                      </div>
-                                      <div className="field">
-                                        <label>Monto transferido exacto ($)</label>
-                                        <input type="number" name="monto" required />
-                                      </div>
-                                      <div className="field">
-                                        <label>Comprobante de Pago (PDF o Imagen — Máx. recomendado: 4 MB)</label>
-                                        <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required style={{padding: '8px'}} />
-                                      </div>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <div className="field"><label>Nombre y Apellido del Presentante</label><input type="text" name="nombre" required /></div>
-                                      <div className="field"><label>Correo Electrónico (Constitución de Domicilio Digital)</label><input type="email" name="email" required /></div>
-                                      <div className="field"><label>Fundamentos del Descargo</label><textarea name="motivo" rows={4} required></textarea></div>
-                                      <div className="field">
-                                        <label>Documentación / Prueba Adjunta (PDF o Imagen — Máx. recomendado: 4 MB)</label>
-                                        <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required style={{padding: '8px'}} />
-                                      </div>
-                                    </>
-                                  )}
-                                  <button type="submit" disabled={enviando} className="btn btn--primary btn--block">{enviando ? 'Procesando envío...' : 'Ingresar Documentación al Juzgado'}</button>
-                                </form>
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </section>
-
             <section id="contacto" style={{background: 'var(--papel)', borderTop: '1px solid var(--linea)'}}>
               <div className="wrap">
                 <div className="section-head"><p className="kicker">Atención al Público</p><h2>Ubicación y Vías de Contacto</h2></div>
@@ -696,7 +725,6 @@ export default function JuzgadoFaltasUnificado() {
                       <h2>{vista === 'admin_actas' ? 'Gestión Documental de Actas' : vista === 'admin_descargos' ? 'Auditoría Legal de Descargos' : vista === 'admin_usuarios' ? 'Gestión de Recursos Humanos' : vista === 'admin_noticias' ? 'Publicación Institucional' : vista === 'admin_calculadora' ? 'Calculadora de Multas (UEM)' : 'Conciliación Bancaria y Pagos'}</h2>
                     </div>
                     
-                    {/* DASHBOARD DE ESTADÍSTICAS EN VIVO (Cambio 2) */}
                     {vista === 'admin_actas' && (
                       <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
                         <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
@@ -822,7 +850,6 @@ export default function JuzgadoFaltasUnificado() {
 
                   {vista === 'admin_actas' && (
                     <div className="filter-grid">
-                      {/* BUSCADOR AVANZADO POR NÚMERO O NOMBRE (Cambio 4) */}
                       <div className="field" style={{marginBottom: 0}}>
                         <label>Búsqueda (N° Acta o Nombre)</label>
                         <input type="text" placeholder="Ej: 0001 o Pérez..." value={filtroActaNombre} onChange={e => setFiltroActaNombre(e.target.value)} />

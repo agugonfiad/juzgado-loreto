@@ -202,3 +202,29 @@ export async function eliminarUsuario(id: string) {
     return { success: false, error: error.message }
   }
 }
+export async function editarActa(id: string, data: any) {
+  try {
+    let fechaSegura = new Date();
+    
+    if (data.fechaInfraccion) {
+      const fechaParseada = new Date(data.fechaInfraccion);
+      if (!isNaN(fechaParseada.getTime())) {
+        fechaSegura = fechaParseada;
+      }
+    }
+
+    const datosLimpios = { 
+      ...data, 
+      fechaInfraccion: fechaSegura 
+    };
+
+    await prisma.infraccion.update({ 
+      where: { id },
+      data: datosLimpios 
+    });
+    
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

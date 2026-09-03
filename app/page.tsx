@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano, procesarNoticia } from "./actions/subidas"
-import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearContrasena } from "./actions/admin"
+import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearContrasena } from "./actions/admin"
 
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
@@ -19,6 +19,8 @@ export default function JuzgadoFaltasUnificado() {
   const [cargandoAdmin, setCargandoAdmin] = useState(false)
   
   const [itemModal, setItemModal] = useState<any>(null)
+  const [modalEditarActa, setModalEditarActa] = useState<any>(null)
+  const [editandoActa, setEditandoActa] = useState(false)
   const [textoResolucion, setTextoResolucion] = useState("")
   const [procesando, setProcesando] = useState(false)
 
@@ -37,7 +39,6 @@ export default function JuzgadoFaltasUnificado() {
   // Estados Buscador Avanzado
   const [filtroActa, setFiltroActa] = useState("")
   const [filtroDniAdmin, setFiltroDniAdmin] = useState("")
-  const [filtroInspector, setFiltroInspector] = useState("")
   const [filtroDireccion, setFiltroDireccion] = useState("")
   const [filtroEstado, setFiltroEstado] = useState("")
 
@@ -57,7 +58,7 @@ export default function JuzgadoFaltasUnificado() {
 
   useEffect(() => {
     setPaginaActual(1);
-  }, [filtroActa, filtroDniAdmin, filtroInspector, filtroDireccion, filtroEstado, vista]);
+  }, [filtroActa, filtroDniAdmin, filtroDireccion, filtroEstado, vista]);
 
   const manejarBusqueda = async (e: React.FormEvent) => {
     e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null);
@@ -105,7 +106,6 @@ export default function JuzgadoFaltasUnificado() {
         setDatosAdmin(datos);
       } else {
         setDatosAdmin([]);
-        console.error("Respuesta inesperada del servidor:", datos);
       }
     } catch (error) {
       setDatosAdmin([]);
@@ -117,24 +117,15 @@ export default function JuzgadoFaltasUnificado() {
 
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
-    
     let fechaSegura = new Date().toISOString(); 
-    
     if (nuevaFecha) {
       try {
          const partes = nuevaFecha.split('-'); 
          if (partes.length === 3) {
-           const anio = parseInt(partes[0], 10);
-           const mes = parseInt(partes[1], 10) - 1;
-           const dia = parseInt(partes[2], 10);
-           const d = new Date(anio, mes, dia, 12, 0, 0);
-           if (!isNaN(d.getTime())) {
-              fechaSegura = d.toISOString();
-           }
+           const d = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10), 12, 0, 0);
+           if (!isNaN(d.getTime())) fechaSegura = d.toISOString();
          }
-      } catch(error) {
-         console.log("Fallback a fecha actual");
-      }
+      } catch(error) {}
     }
 
     const datosActa = {
@@ -150,7 +141,6 @@ export default function JuzgadoFaltasUnificado() {
     };
 
     const res = await crearActa(datosActa);
-    
     if (res.success) { 
       setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); 
       setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto(""); setNuevoTipo("TRANSITO"); 
@@ -160,6 +150,42 @@ export default function JuzgadoFaltasUnificado() {
       alert(res.error); 
     }
     setGuardandoActa(false);
+  }
+
+  const manejarEditarActa = async (e: React.FormEvent) => {
+    e.preventDefault(); setEditandoActa(true);
+    
+    let fechaSegura = new Date().toISOString();
+    if (modalEditarActa.fechaInfraccion_input) {
+      try {
+        const partes = modalEditarActa.fechaInfraccion_input.split('-');
+        if (partes.length === 3) {
+          const d = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10), 12, 0, 0);
+          if (!isNaN(d.getTime())) fechaSegura = d.toISOString();
+        }
+      } catch(error) {}
+    }
+
+    const datosActualizados = {
+      nroActa: modalEditarActa.nroActa,
+      nombreTitular: modalEditarActa.nombreTitular,
+      dniTitular: modalEditarActa.dniTitular,
+      monto: Number(modalEditarActa.monto),
+      lugar: modalEditarActa.lugar || "No informado",
+      articulo: modalEditarActa.articulo || "No informado",
+      inspector: modalEditarActa.inspector || "No informado",
+      tipoInfraccion: modalEditarActa.tipoInfraccion,
+      fechaInfraccion: fechaSegura
+    };
+
+    const res = await editarActa(modalEditarActa.id, datosActualizados);
+    if (res.success) {
+      setModalEditarActa(null);
+      cargarDatosPanel(vista);
+    } else {
+      alert(res.error);
+    }
+    setEditandoActa(false);
   }
 
   const manejarCrearNoticia = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -218,21 +244,16 @@ export default function JuzgadoFaltasUnificado() {
   const manejarBlanquearClave = async (id: string, nombre: string) => {
     if (!confirm(`¿Estás seguro de BLANQUEAR la contraseña de ${nombre}?\n\nSe le asignará una clave temporal y el empleado no podrá ingresar con su clave actual.`)) return;
     const res = await blanquearContrasena(id);
-    if (res.success) {
-      alert(`✅ CLAVE RESTABLECIDA CON ÉXITO\n\nLa nueva clave temporal para ${nombre} es: ${res.tempPass}\n\nPor favor, comuníqueselo al empleado para que inicie sesión y cambie su clave inmediatamente por seguridad.`);
-    } else {
-      alert("Error al restablecer: " + res.error);
-    }
+    if (res.success) { alert(`✅ CLAVE RESTABLECIDA\n\nLa nueva clave para ${nombre} es: ${res.tempPass}`); } else { alert("Error al restablecer: " + res.error); }
   }
 
   const actasFiltradas = datosAdmin.filter(item => {
     if (vista !== 'admin_actas') return true;
     const coincideActa = item.nroActa?.toLowerCase().includes(filtroActa.toLowerCase());
     const coincideDni = item.dniTitular?.includes(filtroDniAdmin);
-    const coincideInspector = item.inspector?.toLowerCase().includes(filtroInspector.toLowerCase());
     const coincideDireccion = filtroDireccion ? item.tipoInfraccion === filtroDireccion : true;
     const coincideEstado = filtroEstado ? item.estado === filtroEstado : true;
-    return coincideActa && coincideDni && coincideInspector && coincideDireccion && coincideEstado;
+    return coincideActa && coincideDni && coincideDireccion && coincideEstado;
   });
 
   const listaBase = vista === 'admin_actas' ? actasFiltradas : datosAdmin;
@@ -709,9 +730,8 @@ export default function JuzgadoFaltasUnificado() {
                     <div className="filter-grid">
                       <div className="field" style={{marginBottom: 0}}><label>N° Acta</label><input type="text" placeholder="Ej: 0001" value={filtroActa} onChange={e => setFiltroActa(e.target.value)} /></div>
                       <div className="field" style={{marginBottom: 0}}><label>DNI del Titular</label><input type="text" placeholder="Buscar DNI..." value={filtroDniAdmin} onChange={e => setFiltroDniAdmin(e.target.value)} /></div>
-                      <div className="field" style={{marginBottom: 0}}><label>Agente</label><input type="text" placeholder="Apellido..." value={filtroInspector} onChange={e => setFiltroInspector(e.target.value)} /></div>
                       <div className="field" style={{marginBottom: 0}}>
-                        <label>Repartición</label>
+                        <label>Repartición (Búsqueda)</label>
                         <select value={filtroDireccion} onChange={e => setFiltroDireccion(e.target.value)}>
                           <option value="">Consolidado Histórico</option>
                           <option value="TRANSITO">Exclusivo Tránsito</option>
@@ -777,22 +797,39 @@ export default function JuzgadoFaltasUnificado() {
 
                         {vista === 'admin_actas' && (
                           <table className="admin-table">
-                            <thead><tr><th>N° Acta Físico</th><th>Área Competente</th><th>Identificación (DNI)</th><th>Domicilio</th><th>Fase Procesal</th><th>Monto Base</th><th>Acción</th></tr></thead>
+                            <thead><tr><th>N° Acta Físico</th><th>Infractor</th><th>DNI</th><th>Domicilio</th><th>Fecha del Hecho</th><th>Art. Infringido</th><th>Fase Procesal</th><th>Monto Base</th><th>Acción</th></tr></thead>
                             <tbody>
                               {listaPaginada.map((item: any) => {
-                                const esBroma = item.tipoInfraccion === 'BROMATOLOGIA';
+                                // Calculo de reincidencia cruzada
+                                const actasMismoOrganismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion);
+                                const esReincidente = actasMismoOrganismo.length > 1;
+
                                 return (
                                 <tr key={item.id}>
                                   <td><strong style={{fontSize: '15px'}}>{item.nroActa}</strong></td>
-                                  <td><span className="badge" style={{background: esBroma ? 'rgba(16, 185, 129, 0.1)' : 'rgba(11, 74, 130, 0.1)', color: esBroma ? '#047857' : 'var(--azul-loreto)'}}>{esBroma ? 'Bromatología' : 'Tránsito'}</span></td>
+                                  <td>
+                                    <strong style={{display: 'block', fontSize: '14px'}}>{item.nombreTitular}</strong>
+                                    {esReincidente && <span style={{display: 'inline-block', marginTop: '4px', fontSize: '10px', background: '#DC2626', color: '#fff', padding: '3px 6px', borderRadius: '4px', fontWeight: 'bold', letterSpacing: '0.04em'}}>REINCIDENTE</span>}
+                                  </td>
                                   <td style={{fontFamily: 'Montserrat, sans-serif', fontWeight: 600}}>{item.dniTitular}</td>
                                   <td><span style={{fontSize: '13.5px', color: 'var(--tinta-suave)'}}>{item.lugar || 'No informado'}</span></td>
+                                  <td style={{fontSize: '13.5px'}}>{new Date(item.fechaInfraccion).toLocaleDateString('es-AR')}</td>
+                                  <td style={{fontSize: '13.5px'}}>{item.articulo || '-'}</td>
                                   <td><span className="badge" style={{background: item.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: item.estado === 'PENDIENTE' ? '#B45309' : '#047857'}}>{item.estado}</span></td>
                                   <td style={{fontWeight: 600}}>${item.monto}</td>
-                                  <td><button onClick={() => manejarEliminarDato(item.id, 'acta')} className="btn btn--danger btn--sm">Anular Acta</button></td>
+                                  <td>
+                                    <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                                      <button onClick={() => {
+                                        const d = new Date(item.fechaInfraccion);
+                                        const formatted = !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : '';
+                                        setModalEditarActa({...item, fechaInfraccion_input: formatted});
+                                      }} className="btn btn--ghost btn--sm">Editar</button>
+                                      <button onClick={() => manejarEliminarDato(item.id, 'acta')} className="btn btn--danger btn--sm">Anular</button>
+                                    </div>
+                                  </td>
                                 </tr>
                               )})}
-                              {listaPaginada.length === 0 && (<tr><td colSpan={7} style={{textAlign: 'center', padding: '40px'}}>La búsqueda no arrojó resultados en la base de datos.</td></tr>)}
+                              {listaPaginada.length === 0 && (<tr><td colSpan={9} style={{textAlign: 'center', padding: '40px'}}>La búsqueda no arrojó resultados en la base de datos.</td></tr>)}
                             </tbody>
                           </table>
                         )}
@@ -837,6 +874,39 @@ export default function JuzgadoFaltasUnificado() {
           </section>
         )}
       </main>
+
+      {/* MODAL EDITAR ACTA */}
+      {modalEditarActa && (
+        <div className="modal-overlay" onClick={() => setModalEditarActa(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '800px'}}>
+            <h3 style={{marginBottom: '24px'}}>Editar Acta de Infracción</h3>
+            <form onSubmit={manejarEditarActa} style={{display: 'flex', gap: '16px', flexWrap: 'wrap'}}>
+              <div className="field" style={{flex: 1, minWidth: '180px'}}>
+                <label>Repartición Emisora</label>
+                <select value={modalEditarActa.tipoInfraccion} onChange={(e) => setModalEditarActa({...modalEditarActa, tipoInfraccion: e.target.value})} required>
+                  <option value="TRANSITO">Dirección de Tránsito</option>
+                  <option value="BROMATOLOGIA">Bromatología y Calidad de Vida</option>
+                </select>
+              </div>
+              <div className="field" style={{flex: 1, minWidth: '110px'}}><label>N° Físico de Acta</label><input type="text" value={modalEditarActa.nroActa} onChange={(e) => setModalEditarActa({...modalEditarActa, nroActa: e.target.value})} required /></div>
+              
+              <div className="field" style={{flex: 1, minWidth: '140px'}}><label>Fecha del Hecho</label><input type="date" value={modalEditarActa.fechaInfraccion_input || ''} onChange={(e) => setModalEditarActa({...modalEditarActa, fechaInfraccion_input: e.target.value})} /></div>
+              
+              <div className="field" style={{flex: 1, minWidth: '160px'}}><label>Nombre del Imputado</label><input type="text" value={modalEditarActa.nombreTitular} onChange={(e) => setModalEditarActa({...modalEditarActa, nombreTitular: e.target.value})} required /></div>
+              <div className="field" style={{flex: 1, minWidth: '120px'}}><label>DNI / CUIT</label><input type="text" value={modalEditarActa.dniTitular} onChange={(e) => setModalEditarActa({...modalEditarActa, dniTitular: e.target.value})} required /></div>
+              <div className="field" style={{flex: 1, minWidth: '130px'}}><label>Domicilio del Infractor</label><input type="text" value={modalEditarActa.lugar} onChange={(e) => setModalEditarActa({...modalEditarActa, lugar: e.target.value})} placeholder="Opcional..." /></div>
+              <div className="field" style={{flex: 1, minWidth: '90px'}}><label>Art. Infringido</label><input type="text" value={modalEditarActa.articulo} onChange={(e) => setModalEditarActa({...modalEditarActa, articulo: e.target.value})} placeholder="Opcional..." /></div>
+              <div className="field" style={{flex: 1, minWidth: '140px'}}><label>Agente Interviniente</label><input type="text" value={modalEditarActa.inspector} onChange={(e) => setModalEditarActa({...modalEditarActa, inspector: e.target.value})} placeholder="Opcional..." /></div>
+              <div className="field" style={{flex: 1, minWidth: '120px'}}><label>Monto a Cobrar ($)</label><input type="number" value={modalEditarActa.monto} onChange={(e) => setModalEditarActa({...modalEditarActa, monto: e.target.value})} required /></div>
+              
+              <div style={{display: 'flex', gap: '12px', width: '100%', marginTop: '16px'}}>
+                <button type="button" onClick={() => setModalEditarActa(null)} className="btn btn--ghost" style={{flex: 1}}>Cancelar</button>
+                <button type="submit" disabled={editandoActa} className="btn btn--primary" style={{flex: 1}}>{editandoActa ? 'Guardando...' : 'Guardar Cambios'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL CLAVES */}
       {modalPassword && (

@@ -16,6 +16,8 @@ enum RolUsuario {
 
 enum EstadoInfraccion {
   PENDIENTE
+  PRESENTADO
+  PENDIENTE_CONCILIACION
   EN_DESCARGO
   FIRME
   PAGADA

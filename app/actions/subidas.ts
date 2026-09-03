@@ -1,11 +1,16 @@
 "use server"
 
 import { PrismaClient } from '@prisma/client'
+import { createClient } from '@supabase/supabase-js'
 
-// Aseguramos una única conexión a la base de datos para que no colapse
 const globalForPrisma = global as unknown as { prisma: PrismaClient }
 const prisma = globalForPrisma.prisma || new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+
+// Conexión oficial al disco duro de Supabase
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function procesarTramiteCiudadano(formData: FormData) {
   try {
@@ -17,17 +22,29 @@ export async function procesarTramiteCiudadano(formData: FormData) {
       return { success: false, error: "Faltan datos obligatorios." };
     }
 
-    // === MAGIA ANTI-VERCEL: Convertimos el archivo a texto (Base64) para guardarlo en Supabase ===
-    const buffer = await archivo.arrayBuffer();
-    const base64Archivo = Buffer.from(buffer).toString('base64');
-    const mimeType = archivo.type;
-    const archivoUrl = `data:${mimeType};base64,${base64Archivo}`;
+    // === SUBIDA DIRECTA A SUPABASE STORAGE ===
+    const extension = archivo.name.split('.').pop();
+    const nombreUnico = `${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
 
-    // Verificamos que el acta realmente exista en la base de datos
+    const { error: uploadError } = await supabase.storage
+      .from('archivos')
+      .upload(nombreUnico, archivo, {
+        contentType: archivo.type,
+        upsert: false
+      });
+
+    if (uploadError) throw new Error("Error al subir evidencia a la nube: " + uploadError.message);
+
+    const { data: publicUrlData } = supabase.storage
+      .from('archivos')
+      .getPublicUrl(nombreUnico);
+
+    const archivoUrl = publicUrlData.publicUrl;
+    // ==========================================
+
     const infraccion = await prisma.infraccion.findUnique({ where: { id: infraccionId } });
     if (!infraccion) throw new Error("Acta de infracción no encontrada.");
 
-    // === 1. SI EL CIUDADANO ESTÁ INFORMANDO UN PAGO ===
     if (tipo === 'pago') {
       const monto = Number(formData.get('monto'));
       
@@ -35,12 +52,11 @@ export async function procesarTramiteCiudadano(formData: FormData) {
         data: {
           infraccionId,
           montoInformado: monto,
-          comprobanteUrl: archivoUrl, // Acá guardamos la imagen convertida en código
+          comprobanteUrl: archivoUrl,
           estado: 'PENDIENTE_CONCILIACION'
         }
       });
 
-      // Actualizamos el estado del acta principal
       await prisma.infraccion.update({
         where: { id: infraccionId },
         data: { estado: 'PENDIENTE_CONCILIACION' }
@@ -49,7 +65,6 @@ export async function procesarTramiteCiudadano(formData: FormData) {
       return { success: true };
     } 
     
-    // === 2. SI EL CIUDADANO ESTÁ PRESENTANDO UN DESCARGO LEGAL ===
     if (tipo === 'descargo') {
       const nombre = formData.get('nombre') as string;
       const email = formData.get('email') as string;
@@ -60,9 +75,7 @@ export async function procesarTramiteCiudadano(formData: FormData) {
       const diasTranscurridos = Math.floor((hoy.getTime() - fechaInfraccion.getTime()) / (1000 * 60 * 60 * 24));
       const esExtemporaneo = diasTranscurridos > 5;
 
-      // --- MOTOR DE EXPEDIENTE SECUENCIAL ---
       const anioActual = hoy.getFullYear();
-      
       const cantidadDescargos = await prisma.descargo.count({
         where: {
           creadoEn: {
@@ -80,13 +93,12 @@ export async function procesarTramiteCiudadano(formData: FormData) {
           nombre,
           email,
           motivo,
-          archivosUrl: [archivoUrl], // Guardamos el PDF/Imagen convertido en código
+          archivosUrl: [archivoUrl], 
           estado: esExtemporaneo ? 'EXTEMPORANEO' : 'PRESENTADO',
           expedienteNro
         }
       });
 
-      // Actualizamos el estado del acta principal
       await prisma.infraccion.update({
         where: { id: infraccionId },
         data: { estado: 'PRESENTADO' }
@@ -110,11 +122,23 @@ export async function procesarNoticia(formData: FormData) {
 
     if (!titulo || !archivo) return { success: false, error: "Faltan datos obligatorios para publicar la noticia." };
 
-    // Lo mismo para las Noticias: Convertimos a código Base64
-    const buffer = await archivo.arrayBuffer();
-    const base64Archivo = Buffer.from(buffer).toString('base64');
-    const mimeType = archivo.type;
-    const archivoUrl = `data:${mimeType};base64,${base64Archivo}`;
+    const extension = archivo.name.split('.').pop();
+    const nombreUnico = `noticia-${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('archivos')
+      .upload(nombreUnico, archivo, {
+        contentType: archivo.type,
+        upsert: false
+      });
+
+    if (uploadError) throw new Error("Error al subir imagen de noticia: " + uploadError.message);
+
+    const { data: publicUrlData } = supabase.storage
+      .from('archivos')
+      .getPublicUrl(nombreUnico);
+
+    const archivoUrl = publicUrlData.publicUrl;
 
     await prisma.noticia.create({
       data: {

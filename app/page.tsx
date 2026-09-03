@@ -93,11 +93,24 @@ export default function JuzgadoFaltasUnificado() {
 
   const cargarDatosPanel = async (vistaDestino: string) => {
     setCargandoAdmin(true)
-    if (vistaDestino === 'admin_actas') setDatosAdmin(await obtenerActasAdmin())
-    if (vistaDestino === 'admin_descargos') setDatosAdmin(await obtenerDescargosAdmin())
-    if (vistaDestino === 'admin_pagos') setDatosAdmin(await obtenerPagosAdmin())
-    if (vistaDestino === 'admin_usuarios') setDatosAdmin(await obtenerUsuariosAdmin())
-    if (vistaDestino === 'admin_noticias') setDatosAdmin(await obtenerNoticiasAdmin())
+    try {
+      let datos: any = [];
+      if (vistaDestino === 'admin_actas') datos = await obtenerActasAdmin();
+      if (vistaDestino === 'admin_descargos') datos = await obtenerDescargosAdmin();
+      if (vistaDestino === 'admin_pagos') datos = await obtenerPagosAdmin();
+      if (vistaDestino === 'admin_usuarios') datos = await obtenerUsuariosAdmin();
+      if (vistaDestino === 'admin_noticias') datos = await obtenerNoticiasAdmin();
+      
+      // Filtro de seguridad: Solo mostramos la tabla si recibimos un listado válido
+      if (Array.isArray(datos)) {
+        setDatosAdmin(datos);
+      } else {
+        setDatosAdmin([]); // Si el servidor manda error, vacía la tabla pero no congela la página
+        console.error("Respuesta inesperada del servidor:", datos);
+      }
+    } catch (error) {
+      setDatosAdmin([]);
+    }
     setCargandoAdmin(false)
   }
 

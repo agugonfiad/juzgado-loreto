@@ -22,13 +22,16 @@ export async function procesarTramiteCiudadano(formData: FormData) {
       return { success: false, error: "Faltan datos obligatorios." };
     }
 
-    // === SUBIDA DIRECTA A SUPABASE STORAGE ===
+    // === MAGIA NEXT.JS: Convertimos el archivo a Buffer para que Supabase lo entienda ===
     const extension = archivo.name.split('.').pop();
     const nombreUnico = `${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
+    
+    // Traducimos el archivo a datos crudos
+    const fileBuffer = await archivo.arrayBuffer();
 
     const { error: uploadError } = await supabase.storage
       .from('archivos')
-      .upload(nombreUnico, archivo, {
+      .upload(nombreUnico, fileBuffer, { // Enviamos el buffer en lugar del objeto File
         contentType: archivo.type,
         upsert: false
       });
@@ -124,10 +127,13 @@ export async function procesarNoticia(formData: FormData) {
 
     const extension = archivo.name.split('.').pop();
     const nombreUnico = `noticia-${Date.now()}-${Math.random().toString(36).substring(7)}.${extension}`;
+    
+    // Traducimos la imagen de la noticia también
+    const fileBuffer = await archivo.arrayBuffer();
 
     const { error: uploadError } = await supabase.storage
       .from('archivos')
-      .upload(nombreUnico, archivo, {
+      .upload(nombreUnico, fileBuffer, {
         contentType: archivo.type,
         upsert: false
       });

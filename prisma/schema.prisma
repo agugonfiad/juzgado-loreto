@@ -66,6 +66,8 @@ model Descargo {
   expedienteNro   String   @unique
   infraccionId    String
   motivo          String
+  nombre String?
+  email  String?
   archivosUrl     String[]
   estado          String   @default("PRESENTADO")
   resolucion      String?

@@ -804,7 +804,7 @@ export default function JuzgadoFaltasUnificado() {
                             <tbody>
                               {listaPaginada.map((item: any) => (
                                 <tr key={item.id}>
-                                  <td><strong style={{fontSize: '15px'}}>{item.expedienteNro || item.infraccion?.nroActa}</strong></td>
+                                  <td><strong style={{fontSize: '15px'}}>{item.expedienteNro || item.infraccion?.nroActa || item.nroActa}</strong></td>
                                   <td>
                                     <span className="badge" style={{background: item.estado === 'EXTEMPORANEO' ? 'rgba(239, 68, 68, 0.15)' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)'), color: item.estado === 'EXTEMPORANEO' ? '#DC2626' : (item.estado === 'PENDIENTE' || item.estado === 'PRESENTADO' || item.estado === 'PENDIENTE_CONCILIACION' ? '#B45309' : '#047857')}}>{item.estado}</span>
                                   </td>

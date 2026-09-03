@@ -37,7 +37,21 @@ export async function obtenerDescargosAdmin() {
 }
 
 export async function obtenerPagosAdmin() {
-  return await prisma.pago.findMany({ include: { infraccion: true }, orderBy: { fechaPago: 'desc' } })
+  try {
+    // Le decimos a la base de datos que busque estrictamente las que están en conciliación
+    const pagos = await prisma.infraccion.findMany({
+      where: {
+        estado: 'PENDIENTE_CONCILIACION'
+      },
+      orderBy: {
+        fechaInfraccion: 'desc'
+      }
+    });
+    return pagos;
+  } catch (error) {
+    console.error("Error al obtener pagos:", error);
+    return [];
+  }
 }
 
 export async function resolverDescargo(id: string, estado: string, resolucion: string) {

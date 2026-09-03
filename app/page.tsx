@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano, procesarNoticia } from "./actions/subidas"
-import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearContrasena } from "./actions/admin"
+import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearClave } from "./actions/admin"
 
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
@@ -12,9 +12,10 @@ export default function JuzgadoFaltasUnificado() {
   const [autenticado, setAutenticado] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [usuario, setUsuario] = useState<{nombre: string, rol: string} | null>(null)
+  const [usuario, setUsuario] = useState<{nombre: string, rol: string} | null>({nombre: '', rol: ''})
   
   const [datosAdmin, setDatosAdmin] = useState<any[]>([])
+  const [pagosAdmin, setPagosAdmin] = useState<any[]>([])
   const [noticiasPublicas, setNoticiasPublicas] = useState<any[]>([])
   const [cargandoAdmin, setCargandoAdmin] = useState(false)
   
@@ -37,7 +38,7 @@ export default function JuzgadoFaltasUnificado() {
   const [modalPassword, setModalPassword] = useState(false); const [passActual, setPassActual] = useState(""); const [passNueva, setPassNueva] = useState(""); const [passConfirmar, setPassConfirmar] = useState(""); const [cambiandoPass, setCambiandoPass] = useState(false);
 
   // Estados Buscador Avanzado
-  const [filtroActa, setFiltroActa] = useState("")
+  const [filtroActaNombre, setFiltroActaNombre] = useState("")
   const [filtroDniAdmin, setFiltroDniAdmin] = useState("")
   const [filtroDireccion, setFiltroDireccion] = useState("")
   const [filtroEstado, setFiltroEstado] = useState("")
@@ -73,7 +74,7 @@ export default function JuzgadoFaltasUnificado() {
 
   useEffect(() => {
     setPaginaActual(1);
-  }, [filtroActa, filtroDniAdmin, filtroDireccion, filtroEstado, vista]);
+  }, [filtroActaNombre, filtroDniAdmin, filtroDireccion, filtroEstado, vista]);
 
   const manejarBusqueda = async (e: React.FormEvent) => {
     e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null);
@@ -114,7 +115,11 @@ export default function JuzgadoFaltasUnificado() {
     setCargandoAdmin(true)
     try {
       let datos: any = [];
-      if (vistaDestino === 'admin_actas') datos = await obtenerActasAdmin();
+      if (vistaDestino === 'admin_actas') {
+        datos = await obtenerActasAdmin();
+        const pagosGeneral = await obtenerPagosAdmin();
+        setPagosAdmin(pagosGeneral);
+      }
       if (vistaDestino === 'admin_descargos') datos = await obtenerDescargosAdmin();
       if (vistaDestino === 'admin_pagos') datos = await obtenerPagosAdmin();
       if (vistaDestino === 'admin_usuarios') datos = await obtenerUsuariosAdmin();
@@ -244,30 +249,20 @@ export default function JuzgadoFaltasUnificado() {
   const auditarDescargo = async (estado: string) => {
     if (estado === 'RECHAZADO' && !textoResolucion) return alert("Debe justificar el rechazo.")
     setProcesando(true); 
-    
-    // 1. Resolvemos el descargo
     await resolverDescargo(itemModal.id, estado, textoResolucion);
-    
-    // 2. Actualizamos el estado del acta principal vinculada
     if (itemModal.infraccionId) {
       const nuevoEstadoActa = estado === 'RESUELTO_A_FAVOR' ? 'SOBRESEIDO' : 'CONFIRMADO';
       await editarActa(itemModal.infraccionId, { estado: nuevoEstadoActa });
     }
-
     setItemModal(null); setTextoResolucion(""); setProcesando(false); cargarDatosPanel(vista);
   }
 
   const auditarPago = async (estado: string) => {
     setProcesando(true); 
-    
-    // 1. Conciliamos el pago
     await conciliarPago(itemModal.id, estado);
-    
-    // 2. Actualizamos el estado del acta principal vinculada si se aprobó
     if (itemModal.infraccionId && estado === 'CONCILIADO') {
       await editarActa(itemModal.infraccionId, { estado: 'PAGADO' });
     }
-
     setItemModal(null); setProcesando(false); cargarDatosPanel(vista);
   }
 
@@ -294,13 +289,29 @@ export default function JuzgadoFaltasUnificado() {
     if (res.success) { alert(`✅ CLAVE RESTABLECIDA\n\nLa nueva clave para ${nombre} es: ${res.tempPass}`); } else { alert("Error al restablecer: " + res.error); }
   }
 
+  // Métricas para el Dashboard Estadístico (Cambio 2)
+  const totalActasCount = datosAdmin.length;
+  const actasPendientesCount = datosAdmin.filter(d => d.estado === 'PENDIENTE').length;
+  const montoRecaudadoTotal = pagosAdmin
+    .filter(p => p.estado === 'CONCILIADO')
+    .reduce((acc, p) => acc + (Number(p.montoInformado) || 0), 0);
+  
+  const reincidentesCount = datosAdmin.filter(item => {
+    const mismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion);
+    return mismo.length > 1;
+  }).length;
+
   const actasFiltradas = datosAdmin.filter(item => {
     if (vista !== 'admin_actas') return true;
-    const coincideActa = item.nroActa?.toLowerCase().includes(filtroActa.toLowerCase());
+    const textoBuscado = filtroActaNombre.toLowerCase();
+    const coincideTexto = 
+      (item.nroActa?.toLowerCase().includes(textoBuscado)) || 
+      (item.nombreTitular?.toLowerCase().includes(textoBuscado));
+
     const coincideDni = item.dniTitular?.includes(filtroDniAdmin);
     const coincideDireccion = filtroDireccion ? item.tipoInfraccion === filtroDireccion : true;
     const coincideEstado = filtroEstado ? item.estado === filtroEstado : true;
-    return coincideActa && coincideDni && coincideDireccion && coincideEstado;
+    return coincideTexto && coincideDni && coincideDireccion && coincideEstado;
   });
 
   const listaBase = vista === 'admin_actas' ? actasFiltradas : datosAdmin;
@@ -390,24 +401,6 @@ export default function JuzgadoFaltasUnificado() {
         .modal-content { background: var(--papel); padding: 40px; border-radius: var(--radius-m); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.15); border: 1px solid var(--linea); }
         
         .contacto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; } .contacto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 24px; } .contacto-list li { display: flex; gap: 16px; align-items: flex-start; } .contacto-list .ico { width: 40px; height: 40px; border-radius: 50%; background: rgba(235, 33, 40, 0.1); color: var(--rojo-loreto); display: flex; align-items: center; justify-content: center; flex: none; font-size: 18px; } .contacto-list strong { display: block; font-size: 15px; color: var(--azul-loreto); font-weight: 600; margin-bottom: 4px; } .contacto-list span, .contacto-list a { font-size: 14.5px; color: var(--tinta-suave); text-decoration: none; } .contacto-list a:hover { color: var(--rojo-loreto); text-decoration: underline; } .map-frame { border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; height: 380px; } .map-frame iframe { width: 100%; height: 100%; border: 0; }
-        
-        @media (max-width: 980px) { 
-          .contacto-grid, .consulta-panel, .hero .wrap, .news-grid, .autoridades-grid, .art-grid { grid-template-columns: 1fr; } 
-          .hero { text-align: center; padding: 40px 0; }
-          .hero h1 { font-size: 28px; margin-left: auto; margin-right: auto; }
-          .brand__logo { height: 45px; }
-          .brand__text strong { font-size: 16px; }
-          .brand__text .eyebrow { font-size: 10px; }
-          .menu-toggle { display: block; }
-          nav.primary { display: none; width: 100%; order: 3; padding: 20px 0; border-top: 1px solid var(--linea); margin-top: 15px; }
-          nav.primary.abierto { display: flex; flex-direction: column; align-items: flex-start; }
-          nav.primary ul { flex-direction: column; gap: 15px; width: 100%; }
-          nav.primary a { display: block; width: 100%; padding: 5px 0; }
-          .header-actions { display: none; width: 100%; order: 4; flex-direction: column; padding-bottom: 20px; gap: 15px; }
-          .header-actions.abierto { display: flex; }
-          .header-actions .btn { width: 100%; }
-          .admin-table { display: block; overflow-x: auto; white-space: nowrap; }
-        }
       `}} />
 
       <div className="topbar">
@@ -697,7 +690,34 @@ export default function JuzgadoFaltasUnificado() {
                 </div>
               ) : (
                 <>
-                  <div className="section-head"><p className="kicker">Panel de Administración</p><h2>{vista === 'admin_actas' ? 'Gestión Documental de Actas' : vista === 'admin_descargos' ? 'Auditoría Legal de Descargos' : vista === 'admin_usuarios' ? 'Gestión de Recursos Humanos' : vista === 'admin_noticias' ? 'Publicación Institucional' : vista === 'admin_calculadora' ? 'Calculadora de Multas (UEM)' : 'Conciliación Bancaria y Pagos'}</h2></div>
+                  <div className="section-head" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px'}}>
+                    <div>
+                      <p className="kicker">Panel de Administración</p>
+                      <h2>{vista === 'admin_actas' ? 'Gestión Documental de Actas' : vista === 'admin_descargos' ? 'Auditoría Legal de Descargos' : vista === 'admin_usuarios' ? 'Gestión de Recursos Humanos' : vista === 'admin_noticias' ? 'Publicación Institucional' : vista === 'admin_calculadora' ? 'Calculadora de Multas (UEM)' : 'Conciliación Bancaria y Pagos'}</h2>
+                    </div>
+                    
+                    {/* DASHBOARD DE ESTADÍSTICAS EN VIVO (Cambio 2) */}
+                    {vista === 'admin_actas' && (
+                      <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
+                        <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
+                          <span style={{fontSize: '11px', fontWeight: 700, color: 'var(--azul-loreto)', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Total Actas</span>
+                          <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: 'var(--tinta)', fontFamily: 'Montserrat, sans-serif'}}>{totalActasCount}</p>
+                        </div>
+                        <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
+                          <span style={{fontSize: '11px', fontWeight: 700, color: '#B45309', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Pendientes</span>
+                          <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#B45309', fontFamily: 'Montserrat, sans-serif'}}>{actasPendientesCount}</p>
+                        </div>
+                        <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '140px'}}>
+                          <span style={{fontSize: '11px', fontWeight: 700, color: '#10B981', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Recaudación</span>
+                          <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#10B981', fontFamily: 'Montserrat, sans-serif'}}>${montoRecaudadoTotal.toLocaleString('es-AR')}</p>
+                        </div>
+                        <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
+                          <span style={{fontSize: '11px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Reincidentes</span>
+                          <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#DC2626', fontFamily: 'Montserrat, sans-serif'}}>{reincidentesCount}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   
                   {vista === 'admin_calculadora' && (
                     <div style={{background: 'var(--papel)', padding: '40px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', maxWidth: '900px', margin: '0 auto'}}>
@@ -802,7 +822,11 @@ export default function JuzgadoFaltasUnificado() {
 
                   {vista === 'admin_actas' && (
                     <div className="filter-grid">
-                      <div className="field" style={{marginBottom: 0}}><label>N° Acta</label><input type="text" placeholder="Ej: 0001" value={filtroActa} onChange={e => setFiltroActa(e.target.value)} /></div>
+                      {/* BUSCADOR AVANZADO POR NÚMERO O NOMBRE (Cambio 4) */}
+                      <div className="field" style={{marginBottom: 0}}>
+                        <label>Búsqueda (N° Acta o Nombre)</label>
+                        <input type="text" placeholder="Ej: 0001 o Pérez..." value={filtroActaNombre} onChange={e => setFiltroActaNombre(e.target.value)} />
+                      </div>
                       <div className="field" style={{marginBottom: 0}}><label>DNI del Titular</label><input type="text" placeholder="Buscar DNI..." value={filtroDniAdmin} onChange={e => setFiltroDniAdmin(e.target.value)} /></div>
                       <div className="field" style={{marginBottom: 0}}>
                         <label>Repartición (Búsqueda)</label>

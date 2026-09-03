@@ -34,8 +34,20 @@ export async function iniciarSesion(email: string, pass: string) {
   }
 }
 
-export async function obtenerActasAdmin() {
+export async function obtenerActasAdmin(filtroBusqueda?: string) {
   try {
+    if (filtroBusqueda && filtroBusqueda.trim() !== "") {
+      return await prisma.infraccion.findMany({
+        where: {
+          OR: [
+            { nroActa: { contains: filtroBusqueda, mode: 'insensitive' } },
+            { dniTitular: { contains: filtroBusqueda, mode: 'insensitive' } },
+            { nombreTitular: { contains: filtroBusqueda, mode: 'insensitive' } }
+          ]
+        },
+        orderBy: { creadoEn: 'desc' }
+      });
+    }
     return await prisma.infraccion.findMany({ orderBy: { creadoEn: 'desc' } })
   } catch (error) {
     return []

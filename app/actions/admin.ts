@@ -60,12 +60,26 @@ export async function conciliarPago(id: string, estado: string) {
 
 export async function crearActa(data: any) {
   try {
-    const payload = { ...data, estado: 'PENDIENTE' }
-    if (payload.fechaInfraccion) {
-      // Compensamos la zona horaria para que no guarde el día anterior
-      payload.fechaInfraccion = new Date(payload.fechaInfraccion + 'T12:00:00Z')
+    // 1. Filtro de seguridad: Interceptamos la fecha en el servidor
+    let fechaSegura = new Date(); // Por defecto, usa el día de hoy si todo falla
+    
+    if (data.fechaInfraccion) {
+      const fechaParseada = new Date(data.fechaInfraccion);
+      // Si la fecha es válida, la usamos; si viene corrupta del navegador, la ignora
+      if (!isNaN(fechaParseada.getTime())) {
+        fechaSegura = fechaParseada;
+      }
     }
-    await prisma.infraccion.create({ data: payload })
+
+    // 2. Reemplazamos el dato corrupto por nuestra fecha limpia
+    const datosLimpios = { 
+      ...data, 
+      fechaInfraccion: fechaSegura, 
+      estado: 'PENDIENTE' 
+    };
+
+    // 3. Enviamos a Prisma la información 100% segura
+    await prisma.infraccion.create({ data: datosLimpios })
     return { success: true }
   } catch (error: any) {
     return { success: false, error: error.message }

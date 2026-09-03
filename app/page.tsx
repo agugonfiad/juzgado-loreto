@@ -106,18 +106,23 @@ export default function JuzgadoFaltasUnificado() {
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
     
-    // TRUCO DEFINITIVO: Armamos el objeto Date matemáticamente para que no falle jamás
-    let fechaFinal = new Date(); // Si todo falla, usa el día de hoy
+    // TRUCO A PRUEBA DE BALAS: Mandamos la fecha como un Texto ISO
+    let fechaSegura = new Date().toISOString(); 
     
     if (nuevaFecha) {
-      const partes = nuevaFecha.split('-'); // El calendario web devuelve siempre "YYYY-MM-DD"
-      if (partes.length === 3) {
-        const anio = parseInt(partes[0], 10);
-        const mes = parseInt(partes[1], 10) - 1; // En programación los meses van de 0 a 11
-        const dia = parseInt(partes[2], 10);
-        
-        // Creamos la fecha clavada al mediodía para evitar saltos de zona horaria
-        fechaFinal = new Date(anio, mes, dia, 12, 0, 0); 
+      try {
+         const partes = nuevaFecha.split('-'); 
+         if (partes.length === 3) {
+           const anio = parseInt(partes[0], 10);
+           const mes = parseInt(partes[1], 10) - 1;
+           const dia = parseInt(partes[2], 10);
+           const d = new Date(anio, mes, dia, 12, 0, 0);
+           if (!isNaN(d.getTime())) {
+              fechaSegura = d.toISOString();
+           }
+         }
+      } catch(error) {
+         console.log("Fallback a fecha actual");
       }
     }
 
@@ -130,7 +135,7 @@ export default function JuzgadoFaltasUnificado() {
       articulo: nuevoArticulo, 
       inspector: nuevoInspector, 
       tipoInfraccion: nuevoTipo as any,
-      fechaInfraccion: fechaFinal
+      fechaInfraccion: fechaSegura // Se envía un texto simple, imposible de romper
     };
 
     const res = await crearActa(datosActa);

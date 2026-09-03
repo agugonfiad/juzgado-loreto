@@ -859,7 +859,11 @@ export default function JuzgadoFaltasUnificado() {
 
       {/* MODAL EXPEDIENTE */}
       {itemModal && (
-        <div style={{background: 'var(--papel-alto)', padding: '24px', borderRadius: '8px', marginBottom: '24px', fontSize: '15px', border: '1px solid var(--linea)'}}>
+        <div className="modal-overlay" onClick={() => setItemModal(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{marginBottom: '24px', fontSize: '22px'}}>Revisión de Expediente Electrónico</h3>
+            
+            <div style={{background: 'var(--papel-alto)', padding: '24px', borderRadius: '8px', marginBottom: '24px', fontSize: '15px', border: '1px solid var(--linea)'}}>
               <p style={{margin: '0 0 8px 0'}}><strong>Acta de Infracción Relacionada:</strong> N° {itemModal.infraccion?.nroActa || itemModal.nroActa || "No especificado"}</p>
               <p style={{margin: '0 0 16px 0'}}><strong>Identificación Imputado:</strong> DNI {itemModal.infraccion?.dniTitular || itemModal.dniTitular || "No especificado"}</p>
               {vista === 'admin_descargos' && (
@@ -874,6 +878,36 @@ export default function JuzgadoFaltasUnificado() {
             <div style={{marginBottom: '32px'}}>
               <a href={vista === 'admin_descargos' ? (itemModal.archivosUrl?.[0] || itemModal.archivoUrl || "#") : (itemModal.comprobanteUrl || itemModal.archivoUrl || "#")} target="_blank" rel="noreferrer" className="btn btn--ghost btn--block" style={{borderStyle: 'dashed'}}>Visualizar Documento / Prueba Adjunta</a>
             </div>
+            
+            {(itemModal.estado === 'PRESENTADO' || itemModal.estado === 'EXTEMPORANEO' || itemModal.estado === 'PENDIENTE_CONCILIACION') ? (
+              <div style={{borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>
+                {itemModal.estado === 'EXTEMPORANEO' && (
+                  <div style={{background: 'rgba(239, 68, 68, 0.1)', color: '#DC2626', padding: '12px 16px', borderRadius: '4px', marginBottom: '20px', fontSize: '14px', fontWeight: 600, borderLeft: '4px solid #DC2626'}}>
+                    ALERTA LEGAL: La presente interposición supera los plazos procesales vigentes.
+                  </div>
+                )}
+                {vista === 'admin_descargos' && (
+                  <div className="field"><label>Fundamentación del Fallo (Dictamen de Juez)</label><textarea value={textoResolucion} onChange={(e) => setTextoResolucion(e.target.value)} placeholder="Redacte aquí la justificación resolutiva..." rows={3} /></div>
+                )}
+                <div style={{display: 'flex', gap: '12px', marginTop: '16px'}}>
+                  {vista === 'admin_descargos' ? (
+                    <>
+                      <button onClick={() => auditarDescargo('RESUELTO_A_FAVOR')} disabled={procesando} className="btn btn--success" style={{flex: 1}}>Dictar Sobreseimiento</button>
+                      <button onClick={() => auditarDescargo('RECHAZADO')} disabled={procesando} className="btn btn--danger" style={{flex: 1}}>Confirmar Sanción</button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => auditarPago('CONCILIADO')} disabled={procesando} className="btn btn--success" style={{flex: 1}}>Acreditar Impacto Bancario</button>
+                      <button onClick={() => auditarPago('RECHAZADO')} disabled={procesando} className="btn btn--danger" style={{flex: 1}}>Rechazar Comprobante Apócrifo</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : (<p style={{textAlign: 'center', color: 'var(--tinta-suave)', fontWeight: 600, fontSize: '15px'}}>El presente expediente se encuentra con resolución firme.</p>)}
+            <button onClick={() => setItemModal(null)} className="btn btn--ghost btn--block" style={{marginTop: '24px', border: 'none', background: 'var(--papel-alto)'}}>Volver a la bandeja</button>
+          </div>
+        </div>
+      )}
             
             {(itemModal.estado === 'PRESENTADO' || itemModal.estado === 'EXTEMPORANEO' || itemModal.estado === 'PENDIENTE_CONCILIACION') ? (
               <div style={{borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>

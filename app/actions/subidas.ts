@@ -17,11 +17,12 @@ export async function procesarTramiteCiudadano(formData: FormData) {
       return { success: false, error: "Faltan datos obligatorios." };
     }
 
-    // --- LÓGICA DE SUBIDA DE ARCHIVO ---
-    // NOTA: Si en tu proyecto estás utilizando Supabase Storage, Vercel Blob o Cloudinary, 
-    // debes colocar tu código de subida aquí. Por defecto, generamos una URL local.
-    const archivoUrl = `https://juzgado-loreto.vercel.app/uploads/${archivo.name}`;
-    
+    // === MAGIA ANTI-VERCEL: Convertimos el archivo a texto (Base64) para guardarlo en Supabase ===
+    const buffer = await archivo.arrayBuffer();
+    const base64Archivo = Buffer.from(buffer).toString('base64');
+    const mimeType = archivo.type;
+    const archivoUrl = `data:${mimeType};base64,${base64Archivo}`;
+
     // Verificamos que el acta realmente exista en la base de datos
     const infraccion = await prisma.infraccion.findUnique({ where: { id: infraccionId } });
     if (!infraccion) throw new Error("Acta de infracción no encontrada.");
@@ -34,7 +35,7 @@ export async function procesarTramiteCiudadano(formData: FormData) {
         data: {
           infraccionId,
           montoInformado: monto,
-          comprobanteUrl: archivoUrl,
+          comprobanteUrl: archivoUrl, // Acá guardamos la imagen convertida en código
           estado: 'PENDIENTE_CONCILIACION'
         }
       });
@@ -54,17 +55,14 @@ export async function procesarTramiteCiudadano(formData: FormData) {
       const email = formData.get('email') as string;
       const motivo = formData.get('motivo') as string;
 
-      // Calculamos si es un descargo fuera de término (Extemporáneo)
-      // (Ejemplo: pasaron más de 5 días desde la fecha de la infracción)
       const fechaInfraccion = new Date(infraccion.fechaInfraccion);
       const hoy = new Date();
       const diasTranscurridos = Math.floor((hoy.getTime() - fechaInfraccion.getTime()) / (1000 * 60 * 60 * 24));
       const esExtemporaneo = diasTranscurridos > 5;
 
-      // --- MOTOR DE EXPEDIENTE SECUENCIAL (Ej: 0001-2026) ---
+      // --- MOTOR DE EXPEDIENTE SECUENCIAL ---
       const anioActual = hoy.getFullYear();
       
-      // Contamos cuántos descargos se presentaron en este año específico
       const cantidadDescargos = await prisma.descargo.count({
         where: {
           creadoEn: {
@@ -74,7 +72,6 @@ export async function procesarTramiteCiudadano(formData: FormData) {
         }
       });
       
-      // Sumamos 1 y rellenamos con ceros a la izquierda (0001, 0002, 0010...)
       const expedienteNro = `${String(cantidadDescargos + 1).padStart(4, '0')}-${anioActual}`;
 
       await prisma.descargo.create({
@@ -83,7 +80,7 @@ export async function procesarTramiteCiudadano(formData: FormData) {
           nombre,
           email,
           motivo,
-          archivosUrl: [archivoUrl], // Documentación respaldatoria
+          archivosUrl: [archivoUrl], // Guardamos el PDF/Imagen convertido en código
           estado: esExtemporaneo ? 'EXTEMPORANEO' : 'PRESENTADO',
           expedienteNro
         }
@@ -113,8 +110,11 @@ export async function procesarNoticia(formData: FormData) {
 
     if (!titulo || !archivo) return { success: false, error: "Faltan datos obligatorios para publicar la noticia." };
 
-    // Lógica de subida de imagen para la noticia
-    const archivoUrl = `https://juzgado-loreto.vercel.app/uploads/${archivo.name}`;
+    // Lo mismo para las Noticias: Convertimos a código Base64
+    const buffer = await archivo.arrayBuffer();
+    const base64Archivo = Buffer.from(buffer).toString('base64');
+    const mimeType = archivo.type;
+    const archivoUrl = `data:${mimeType};base64,${base64Archivo}`;
 
     await prisma.noticia.create({
       data: {

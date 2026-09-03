@@ -142,9 +142,9 @@ export default function JuzgadoFaltasUnificado() {
       nombreTitular: nuevoNombre, 
       dniTitular: nuevoDni, 
       monto: Number(nuevoMonto), 
-      lugar: nuevoLugar, 
-      articulo: nuevoArticulo, 
-      inspector: nuevoInspector, 
+      lugar: nuevoLugar || "No informado", 
+      articulo: nuevoArticulo || "No informado", 
+      inspector: nuevoInspector || "No informado", 
       tipoInfraccion: nuevoTipo as any,
       fechaInfraccion: fechaSegura
     };
@@ -685,20 +685,20 @@ export default function JuzgadoFaltasUnificado() {
                       <form onSubmit={manejarCrearActa} style={{display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '180px'}}>
                           <label>Repartición Emisora</label>
-                          <select value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value)}>
+                          <select value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value)} required>
                             <option value="TRANSITO">Dirección de Tránsito</option>
                             <option value="BROMATOLOGIA">Bromatología y Calidad de Vida</option>
                           </select>
                         </div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '110px'}}><label>N° Físico de Acta</label><input type="text" value={nuevoNroActa} onChange={(e) => setNuevoNroActa(e.target.value)} required /></div>
                         
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Fecha del Hecho</label><input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Fecha del Hecho</label><input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} /></div>
                         
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '160px'}}><label>Nombre del Imputado</label><input type="text" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} required /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>DNI / CUIT</label><input type="text" value={nuevoDni} onChange={(e) => setNuevoDni(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '130px'}}><label>Ubicación del Hecho</label><input type="text" value={nuevoLugar} onChange={(e) => setNuevoLugar(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '90px'}}><label>Art. Infringido</label><input type="text" value={nuevoArticulo} onChange={(e) => setNuevoArticulo(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Agente Interviniente</label><input type="text" value={nuevoInspector} onChange={(e) => setNuevoInspector(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '130px'}}><label>Domicilio del Infractor</label><input type="text" value={nuevoLugar} onChange={(e) => setNuevoLugar(e.target.value)} placeholder="Opcional..." /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '90px'}}><label>Art. Infringido</label><input type="text" value={nuevoArticulo} onChange={(e) => setNuevoArticulo(e.target.value)} placeholder="Opcional..." /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Agente Interviniente</label><input type="text" value={nuevoInspector} onChange={(e) => setNuevoInspector(e.target.value)} placeholder="Opcional..." /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>Monto a Cobrar ($)</label><input type="number" value={nuevoMonto} onChange={(e) => setNuevoMonto(e.target.value)} required /></div>
                         <button type="submit" disabled={guardandoActa} className="btn btn--primary">{guardandoActa ? 'Procesando...' : 'Asentar Acta'}</button>
                       </form>
@@ -777,7 +777,7 @@ export default function JuzgadoFaltasUnificado() {
 
                         {vista === 'admin_actas' && (
                           <table className="admin-table">
-                            <thead><tr><th>N° Acta Físico</th><th>Área Competente</th><th>Identificación (DNI)</th><th>Fase Procesal</th><th>Monto Base</th><th>Acción</th></tr></thead>
+                            <thead><tr><th>N° Acta Físico</th><th>Área Competente</th><th>Identificación (DNI)</th><th>Domicilio</th><th>Fase Procesal</th><th>Monto Base</th><th>Acción</th></tr></thead>
                             <tbody>
                               {listaPaginada.map((item: any) => {
                                 const esBroma = item.tipoInfraccion === 'BROMATOLOGIA';
@@ -786,12 +786,13 @@ export default function JuzgadoFaltasUnificado() {
                                   <td><strong style={{fontSize: '15px'}}>{item.nroActa}</strong></td>
                                   <td><span className="badge" style={{background: esBroma ? 'rgba(16, 185, 129, 0.1)' : 'rgba(11, 74, 130, 0.1)', color: esBroma ? '#047857' : 'var(--azul-loreto)'}}>{esBroma ? 'Bromatología' : 'Tránsito'}</span></td>
                                   <td style={{fontFamily: 'Montserrat, sans-serif', fontWeight: 600}}>{item.dniTitular}</td>
+                                  <td><span style={{fontSize: '13.5px', color: 'var(--tinta-suave)'}}>{item.lugar || 'No informado'}</span></td>
                                   <td><span className="badge" style={{background: item.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: item.estado === 'PENDIENTE' ? '#B45309' : '#047857'}}>{item.estado}</span></td>
                                   <td style={{fontWeight: 600}}>${item.monto}</td>
                                   <td><button onClick={() => manejarEliminarDato(item.id, 'acta')} className="btn btn--danger btn--sm">Anular Acta</button></td>
                                 </tr>
                               )})}
-                              {listaPaginada.length === 0 && (<tr><td colSpan={6} style={{textAlign: 'center', padding: '40px'}}>La búsqueda no arrojó resultados en la base de datos.</td></tr>)}
+                              {listaPaginada.length === 0 && (<tr><td colSpan={7} style={{textAlign: 'center', padding: '40px'}}>La búsqueda no arrojó resultados en la base de datos.</td></tr>)}
                             </tbody>
                           </table>
                         )}

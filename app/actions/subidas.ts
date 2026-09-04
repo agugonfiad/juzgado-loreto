@@ -5,7 +5,10 @@ import { Resend } from 'resend'
 import { put } from '@vercel/blob'
 
 const prisma = new PrismaClient()
-const resend = new Resend(process.env.RESEND_API_KEY)
+
+// Inicialización segura: si falta la llave en Vercel, no rompe la página
+const resendApiKey = process.env.RESEND_API_KEY;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 export async function procesarTramiteCiudadano(formData: FormData) {
   try {
@@ -18,7 +21,6 @@ export async function procesarTramiteCiudadano(formData: FormData) {
 
     let urlArchivo = ""
     if (archivo && archivo.size > 0) {
-      // Subida de archivos a Vercel Blob (Tu nube original)
       const blob = await put(archivo.name, archivo, { 
         access: 'public',
         addRandomSuffix: true
@@ -37,7 +39,6 @@ export async function procesarTramiteCiudadano(formData: FormData) {
       const esExtemporaneo = infraccion.plazoDescargo && hoy > infraccion.plazoDescargo
       const estadoDescargo = esExtemporaneo ? 'EXTEMPORANEO' : 'PRESENTADO'
 
-      // --- NUEVO MOTOR DE EXPEDIENTES SECUENCIALES ---
       const anioActual = hoy.getFullYear();
       const cantidadDescargos = await prisma.descargo.count({
         where: {
@@ -48,11 +49,9 @@ export async function procesarTramiteCiudadano(formData: FormData) {
         }
       });
       const expedienteNro = `${String(cantidadDescargos + 1).padStart(4, '0')}-${anioActual}`;
-      // -----------------------------------------------
 
       const textoEstructurado = `TITULAR: ${nombre}\nEMAIL: ${email}\n\nDEFENSA:\n${motivo}`
 
-      // Se crea el descargo con su estado y el nuevo número
       await prisma.descargo.create({
         data: {
           infraccionId,
@@ -60,13 +59,13 @@ export async function procesarTramiteCiudadano(formData: FormData) {
           archivosUrl: [urlArchivo], 
           estado: estadoDescargo,
           expedienteNro: expedienteNro,
-          nombre: nombre, // Los agregamos a la BD en los pasos anteriores
+          nombre: nombre,
           email: email
         }
       })
       
-      // Correo automático al ciudadano
-      if (email) {
+      // Solo envía el correo si la llave de Resend es válida
+      if (resend && email) {
         await resend.emails.send({
           from: 'Juzgado de Faltas Loreto <onboarding@resend.dev>',
           to: email,
@@ -110,7 +109,7 @@ export async function procesarTramiteCiudadano(formData: FormData) {
 
     return { success: false, error: "Tipo de trámite inválido" }
   } catch (error: any) {
-    return { success: false, error: "Error interno: " + error.message }
+    return { success: false, error: "Error interno al procesar el trámite: " + error.message }
   }
 }
 
@@ -122,7 +121,6 @@ export async function procesarNoticia(formData: FormData) {
 
     if (!archivo || archivo.size === 0) return { success: false, error: "Debe adjuntar una imagen." }
     
-    // Subida a Vercel Blob
     const blob = await put(archivo.name, archivo, { access: 'public', addRandomSuffix: true })
     
     await prisma.noticia.create({

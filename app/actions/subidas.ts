@@ -34,7 +34,6 @@ export async function procesarTramiteCiudadano(formData: FormData) {
       const nombre = formData.get('nombre') as string
       const email = formData.get('email') as string
 
-      // === CORRECCIÓN AQUÍ: Evitamos el choque si la fecha está vacía ===
       const fechaInfraccion = infraccion.fechaInfraccion ? new Date(infraccion.fechaInfraccion) : new Date();
       const hoy = new Date();
       const diasTranscurridos = Math.floor((hoy.getTime() - fechaInfraccion.getTime()) / (1000 * 60 * 60 * 24));
@@ -55,6 +54,7 @@ export async function procesarTramiteCiudadano(formData: FormData) {
 
       const textoEstructurado = `TITULAR: ${nombre}\nEMAIL: ${email}\n\nDEFENSA:\n${motivo}`
 
+      // 1. Guardamos el descargo
       await prisma.descargo.create({
         data: {
           infraccionId,
@@ -65,6 +65,12 @@ export async function procesarTramiteCiudadano(formData: FormData) {
           nombre: nombre,
           email: email
         }
+      })
+
+      // 2. ACTUALIZAMOS EL ACTA PRINCIPAL A PRESENTADO
+      await prisma.infraccion.update({
+        where: { id: infraccionId },
+        data: { estado: 'PRESENTADO' }
       })
       
       if (resend && email) {

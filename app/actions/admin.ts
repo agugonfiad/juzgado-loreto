@@ -95,6 +95,15 @@ export async function resolverDescargo(id: string, estado: string, resolucion: s
       }
     });
 
+    // Sincronización automática del Acta Principal
+    if (descargo.infraccionId) {
+      const nuevoEstadoActa = estado === 'RESUELTO_A_FAVOR' ? 'SOBRESEIDO' : 'CONFIRMADO';
+      await prisma.infraccion.update({
+        where: { id: descargo.infraccionId },
+        data: { estado: nuevoEstadoActa }
+      });
+    }
+
     if (resend && descargo.email) {
       const esFavor = estado === 'RESUELTO_A_FAVOR';
       const tituloFallo = esFavor ? 'SOBRESEIMIENTO / FALLO FAVORABLE' : 'CONFIRMACIÓN DE SANCIÓN';
@@ -131,10 +140,26 @@ export async function resolverDescargo(id: string, estado: string, resolucion: s
 
 export async function conciliarPago(id: string, estado: string) {
   try {
-    await prisma.pago.update({
+    const pago = await prisma.pago.update({
       where: { id },
       data: { estado }
     })
+
+    // Sincronización automática del Acta Principal
+    if (pago.infraccionId) {
+      if (estado === 'CONCILIADO') {
+        await prisma.infraccion.update({
+          where: { id: pago.infraccionId },
+          data: { estado: 'PAGADO' }
+        });
+      } else if (estado === 'RECHAZADO') {
+        await prisma.infraccion.update({
+          where: { id: pago.infraccionId },
+          data: { estado: 'PENDIENTE' }
+        });
+      }
+    }
+
     return { success: true }
   } catch (error: any) {
     return { success: false, error: error.message }
@@ -152,13 +177,13 @@ export async function crearActa(data: any) {
 
 export async function editarActa(id: string, data: any) {
   try {
-    let fechaSegura = new Date();
+    const datosLimpios = { ...data };
     if (data.fechaInfraccion) {
       const fechaParseada = new Date(data.fechaInfraccion);
-      if (!isNaN(fechaParseada.getTime())) fechaSegura = fechaParseada;
+      if (!isNaN(fechaParseada.getTime())) {
+        datosLimpios.fechaInfraccion = fechaParseada;
+      }
     }
-    const datosLimpios = { ...data, fechaInfraccion: fechaSegura };
-
     await prisma.infraccion.update({ where: { id }, data: datosLimpios });
     return { success: true };
   } catch (error: any) {
@@ -191,7 +216,7 @@ export async function crearUsuarioAdmin(data: { nombre: string, email: string, r
       data: {
         nombre: data.nombre,
         email: data.email,
-        rol: data.rol as any, // Corrección del tipado estricto
+        rol: data.rol as any,
         password: passwordHash,
         activo: true
       }

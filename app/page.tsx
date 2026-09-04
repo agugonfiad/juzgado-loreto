@@ -107,7 +107,6 @@ export default function JuzgadoFaltasUnificado() {
       }
     } catch (error: any) {
       alert("Error de red: El archivo es demasiado pesado, formato inválido o se cortó la conexión.");
-      console.error(error);
     } finally {
       setEnviando(false);
     }
@@ -268,23 +267,19 @@ export default function JuzgadoFaltasUnificado() {
     if (res.success) { cargarDatosPanel('admin_usuarios'); } else { alert(res.error); }
   }
 
+  // === AUDITORÍA BLINDADA ===
   const auditarDescargo = async (estado: string) => {
     if (estado === 'RECHAZADO' && !textoResolucion) return alert("Debe justificar el rechazo.")
     setProcesando(true); 
-    await resolverDescargo(itemModal.id, estado, textoResolucion);
-    if (itemModal.infraccionId) {
-      const nuevoEstadoActa = estado === 'RESUELTO_A_FAVOR' ? 'SOBRESEIDO' : 'CONFIRMADO';
-      await editarActa(itemModal.infraccionId, { estado: nuevoEstadoActa });
-    }
+    const res = await resolverDescargo(itemModal.id, estado, textoResolucion);
+    if(!res.success) alert(res.error);
     setItemModal(null); setTextoResolucion(""); setProcesando(false); cargarDatosPanel(vista);
   }
 
   const auditarPago = async (estado: string) => {
     setProcesando(true); 
-    await conciliarPago(itemModal.id, estado);
-    if (itemModal.infraccionId && estado === 'CONCILIADO') {
-      await editarActa(itemModal.infraccionId, { estado: 'PAGADO' });
-    }
+    const res = await conciliarPago(itemModal.id, estado);
+    if(!res.success) alert(res.error);
     setItemModal(null); setProcesando(false); cargarDatosPanel(vista);
   }
 

@@ -95,7 +95,6 @@ export async function resolverDescargo(id: string, estado: string, resolucion: s
       }
     });
 
-    // Sincronización automática del Acta Principal
     if (descargo.infraccionId) {
       const nuevoEstadoActa = estado === 'RESUELTO_A_FAVOR' ? 'SOBRESEIDO' : 'CONFIRMADO';
       await prisma.infraccion.update({
@@ -145,7 +144,6 @@ export async function conciliarPago(id: string, estado: string) {
       data: { estado }
     })
 
-    // Sincronización automática del Acta Principal
     if (pago.infraccionId) {
       if (estado === 'CONCILIADO') {
         await prisma.infraccion.update({
@@ -193,6 +191,11 @@ export async function editarActa(id: string, data: any) {
 
 export async function eliminarActa(id: string) {
   try {
+    // 1. Borramos primero los expedientes hijos para liberar el Acta principal
+    await prisma.descargo.deleteMany({ where: { infraccionId: id } });
+    await prisma.pago.deleteMany({ where: { infraccionId: id } });
+
+    // 2. Ahora sí, destruimos el Acta principal de forma segura
     await prisma.infraccion.delete({ where: { id } })
     return { success: true }
   } catch (error: any) {

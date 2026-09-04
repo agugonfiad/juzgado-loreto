@@ -296,10 +296,16 @@ export default function JuzgadoFaltasUnificado() {
     .filter(p => p.estado === 'CONCILIADO')
     .reduce((acc, p) => acc + (Number(p.montoInformado) || 0), 0);
   
-  const reincidentesCount = datosAdmin.filter(item => {
+  // --- NUEVA LÓGICA DE REINCIDENTES: Contamos personas únicas (DNIs) ---
+  const dnisReincidentes = new Set();
+  datosAdmin.forEach(item => {
     const mismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion);
-    return mismo.length > 1;
-  }).length;
+    if (mismo.length > 1) {
+      dnisReincidentes.add(item.dniTitular); // Agregamos el DNI a la lista única
+    }
+  });
+  const reincidentesCount = dnisReincidentes.size; // Cantidad total de personas
+  // ----------------------------------------------------------------------
 
   const actasFiltradas = datosAdmin.filter(item => {
     if (vista !== 'admin_actas') return true;
@@ -492,7 +498,6 @@ export default function JuzgadoFaltasUnificado() {
       <main id="contenido">
         {vista === 'publica' && (
           <>
-            {/* HERO PRINCIPAL + BUSCADOR DESTACADO ARRIBA */}
             <section className="hero" id="inicio">
               <div className="wrap">
                 <div>
@@ -503,7 +508,6 @@ export default function JuzgadoFaltasUnificado() {
               </div>
             </section>
 
-            {/* SECCIÓN DE CONSULTA ELEVADA AL INICIO */}
             <section id="consulta" style={{background: '#fff', padding: '60px 0'}}>
               <div className="wrap">
                 <div className="consulta-panel">

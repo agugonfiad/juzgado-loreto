@@ -12,7 +12,7 @@ export default function JuzgadoFaltasUnificado() {
   const [autenticado, setAutenticado] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [usuario, setUsuario] = useState<{nombre: string, rol: string} | null>({nombre: '', rol: ''})
+  const [usuario, setUsuario] = useState<{nombre: string, rol: string} | null>(null)
   
   const [datosAdmin, setDatosAdmin] = useState<any[]>([])
   const [pagosAdmin, setPagosAdmin] = useState<any[]>([])
@@ -63,7 +63,7 @@ export default function JuzgadoFaltasUnificado() {
       try {
         const data = JSON.parse(sesion);
         if (data && data.usuario) {
-          setUsuario(data.usuario);
+          setUsuario({ nombre: data.usuario.nombre, rol: data.usuario.rol });
           setAutenticado(true);
           setVista(data.vista);
           cargarDatosPanel(data.vista);
@@ -106,11 +106,9 @@ export default function JuzgadoFaltasUnificado() {
         alert("Error del servidor: " + respuesta.error); 
       }
     } catch (error: any) {
-      // Si el archivo choca en la red, atajamos el golpe aquí y evitamos que se congele
       alert("Error de red: El archivo es demasiado pesado, formato inválido o se cortó la conexión.");
       console.error(error);
     } finally {
-      // Pase lo que pase (éxito o error), apagamos el estado de "Cargando..."
       setEnviando(false);
     }
   }
@@ -118,8 +116,9 @@ export default function JuzgadoFaltasUnificado() {
   const procesarLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     const auth = await iniciarSesion(email, password)
-    if (!auth.success) return alert(auth.error)
-    setUsuario(auth.usuario); setAutenticado(true); setMenuAbierto(false);
+    if (!auth.success || !auth.usuario) return alert(auth.error || "Error de inicio de sesión")
+    setUsuario({ nombre: auth.usuario.nombre, rol: auth.usuario.rol }); 
+    setAutenticado(true); setMenuAbierto(false);
     let vistaInicial = 'admin_actas'
     if (auth.usuario.rol === 'LETRADO') vistaInicial = 'admin_descargos'
     if (auth.usuario.rol === 'CONTABLE') vistaInicial = 'admin_pagos'
@@ -240,24 +239,20 @@ export default function JuzgadoFaltasUnificado() {
   }
 
   const manejarCrearNoticia = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); 
-    setProcesando(true);
-    
+    e.preventDefault(); setProcesando(true);
     try {
-      const formData = new FormData(e.currentTarget);
-      const res = await procesarNoticia(formData);
+      const formData = new FormData(e.currentTarget)
+      const res = await procesarNoticia(formData)
       if (res.success) {
         alert("Noticia publicada con éxito.");
         (e.target as HTMLFormElement).reset();
         cargarDatosPanel(vista);
         obtenerNoticiasAdmin().then(setNoticiasPublicas); 
-      } else { 
-        alert("Error: " + res.error); 
-      }
+      } else { alert("Error: " + res.error) }
     } catch (error: any) {
-      alert("Error de red al publicar la noticia. Verifique el peso de la imagen.");
+      alert("Error de red al publicar la noticia.");
     } finally {
-      setProcesando(false);
+      setProcesando(false)
     }
   }
 
@@ -316,23 +311,20 @@ export default function JuzgadoFaltasUnificado() {
     if (res.success) { alert(`✅ CLAVE RESTABLECIDA\n\nLa nueva clave para ${nombre} es: ${res.tempPass}`); } else { alert("Error al restablecer: " + res.error); }
   }
 
-  // Métricas para el Dashboard Estadístico
   const totalActasCount = datosAdmin.length;
   const actasPendientesCount = datosAdmin.filter(d => d.estado === 'PENDIENTE').length;
   const montoRecaudadoTotal = pagosAdmin
     .filter(p => p.estado === 'CONCILIADO')
     .reduce((acc, p) => acc + (Number(p.montoInformado) || 0), 0);
   
-  // --- NUEVA LÓGICA DE REINCIDENTES: Contamos personas únicas (DNIs) ---
   const dnisReincidentes = new Set();
   datosAdmin.forEach(item => {
     const mismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion);
     if (mismo.length > 1) {
-      dnisReincidentes.add(item.dniTitular); // Agregamos el DNI a la lista única
+      dnisReincidentes.add(item.dniTitular);
     }
   });
-  const reincidentesCount = dnisReincidentes.size; // Cantidad total de personas
-  // ----------------------------------------------------------------------
+  const reincidentesCount = dnisReincidentes.size;
 
   const actasFiltradas = datosAdmin.filter(item => {
     if (vista !== 'admin_actas') return true;
@@ -578,9 +570,9 @@ export default function JuzgadoFaltasUnificado() {
                               {tramiteActivo?.id === acta.id && (
                                 <form onSubmit={manejarEnvioTramite} style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--linea)'}}>
                                   <input type="hidden" name="infraccionId" value={acta.id} />
-                                  <input type="hidden" name="tipo" value={tramiteActivo.tipo} />
+                                  <input type="hidden" name="tipo" value={tramiteActivo?.tipo || ''} />
                                   
-                                  {tramiteActivo.tipo === 'pago' ? (
+                                  {tramiteActivo?.tipo === 'pago' ? (
                                     <>
                                       <div style={{background: 'rgba(0, 178, 214, 0.08)', border: '1px solid rgba(0, 178, 214, 0.2)', padding: '20px', borderRadius: '6px', marginBottom: '20px', fontSize: '14.5px'}}>
                                         <h4 style={{fontSize: '14px', margin: '0 0 12px 0', color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.02em'}}>Datos Oficiales de Recaudación</h4>

@@ -5,7 +5,8 @@ import { PrismaClient } from '@prisma/client'
 import { Resend } from 'resend'
 
 const prisma = new PrismaClient()
-const resend = new Resend(process.env.RESEND_API_KEY)
+const resendApiKey = process.env.RESEND_API_KEY;
+const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 export async function inicializarSistema() {
   return { success: true }
@@ -94,8 +95,7 @@ export async function resolverDescargo(id: string, estado: string, resolucion: s
       }
     });
 
-    // Envío de correo automático al ciudadano con el dictamen
-    if (descargo.email) {
+    if (resend && descargo.email) {
       const esFavor = estado === 'RESUELTO_A_FAVOR';
       const tituloFallo = esFavor ? 'SOBRESEIMIENTO / FALLO FAVORABLE' : 'CONFIRMACIÓN DE SANCIÓN';
       const colorBorde = esFavor ? '#10B981' : '#EF4444';
@@ -115,7 +115,6 @@ export async function resolverDescargo(id: string, estado: string, resolucion: s
               <p style="margin: 10px 0 0 0;"><strong>Dictamen del Juez:</strong></p>
               <p style="margin: 5px 0 0 0; font-style: italic; color: #495057;">"${resolucion}"</p>
             </div>
-
             <p>Puede verificar el estado actualizado de sus trámites ingresando con su DNI en nuestra plataforma digital oficial.</p>
             <hr style="border: none; border-top: 1px solid #DEE2E6; margin: 20px 0;" />
             <p style="font-size: 12px; color: #495057;">Este es un mensaje automático del sistema municipal. No responda a este correo.</p>
@@ -192,7 +191,7 @@ export async function crearUsuarioAdmin(data: { nombre: string, email: string, r
       data: {
         nombre: data.nombre,
         email: data.email,
-        rol: data.rol,
+        rol: data.rol as any, // Corrección del tipado estricto
         password: passwordHash,
         activo: true
       }

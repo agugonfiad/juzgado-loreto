@@ -1,13 +1,17 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '5mb',
+    },
+  },
   typescript: {
-    // Esto fuerza a Vercel a publicar el proyecto aunque haya advertencias
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true, // Obliga a Vercel a compilar aunque haya advertencias menores
   },
   eslint: {
     ignoreDuringBuilds: true,
   }
-};
+}
 
-export default nextConfig;
+export default nextConfig

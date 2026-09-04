@@ -6,7 +6,6 @@ import { put } from '@vercel/blob'
 
 const prisma = new PrismaClient()
 
-// Inicialización segura: si falta la llave en Vercel, no rompe la página
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
@@ -35,8 +34,12 @@ export async function procesarTramiteCiudadano(formData: FormData) {
       const nombre = formData.get('nombre') as string
       const email = formData.get('email') as string
 
-      const hoy = new Date()
-      const esExtemporaneo = infraccion.plazoDescargo && hoy > infraccion.plazoDescargo
+      // Cálculo corregido de los 5 días de gracia para extemporaneidad
+      const fechaInfraccion = new Date(infraccion.fechaInfraccion);
+      const hoy = new Date();
+      const diasTranscurridos = Math.floor((hoy.getTime() - fechaInfraccion.getTime()) / (1000 * 60 * 60 * 24));
+      const esExtemporaneo = diasTranscurridos > 5;
+      
       const estadoDescargo = esExtemporaneo ? 'EXTEMPORANEO' : 'PRESENTADO'
 
       const anioActual = hoy.getFullYear();
@@ -64,7 +67,6 @@ export async function procesarTramiteCiudadano(formData: FormData) {
         }
       })
       
-      // Solo envía el correo si la llave de Resend es válida
       if (resend && email) {
         await resend.emails.send({
           from: 'Juzgado de Faltas Loreto <onboarding@resend.dev>',

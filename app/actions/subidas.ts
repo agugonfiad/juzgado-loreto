@@ -34,8 +34,8 @@ export async function procesarTramiteCiudadano(formData: FormData) {
       const nombre = formData.get('nombre') as string
       const email = formData.get('email') as string
 
-      // Cálculo corregido de los 5 días de gracia para extemporaneidad
-      const fechaInfraccion = new Date(infraccion.fechaInfraccion);
+      // === CORRECCIÓN AQUÍ: Evitamos el choque si la fecha está vacía ===
+      const fechaInfraccion = infraccion.fechaInfraccion ? new Date(infraccion.fechaInfraccion) : new Date();
       const hoy = new Date();
       const diasTranscurridos = Math.floor((hoy.getTime() - fechaInfraccion.getTime()) / (1000 * 60 * 60 * 24));
       const esExtemporaneo = diasTranscurridos > 5;

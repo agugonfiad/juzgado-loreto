@@ -87,14 +87,32 @@ export default function JuzgadoFaltasUnificado() {
   }
 
   const manejarEnvioTramite = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); setEnviando(true);
-    const formData = new FormData(e.currentTarget)
-    const respuesta = await procesarTramiteCiudadano(formData)
-    if (respuesta.success) {
-      if (respuesta.expedienteNro) { alert(respuesta.esExtemporaneo ? `Trámite EXTEMPORÁNEO.\nExpediente: ${respuesta.expedienteNro}` : `¡Descargo presentado!\nExpediente: ${respuesta.expedienteNro}`) } else { alert("¡Trámite de pago enviado con éxito!") }
-      setTramiteActivo(null); manejarBusqueda(new Event('submit') as any);
-    } else { alert("Error: " + respuesta.error) }
-    setEnviando(false)
+    e.preventDefault(); 
+    setEnviando(true);
+    
+    try {
+      const formData = new FormData(e.currentTarget);
+      const respuesta = await procesarTramiteCiudadano(formData);
+      
+      if (respuesta.success) {
+        if (respuesta.expedienteNro) { 
+          alert(respuesta.esExtemporaneo ? `Trámite EXTEMPORÁNEO.\nExpediente: ${respuesta.expedienteNro}` : `¡Descargo presentado!\nExpediente: ${respuesta.expedienteNro}`); 
+        } else { 
+          alert("¡Trámite de pago enviado con éxito!"); 
+        }
+        setTramiteActivo(null); 
+        manejarBusqueda(new Event('submit') as any);
+      } else { 
+        alert("Error del servidor: " + respuesta.error); 
+      }
+    } catch (error: any) {
+      // Si el archivo choca en la red, atajamos el golpe aquí y evitamos que se congele
+      alert("Error de red: El archivo es demasiado pesado, formato inválido o se cortó la conexión.");
+      console.error(error);
+    } finally {
+      // Pase lo que pase (éxito o error), apagamos el estado de "Cargando..."
+      setEnviando(false);
+    }
   }
 
   const procesarLogin = async (e: React.FormEvent) => {
@@ -222,16 +240,25 @@ export default function JuzgadoFaltasUnificado() {
   }
 
   const manejarCrearNoticia = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); setProcesando(true);
-    const formData = new FormData(e.currentTarget)
-    const res = await procesarNoticia(formData)
-    if (res.success) {
-      alert("Noticia publicada con éxito.");
-      (e.target as HTMLFormElement).reset();
-      cargarDatosPanel(vista);
-      obtenerNoticiasAdmin().then(setNoticiasPublicas); 
-    } else { alert("Error: " + res.error) }
-    setProcesando(false)
+    e.preventDefault(); 
+    setProcesando(true);
+    
+    try {
+      const formData = new FormData(e.currentTarget);
+      const res = await procesarNoticia(formData);
+      if (res.success) {
+        alert("Noticia publicada con éxito.");
+        (e.target as HTMLFormElement).reset();
+        cargarDatosPanel(vista);
+        obtenerNoticiasAdmin().then(setNoticiasPublicas); 
+      } else { 
+        alert("Error: " + res.error); 
+      }
+    } catch (error: any) {
+      alert("Error de red al publicar la noticia. Verifique el peso de la imagen.");
+    } finally {
+      setProcesando(false);
+    }
   }
 
   const manejarEliminarDato = async (id: string, tipo: 'acta'|'noticia') => {

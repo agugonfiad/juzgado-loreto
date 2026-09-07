@@ -21,6 +21,7 @@ enum EstadoInfraccion {
   EN_DESCARGO
   FIRME
   PAGADA
+  PAGADO
   SOBRESEIDO
   CONFIRMADO
   APELADA

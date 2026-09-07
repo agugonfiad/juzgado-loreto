@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano, procesarNoticia } from "./actions/subidas"
-import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearClave } from "./actions/admin"
+import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearClave, registrarPagoManual } from "./actions/admin"
 
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
@@ -237,6 +237,28 @@ export default function JuzgadoFaltasUnificado() {
     setEditandoActa(false);
   }
 
+  // === COBRO MANUAL DE ACTA POR VENTANILLA ===
+  const manejarCobroManual = async (item: any) => {
+    const sugerenciaMonto = item.monto > 0 ? item.monto : "";
+    const respuestaMonto = window.prompt(`Registrar cobro manual por mostrador para el Acta N° ${item.nroActa}.\n\nTitular: ${item.nombreTitular}\n\nIngrese el monto cobrado ($):`, sugerenciaMonto);
+    
+    if (respuestaMonto === null) return; // Canceló el prompt
+    
+    const montoFinal = Number(respuestaMonto);
+    if (isNaN(montoFinal) || montoFinal <= 0) return alert("Error: Debe ingresar un monto numérico válido mayor a cero.");
+    
+    if (!confirm(`¿Confirma que se ha efectuado el cobro de $${montoFinal} y desea cerrar el acta como PAGADA?`)) return;
+
+    setCargandoAdmin(true);
+    const res = await registrarPagoManual(item.id, montoFinal);
+    if (res.success) {
+      cargarDatosPanel('admin_actas');
+    } else {
+      alert("Error al registrar cobro: " + res.error);
+      setCargandoAdmin(false);
+    }
+  }
+
   const manejarCrearNoticia = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setProcesando(true);
     try {
@@ -267,7 +289,6 @@ export default function JuzgadoFaltasUnificado() {
     if (res.success) { cargarDatosPanel('admin_usuarios'); } else { alert(res.error); }
   }
 
-  // === AUDITORÍA BLINDADA ===
   const auditarDescargo = async (estado: string) => {
     if (estado === 'RECHAZADO' && !textoResolucion) return alert("Debe justificar el rechazo.")
     setProcesando(true); 
@@ -940,7 +961,7 @@ export default function JuzgadoFaltasUnificado() {
 
                         {vista === 'admin_actas' && (
                           <table className="admin-table">
-                            <thead><tr><th>N° Acta Físico</th><th>Infractor</th><th>DNI</th><th>Domicilio</th><th>Fecha del Hecho</th><th>Art. Infringido</th><th>Fase Procesal</th><th>Monto Base</th><th>Acción</th></tr></thead>
+                            <thead><tr><th>N° Acta Físico</th><th>Infractor</th><th>DNI</th><th>Domicilio</th><th>Fecha del Hecho</th><th>Art. Infringido</th><th>Fase Procesal</th><th>Monto Base</th><th>Acciones</th></tr></thead>
                             <tbody>
                               {listaPaginada.map((item: any) => {
                                 const actasMismoOrganismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion);
@@ -961,6 +982,10 @@ export default function JuzgadoFaltasUnificado() {
                                   <td style={{fontWeight: 600}}>${item.monto}</td>
                                   <td>
                                     <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                                      {/* BOTÓN VERDE DE COBRO MANUAL */}
+                                      {item.estado !== 'PAGADO' && item.estado !== 'SOBRESEIDO' && (
+                                        <button onClick={() => manejarCobroManual(item)} className="btn btn--success btn--sm" style={{background: '#10B981', color: '#fff', border: 'none'}}>Cobrar</button>
+                                      )}
                                       <button onClick={() => {
                                         const d = new Date(item.fechaInfraccion);
                                         const formatted = !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : '';

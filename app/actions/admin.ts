@@ -191,11 +191,8 @@ export async function editarActa(id: string, data: any) {
 
 export async function eliminarActa(id: string) {
   try {
-    // 1. Borramos primero los expedientes hijos para liberar el Acta principal
     await prisma.descargo.deleteMany({ where: { infraccionId: id } });
     await prisma.pago.deleteMany({ where: { infraccionId: id } });
-
-    // 2. Ahora sí, destruimos el Acta principal de forma segura
     await prisma.infraccion.delete({ where: { id } })
     return { success: true }
   } catch (error: any) {
@@ -305,5 +302,30 @@ export async function eliminarNoticia(id: string) {
     return { success: true }
   } catch (error: any) {
     return { success: false, error: error.message }
+  }
+}
+
+// === NUEVA FUNCIÓN PARA COBROS PRESENCIALES ===
+export async function registrarPagoManual(infraccionId: string, montoCobrado: number) {
+  try {
+    // 1. Creamos un recibo interno conciliado por defecto
+    await prisma.pago.create({
+      data: {
+        infraccionId: infraccionId,
+        montoInformado: montoCobrado,
+        comprobanteUrl: "PAGO_PRESENCIAL_VENTANILLA",
+        estado: "CONCILIADO"
+      }
+    });
+
+    // 2. Cerramos el acta a PAGADO
+    await prisma.infraccion.update({
+      where: { id: infraccionId },
+      data: { estado: 'PAGADO' }
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 }

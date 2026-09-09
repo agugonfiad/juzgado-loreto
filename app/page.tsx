@@ -362,8 +362,9 @@ export default function JuzgadoFaltasUnificado() {
   const indiceUltimoItem = paginaActual * filasPorPagina;
   const listaPaginada = listaBase.slice(indicePrimerItem, indiceUltimoItem);
 
+  // === AQUÍ AGREGAMOS 'LETRADO' A LA REGLA DE ACTAS ===
   const rol = usuario?.rol || ''
-  const puedeActas = ['SUPERADMIN', 'JUEZ', 'ADMINISTRATIVO'].includes(rol)
+  const puedeActas = ['SUPERADMIN', 'JUEZ', 'ADMINISTRATIVO', 'LETRADO'].includes(rol)
   const puedeDescargos = ['SUPERADMIN', 'JUEZ', 'LETRADO'].includes(rol)
   const puedePagos = ['SUPERADMIN', 'JUEZ', 'CONTABLE'].includes(rol)
 

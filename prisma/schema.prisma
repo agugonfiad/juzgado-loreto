@@ -24,6 +24,7 @@ enum EstadoInfraccion {
   PAGADO
   SOBRESEIDO
   CONFIRMADO
+  DESISTIDO
   APELADA
   ANULADA
 }

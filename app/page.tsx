@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano, procesarNoticia } from "./actions/subidas"
-import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearClave, registrarPagoManual } from "./actions/admin"
+import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearClave, registrarPagoManual, desistirActa } from "./actions/admin"
 
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
@@ -237,12 +237,11 @@ export default function JuzgadoFaltasUnificado() {
     setEditandoActa(false);
   }
 
-  // === COBRO MANUAL DE ACTA POR VENTANILLA ===
   const manejarCobroManual = async (item: any) => {
     const sugerenciaMonto = item.monto > 0 ? item.monto : "";
     const respuestaMonto = window.prompt(`Registrar cobro manual por mostrador para el Acta N° ${item.nroActa}.\n\nTitular: ${item.nombreTitular}\n\nIngrese el monto cobrado ($):`, sugerenciaMonto);
     
-    if (respuestaMonto === null) return; // Canceló el prompt
+    if (respuestaMonto === null) return; 
     
     const montoFinal = Number(respuestaMonto);
     if (isNaN(montoFinal) || montoFinal <= 0) return alert("Error: Debe ingresar un monto numérico válido mayor a cero.");
@@ -255,6 +254,20 @@ export default function JuzgadoFaltasUnificado() {
       cargarDatosPanel('admin_actas');
     } else {
       alert("Error al registrar cobro: " + res.error);
+      setCargandoAdmin(false);
+    }
+  }
+
+  // === NUEVA FUNCIÓN: MANEJAR DESISTIMIENTO ===
+  const manejarDesistimiento = async (item: any) => {
+    if (!confirm(`¿Confirma el DESISTIMIENTO del Acta N° ${item.nroActa} por regularización de la falta (Subsanación)?\n\nEl titular ${item.nombreTitular} quedará eximido de responsabilidad en este expediente.`)) return;
+
+    setCargandoAdmin(true);
+    const res = await desistirActa(item.id);
+    if (res.success) {
+      cargarDatosPanel('admin_actas');
+    } else {
+      alert("Error al registrar desistimiento: " + res.error);
       setCargandoAdmin(false);
     }
   }
@@ -362,7 +375,6 @@ export default function JuzgadoFaltasUnificado() {
   const indiceUltimoItem = paginaActual * filasPorPagina;
   const listaPaginada = listaBase.slice(indicePrimerItem, indiceUltimoItem);
 
-  // === AQUÍ AGREGAMOS 'LETRADO' A LA REGLA DE ACTAS ===
   const rol = usuario?.rol || ''
   const puedeActas = ['SUPERADMIN', 'JUEZ', 'ADMINISTRATIVO', 'LETRADO'].includes(rol)
   const puedeDescargos = ['SUPERADMIN', 'JUEZ', 'LETRADO'].includes(rol)
@@ -575,7 +587,7 @@ export default function JuzgadoFaltasUnificado() {
                               <span style={{fontSize: '11px', fontWeight: 700, color: colorBorde, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em'}}>{nombreOrigen}</span><br/>
                               <strong style={{fontSize: '16px', display: 'inline-block', marginTop: '4px'}}>Acta N° {acta.nroActa}</strong> <span style={{fontSize: '16px', color: 'var(--tinta-suave)'}}>— ${acta.monto.toString()}</span> <br/>
                               <div style={{marginTop: '8px'}}>
-                                <span className="badge" style={{background: acta.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: acta.estado === 'PENDIENTE' ? '#B45309' : '#047857'}}>
+                                <span className="badge" style={{background: acta.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : (acta.estado === 'DESISTIDO' ? 'rgba(11, 74, 130, 0.15)' : 'rgba(16, 185, 129, 0.15)'), color: acta.estado === 'PENDIENTE' ? '#B45309' : (acta.estado === 'DESISTIDO' ? 'var(--azul-loreto)' : '#047857')}}>
                                   {acta.estado === 'PRESENTADO' ? 'DESCARGO EN REVISIÓN' : acta.estado === 'PENDIENTE_CONCILIACION' ? 'PAGO EN REVISIÓN' : acta.estado}
                                 </span>
                               </div>
@@ -910,6 +922,7 @@ export default function JuzgadoFaltasUnificado() {
                           <option value="PENDIENTE">Pendientes de resolución</option>
                           <option value="PRESENTADO">Con descargo presentado</option>
                           <option value="PAGADO">Finalizadas (Pagado)</option>
+                          <option value="DESISTIDO">Desistidas por regularización</option>
                         </select>
                       </div>
                     </div>
@@ -979,13 +992,15 @@ export default function JuzgadoFaltasUnificado() {
                                   <td><span style={{fontSize: '13.5px', color: 'var(--tinta-suave)'}}>{item.lugar || 'No informado'}</span></td>
                                   <td style={{fontSize: '13.5px'}}>{new Date(item.fechaInfraccion).toLocaleDateString('es-AR')}</td>
                                   <td style={{fontSize: '13.5px'}}>{item.articulo || '-'}</td>
-                                  <td><span className="badge" style={{background: item.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)', color: item.estado === 'PENDIENTE' ? '#B45309' : '#047857'}}>{item.estado}</span></td>
+                                  <td><span className="badge" style={{background: item.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : (item.estado === 'DESISTIDO' ? 'rgba(11, 74, 130, 0.15)' : 'rgba(16, 185, 129, 0.15)'), color: item.estado === 'PENDIENTE' ? '#B45309' : (item.estado === 'DESISTIDO' ? 'var(--azul-loreto)' : '#047857')}}>{item.estado}</span></td>
                                   <td style={{fontWeight: 600}}>${item.monto}</td>
                                   <td>
                                     <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
-                                      {/* BOTÓN VERDE DE COBRO MANUAL */}
-                                      {item.estado !== 'PAGADO' && item.estado !== 'SOBRESEIDO' && (
-                                        <button onClick={() => manejarCobroManual(item)} className="btn btn--success btn--sm" style={{background: '#10B981', color: '#fff', border: 'none'}}>Cobrar</button>
+                                      {item.estado !== 'PAGADO' && item.estado !== 'SOBRESEIDO' && item.estado !== 'DESISTIDO' && (
+                                        <>
+                                          <button onClick={() => manejarCobroManual(item)} className="btn btn--success btn--sm" style={{background: '#10B981', color: '#fff', border: 'none'}}>Cobrar</button>
+                                          <button onClick={() => manejarDesistimiento(item)} className="btn btn--primary btn--sm" style={{background: 'var(--azul-loreto)', color: '#fff', border: 'none'}}>Desistimiento</button>
+                                        </>
                                       )}
                                       <button onClick={() => {
                                         const d = new Date(item.fechaInfraccion);

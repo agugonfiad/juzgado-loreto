@@ -84,17 +84,18 @@ model Descargo {
 }
 
 model Pago {
-  id             String    @id @default(uuid())
-  infraccionId   String
-  comprobanteUrl String
-  montoInformado Decimal   @db.Decimal(10, 2)
-  estado         String    @default("PENDIENTE_CONCILIACION")
-  observaciones  String?
-  creadoEn       DateTime  @default(now())
-  resueltoEn     DateTime?
-  resueltoPor    String?
+  id               String      @id @default(uuid())
+  infraccionId     String?
+  montoInformado   Float
+  comprobanteUrl   String
+  estado           String      @default("PENDIENTE") // PENDIENTE, CONCILIADO, RECHAZADO
+  registradoPor    String?     // Nuevo: Empleado que registró el ingreso
+  creadoEn         DateTime    @default(now())
+  actualizadoEn    DateTime    @updatedAt
 
-  infraccion     Infraccion @relation(fields: [infraccionId], references: [id])
+  infraccion       Infraccion? @relation(fields: [infraccionId], references: [id])
+
+  @@index([creadoEn]) // Nuevo: Índice para acelerar los reportes contables diarios
 }
 
 model Audiencia {

@@ -8,9 +8,7 @@ const prisma = new PrismaClient()
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-export async function inicializarSistema() {
-  return { success: true }
-}
+export async function inicializarSistema() { return { success: true } }
 
 export async function iniciarSesion(email: string, pass: string) {
   try {
@@ -57,120 +55,62 @@ export async function obtenerActasAdmin(filtroBusqueda?: string) {
 
 export async function obtenerDescargosAdmin() {
   try {
-    return await prisma.descargo.findMany({ 
-      include: { infraccion: true },
-      orderBy: { creadoEn: 'desc' } 
-    })
-  } catch (error) {
-    return []
-  }
+    return await prisma.descargo.findMany({ include: { infraccion: true }, orderBy: { creadoEn: 'desc' } })
+  } catch (error) { return [] }
 }
 
 export async function obtenerPagosAdmin() {
   try {
-    return await prisma.pago.findMany({ 
-      include: { infraccion: true },
-      orderBy: { creadoEn: 'desc' } 
-    })
-  } catch (error) {
-    return []
-  }
+    return await prisma.pago.findMany({ include: { infraccion: true }, orderBy: { creadoEn: 'desc' } })
+  } catch (error) { return [] }
 }
 
 export async function resolverDescargo(id: string, estado: string, resolucion: string) {
   try {
-    const descargo = await prisma.descargo.findUnique({
-      where: { id },
-      include: { infraccion: true }
-    });
-
+    const descargo = await prisma.descargo.findUnique({ where: { id }, include: { infraccion: true } });
     if (!descargo) return { success: false, error: "Expediente no encontrado." };
 
-    await prisma.descargo.update({
-      where: { id },
-      data: {
-        estado,
-        resolucion,
-        fechaResolucion: new Date(),
-      }
-    });
+    await prisma.descargo.update({ where: { id }, data: { estado, resolucion, fechaResolucion: new Date() } });
 
     if (descargo.infraccionId) {
       const nuevoEstadoActa = estado === 'RESUELTO_A_FAVOR' ? 'SOBRESEIDO' : 'CONFIRMADO';
-      await prisma.infraccion.update({
-        where: { id: descargo.infraccionId },
-        data: { estado: nuevoEstadoActa }
-      });
+      await prisma.infraccion.update({ where: { id: descargo.infraccionId }, data: { estado: nuevoEstadoActa } });
     }
 
     if (resend && descargo.email) {
       const esFavor = estado === 'RESUELTO_A_FAVOR';
-      const tituloFallo = esFavor ? 'SOBRESEIMIENTO / FALLO FAVORABLE' : 'CONFIRMACIÓN DE SANCIÓN';
-      const colorBorde = esFavor ? '#10B981' : '#EF4444';
-
       await resend.emails.send({
         from: 'Juzgado de Faltas Loreto <onboarding@resend.dev>',
         to: descargo.email,
         subject: `Resolución de Expediente ${descargo.expedienteNro || 'Municipal'}`,
-        html: `
-          <div style="font-family: sans-serif; color: #212529; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #DEE2E6; border-radius: 10px;">
-            <h2 style="color: #0B4A82;">Juzgado de Faltas Municipal</h2>
-            <p>Estimado/a <strong>${descargo.nombre || 'Vecino/a'}</strong>,</p>
-            <p>Le informamos que se ha emitido resolución firme para su expediente N° <strong>${descargo.expedienteNro || 'S/N'}</strong> correspondiente al acta N° ${descargo.infraccion?.nroActa || 'General'}.</p>
-            
-            <div style="background: #F8F9FA; padding: 15px; border-left: 4px solid ${colorBorde}; margin: 20px 0;">
-              <p style="margin: 0; color: ${colorBorde}; font-weight: bold; text-transform: uppercase;">${tituloFallo}</p>
-              <p style="margin: 10px 0 0 0;"><strong>Dictamen del Juez:</strong></p>
-              <p style="margin: 5px 0 0 0; font-style: italic; color: #495057;">"${resolucion}"</p>
-            </div>
-            <p>Puede verificar el estado actualizado de sus trámites ingresando con su DNI en nuestra plataforma digital oficial.</p>
-            <hr style="border: none; border-top: 1px solid #DEE2E6; margin: 20px 0;" />
-            <p style="font-size: 12px; color: #495057;">Este es un mensaje automático del sistema municipal. No responda a este correo.</p>
-          </div>
-        `
+        html: `<div style="font-family: sans-serif; padding: 20px;"><h2>Juzgado de Faltas Municipal</h2><p>Se ha emitido resolución para su expediente. Ingrese al sistema para notificaciones.</p></div>`
       });
     }
-
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
+  } catch (error: any) { return { success: false, error: error.message }; }
 }
 
-export async function conciliarPago(id: string, estado: string) {
+export async function conciliarPago(id: string, estado: string, usuarioNombre?: string) {
   try {
     const pago = await prisma.pago.update({
       where: { id },
-      data: { estado }
+      data: { estado, registradoPor: usuarioNombre || "S/D" }
     })
 
     if (pago.infraccionId) {
       if (estado === 'CONCILIADO') {
-        await prisma.infraccion.update({
-          where: { id: pago.infraccionId },
-          data: { estado: 'PAGADO' }
-        });
+        await prisma.infraccion.update({ where: { id: pago.infraccionId }, data: { estado: 'PAGADO' } });
       } else if (estado === 'RECHAZADO') {
-        await prisma.infraccion.update({
-          where: { id: pago.infraccionId },
-          data: { estado: 'PENDIENTE' }
-        });
+        await prisma.infraccion.update({ where: { id: pago.infraccionId }, data: { estado: 'PENDIENTE' } });
       }
     }
-
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
-  }
+  } catch (error: any) { return { success: false, error: error.message } }
 }
 
 export async function crearActa(data: any) {
-  try {
-    await prisma.infraccion.create({ data })
-    return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
-  }
+  try { await prisma.infraccion.create({ data }); return { success: true }
+  } catch (error: any) { return { success: false, error: error.message } }
 }
 
 export async function editarActa(id: string, data: any) {
@@ -178,15 +118,11 @@ export async function editarActa(id: string, data: any) {
     const datosLimpios = { ...data };
     if (data.fechaInfraccion) {
       const fechaParseada = new Date(data.fechaInfraccion);
-      if (!isNaN(fechaParseada.getTime())) {
-        datosLimpios.fechaInfraccion = fechaParseada;
-      }
+      if (!isNaN(fechaParseada.getTime())) datosLimpios.fechaInfraccion = fechaParseada;
     }
     await prisma.infraccion.update({ where: { id }, data: datosLimpios });
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
+  } catch (error: any) { return { success: false, error: error.message }; }
 }
 
 export async function eliminarActa(id: string) {
@@ -195,147 +131,108 @@ export async function eliminarActa(id: string) {
     await prisma.pago.deleteMany({ where: { infraccionId: id } });
     await prisma.infraccion.delete({ where: { id } })
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
-  }
+  } catch (error: any) { return { success: false, error: error.message } }
 }
 
 export async function obtenerUsuariosAdmin() {
-  try {
-    return await prisma.usuario.findMany({ orderBy: { creadoEn: 'desc' } })
-  } catch (error) {
-    return []
-  }
+  try { return await prisma.usuario.findMany({ orderBy: { creadoEn: 'desc' } }) } catch (error) { return [] }
 }
 
 export async function crearUsuarioAdmin(data: { nombre: string, email: string, rol: string }) {
   try {
-    const passwordTemp = "Loreto2026";
-    const passwordHash = await hash(passwordTemp, 10);
+    const passwordHash = await hash("Loreto2026", 10);
     await prisma.usuario.create({
-      data: {
-        nombre: data.nombre,
-        email: data.email,
-        rol: data.rol as any,
-        password: passwordHash,
-        activo: true
-      }
+      data: { nombre: data.nombre, email: data.email, rol: data.rol as any, password: passwordHash, activo: true }
     })
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
-  }
+  } catch (error: any) { return { success: false, error: error.message } }
 }
 
 export async function toggleEstadoUsuario(id: string, estadoActual: boolean) {
-  try {
-    await prisma.usuario.update({
-      where: { id },
-      data: { activo: !estadoActual }
-    })
-    return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
-  }
+  try { await prisma.usuario.update({ where: { id }, data: { activo: !estadoActual } }); return { success: true }
+  } catch (error: any) { return { success: false, error: error.message } }
 }
 
 export async function cambiarContrasena(email: string, actual: string, nueva: string) {
   try {
     const user = await prisma.usuario.findUnique({ where: { email } })
     if (!user) return { success: false, error: "Usuario no encontrado." }
-
-    let esValida = false;
-    if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
-      esValida = await compare(actual, user.password);
-    } else {
-      esValida = (actual === user.password);
-    }
-
-    if (!esValida) return { success: false, error: "La clave actual es incorrecta." }
-
+    const esValida = user.password.startsWith('$') ? await compare(actual, user.password) : (actual === user.password);
+    if (!esValida) return { success: false, error: "Clave incorrecta." }
     const nuevoHash = await hash(nueva, 10);
-    await prisma.usuario.update({
-      where: { email },
-      data: { password: nuevoHash }
-    })
-
+    await prisma.usuario.update({ where: { email }, data: { password: nuevoHash } })
     return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
-  }
+  } catch (error: any) { return { success: false, error: error.message } }
 }
 
 export async function blanquearClave(id: string) {
   try {
     const tempPass = "Loreto2026";
     const nuevoHash = await hash(tempPass, 10);
-    await prisma.usuario.update({
-      where: { id },
-      data: { password: nuevoHash }
-    })
+    await prisma.usuario.update({ where: { id }, data: { password: nuevoHash } })
     return { success: true, tempPass }
-  } catch (error: any) {
-    return { success: false, error: error.message }
-  }
+  } catch (error: any) { return { success: false, error: error.message } }
 }
 
 export async function eliminarUsuario(id: string) {
-  try {
-    await prisma.usuario.delete({ where: { id } })
-    return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
-  }
+  try { await prisma.usuario.delete({ where: { id } }); return { success: true }
+  } catch (error: any) { return { success: false, error: error.message } }
 }
 
 export async function obtenerNoticiasAdmin() {
-  try {
-    return await prisma.noticia.findMany({ orderBy: { creadoEn: 'desc' } })
-  } catch (error) {
-    return []
-  }
+  try { return await prisma.noticia.findMany({ orderBy: { creadoEn: 'desc' } }) } catch (error) { return [] }
 }
 
 export async function eliminarNoticia(id: string) {
-  try {
-    await prisma.noticia.delete({ where: { id } })
-    return { success: true }
-  } catch (error: any) {
-    return { success: false, error: error.message }
-  }
+  try { await prisma.noticia.delete({ where: { id } }); return { success: true }
+  } catch (error: any) { return { success: false, error: error.message } }
 }
 
-export async function registrarPagoManual(infraccionId: string, montoCobrado: number) {
+export async function registrarPagoManual(infraccionId: string, montoCobrado: number, usuarioNombre: string) {
   try {
     await prisma.pago.create({
       data: {
         infraccionId: infraccionId,
         montoInformado: montoCobrado,
         comprobanteUrl: "PAGO_PRESENCIAL_VENTANILLA",
-        estado: "CONCILIADO"
+        estado: "CONCILIADO",
+        registradoPor: usuarioNombre
       }
     });
 
-    await prisma.infraccion.update({
-      where: { id: infraccionId },
-      data: { estado: 'PAGADO' }
-    });
-
+    await prisma.infraccion.update({ where: { id: infraccionId }, data: { estado: 'PAGADO' } });
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
+  } catch (error: any) { return { success: false, error: error.message }; }
 }
 
-// === NUEVA FUNCIÓN DE DESISTIMIENTO ===
 export async function desistirActa(id: string) {
   try {
-    await prisma.infraccion.update({
-      where: { id },
-      data: { estado: 'DESISTIDO' }
-    })
+    await prisma.infraccion.update({ where: { id }, data: { estado: 'DESISTIDO' } })
     return { success: true }
+  } catch (error: any) { return { success: false, error: error.message } }
+}
+
+// === TAREA 2: REPORTE DE RECAUDACIÓN EXACTA ===
+export async function obtenerRecaudacionDiaria(fechaLocalString: string) {
+  try {
+    // Manejo de zona horaria: Construimos los límites UTC para el día en Argentina (GMT-3)
+    const inicioDia = new Date(`${fechaLocalString}T00:00:00.000-03:00`);
+    const finDia = new Date(`${fechaLocalString}T23:59:59.999-03:00`);
+
+    const pagos = await prisma.pago.findMany({
+      where: {
+        estado: 'CONCILIADO', // Solo dinero efectivamente ingresado/aprobado
+        creadoEn: {
+          gte: inicioDia,
+          lte: finDia
+        }
+      },
+      include: { infraccion: true },
+      orderBy: { creadoEn: 'asc' }
+    });
+
+    return { success: true, data: pagos };
   } catch (error: any) {
-    return { success: false, error: error.message }
+    return { success: false, error: error.message };
   }
 }

@@ -8,10 +8,112 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum RolUsuario {
-  MESA_ENTRADAS
-  JUEZ
-  ADMIN
+model Usuario {
+  id       String   @id @default(uuid())
+  nombre   String
+  email    String   @unique
+  password String
+  rol      Rol      @default(ADMINISTRATIVO)
+  activo   Boolean  @default(true)
+  creadoEn DateTime @default(now())
+}
+
+model Infraccion {
+  id              String           @id @default(uuid())
+  nroActa         String           @unique
+  fechaInfraccion DateTime?
+  lugar           String
+  articulo        String
+  monto           Decimal          @db.Decimal(10, 2)
+  patente         String?
+  dniTitular      String
+  nombreTitular   String
+  inspector       String
+  tipoInfraccion  TipoInfraccion   @default(TRANSITO)
+  estado          EstadoInfraccion @default(PENDIENTE)
+  creadoEn        DateTime         @default(now())
+  Audiencia       Audiencia[]
+  descargos       Descargo[]
+  pagos           Pago[]
+}
+
+model Descargo {
+  id              String          @id @default(uuid())
+  expedienteNro   String          @unique
+  infraccionId    String
+  motivo          String
+  nombre          String?
+  email           String?
+  archivosUrl     String[]
+  estado          String          @default("PRESENTADO")
+  resolucion      String?
+  fechaResolucion DateTime?
+  resueltoPor     String?
+  creadoEn        DateTime        @default(now())
+  infraccion      Infraccion      @relation(fields: [infraccionId], references: [id])
+  UsuarioInterno  UsuarioInterno? @relation(fields: [resueltoPor], references: [id])
+}
+
+model Pago {
+  id             String      @id @default(uuid())
+  infraccionId   String?
+  montoInformado Float
+  comprobanteUrl String
+  estado         String      @default("PENDIENTE")
+  registradoPor  String?
+  creadoEn       DateTime    @default(now())
+  actualizadoEn  DateTime    @updatedAt
+  infraccion     Infraccion? @relation(fields: [infraccionId], references: [id])
+
+  @@index([creadoEn])
+}
+
+model Noticia {
+  id        String   @id @default(uuid())
+  titulo    String
+  contenido String?
+  imagenUrl String
+  creadoEn  DateTime @default(now())
+}
+
+model Audiencia {
+  id             String      @id
+  infraccionId   String?
+  dniSolicitante String
+  nombreCompleto String
+  email          String
+  telefono       String
+  motivo         String
+  fechaPropuesta DateTime
+  estado         String      @default("SOLICITADA")
+  creadoEn       DateTime    @default(now())
+  resueltaEn     DateTime?
+  resueltaPor    String?
+  notasInternas  String?
+  Infraccion     Infraccion? @relation(fields: [infraccionId], references: [id])
+}
+
+model Auditoria {
+  id              String         @id
+  usuarioId       String
+  accion          String
+  entidadAfectada String
+  entidadId       String
+  detalle         String?
+  timestamp       DateTime       @default(now())
+  UsuarioInterno  UsuarioInterno @relation(fields: [usuarioId], references: [id])
+}
+
+model UsuarioInterno {
+  id           String      @id
+  nombre       String
+  email        String      @unique
+  passwordHash String
+  rol          RolUsuario
+  activo       Boolean     @default(true)
+  creadoEn     DateTime    @default(now())
+  Auditoria    Auditoria[]
+  Descargo     Descargo[]
 }
 
 enum EstadoInfraccion {
@@ -29,123 +131,21 @@ enum EstadoInfraccion {
   ANULADA
 }
 
-model UsuarioInterno {
-  id           String     @id @default(uuid())
-  nombre       String
-  email        String     @unique
-  passwordHash String
-  rol          RolUsuario
-  activo       Boolean    @default(true)
-  creadoEn     DateTime   @default(now())
-
-  descargosResueltos Descargo[]
-  auditorias         Auditoria[]
-}
 enum TipoInfraccion {
   TRANSITO
   BROMATOLOGIA
 }
-model Infraccion {
-  id             String           @id @default(uuid())
-  nroActa        String           @unique
-  fechaInfraccion DateTime?
-  lugar          String
-  articulo       String
-  monto          Decimal          @db.Decimal(10, 2)
-  patente        String?
-  dniTitular     String
-  nombreTitular  String
-  inspector      String
-  tipoInfraccion TipoInfraccion   @default(TRANSITO)
-  estado         EstadoInfraccion @default(PENDIENTE)
-  creadoEn       DateTime         @default(now())
 
-  descargos      Descargo[]
-  pagos          Pago[]
-  audiencias     Audiencia[]
+enum RolUsuario {
+  MESA_ENTRADAS
+  JUEZ
+  ADMIN
 }
 
-model Descargo {
-  id              String   @id @default(uuid())
-  expedienteNro   String   @unique
-  infraccionId    String
-  motivo          String
-  nombre String?
-  email  String?
-  archivosUrl     String[]
-  estado          String   @default("PRESENTADO")
-  resolucion      String?
-  fechaResolucion DateTime?
-  resueltoPor     String?
-  creadoEn        DateTime @default(now())
-
-  infraccion      Infraccion @relation(fields: [infraccionId], references: [id])
-  usuarioResuelve UsuarioInterno? @relation(fields: [resueltoPor], references: [id])
-}
-
-model Pago {
-  id               String      @id @default(uuid())
-  infraccionId     String?
-  montoInformado   Float
-  comprobanteUrl   String
-  estado           String      @default("PENDIENTE") // PENDIENTE, CONCILIADO, RECHAZADO
-  registradoPor    String?     // Nuevo: Empleado que registró el ingreso
-  creadoEn         DateTime    @default(now())
-  actualizadoEn    DateTime    @updatedAt
-
-  infraccion       Infraccion? @relation(fields: [infraccionId], references: [id])
-
-  @@index([creadoEn]) // Nuevo: Índice para acelerar los reportes contables diarios
-}
-
-model Audiencia {
-  id             String    @id @default(uuid())
-  infraccionId   String?
-  dniSolicitante String
-  nombreCompleto String
-  email          String
-  telefono       String
-  motivo         String
-  fechaPropuesta DateTime
-  estado         String    @default("SOLICITADA")
-  creadoEn       DateTime  @default(now())
-  resueltaEn     DateTime?
-  resueltaPor    String?
-  notasInternas  String?
-
-  infraccion     Infraccion? @relation(fields: [infraccionId], references: [id])
-}
-
-model Auditoria {
-  id              String   @id @default(uuid())
-  usuarioId       String
-  accion          String
-  entidadAfectada String
-  entidadId       String
-  detalle         String?
-  timestamp       DateTime @default(now())
-
-  usuario         UsuarioInterno @relation(fields: [usuarioId], references: [id])
-}enum Rol {
+enum Rol {
   SUPERADMIN
   JUEZ
   LETRADO
   CONTABLE
   ADMINISTRATIVO
-}
-
-model Usuario {
-  id        String   @id @default(uuid())
-  nombre    String
-  email     String   @unique
-  password  String
-  rol       Rol      @default(ADMINISTRATIVO)
-  activo    Boolean  @default(true)
-  creadoEn  DateTime @default(now())
-}model Noticia {
-  id        String   @id @default(uuid())
-  titulo    String
-  contenido String?  // <-- Agregamos el cuerpo de la noticia
-  imagenUrl String
-  creadoEn  DateTime @default(now())
 }

@@ -95,27 +95,14 @@ export default function JuzgadoFaltasUnificado() {
   const manejarEnvioTramite = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); 
     setEnviando(true);
-    
     try {
       const formData = new FormData(e.currentTarget);
       const respuesta = await procesarTramiteCiudadano(formData);
-      
       if (respuesta.success) {
-        if (respuesta.expedienteNro) { 
-          alert(respuesta.esExtemporaneo ? `Trámite EXTEMPORÁNEO.\nExpediente: ${respuesta.expedienteNro}` : `¡Descargo presentado!\nExpediente: ${respuesta.expedienteNro}`); 
-        } else { 
-          alert("¡Trámite de pago enviado con éxito!"); 
-        }
-        setTramiteActivo(null); 
-        manejarBusqueda(new Event('submit') as any);
-      } else { 
-        alert("Error del servidor: " + respuesta.error); 
-      }
-    } catch (error: any) {
-      alert("Error de red: El archivo es demasiado pesado, formato inválido o se cortó la conexión.");
-    } finally {
-      setEnviando(false);
-    }
+        if (respuesta.expedienteNro) { alert(respuesta.esExtemporaneo ? `Trámite EXTEMPORÁNEO.\nExpediente: ${respuesta.expedienteNro}` : `¡Descargo presentado!\nExpediente: ${respuesta.expedienteNro}`); } else { alert("¡Trámite de pago enviado con éxito!"); }
+        setTramiteActivo(null); manejarBusqueda(new Event('submit') as any);
+      } else { alert("Error del servidor: " + respuesta.error); }
+    } catch (error: any) { alert("Error de red."); } finally { setEnviando(false); }
   }
 
   const procesarLogin = async (e: React.FormEvent) => {
@@ -127,9 +114,7 @@ export default function JuzgadoFaltasUnificado() {
     let vistaInicial = 'admin_actas'
     if (auth.usuario.rol === 'LETRADO') vistaInicial = 'admin_descargos'
     if (auth.usuario.rol === 'CONTABLE') vistaInicial = 'admin_pagos'
-    
-    setVista(vistaInicial as any); 
-    localStorage.setItem('juzgado_sesion', JSON.stringify({ usuario: auth.usuario, vista: vistaInicial }));
+    setVista(vistaInicial as any); localStorage.setItem('juzgado_sesion', JSON.stringify({ usuario: auth.usuario, vista: vistaInicial }));
     cargarDatosPanel(vistaInicial);
   }
 
@@ -141,36 +126,21 @@ export default function JuzgadoFaltasUnificado() {
         datos = await obtenerActasAdmin();
         const pagosGeneral = await obtenerPagosAdmin();
         setPagosAdmin(pagosGeneral);
-        if (vistaDestino === 'admin_balance' && tabBalance === 'recaudacion') {
-          manejarConsultaDiaria();
-        }
+        if (vistaDestino === 'admin_balance' && tabBalance === 'recaudacion') manejarConsultaDiaria();
       }
       if (vistaDestino === 'admin_descargos') datos = await obtenerDescargosAdmin();
       if (vistaDestino === 'admin_pagos') datos = await obtenerPagosAdmin();
       if (vistaDestino === 'admin_usuarios') datos = await obtenerUsuariosAdmin();
       if (vistaDestino === 'admin_noticias') datos = await obtenerNoticiasAdmin();
-      
-      if (Array.isArray(datos)) {
-        setDatosAdmin(datos);
-      } else {
-        setDatosAdmin([]);
-      }
-    } catch (error) {
-      setDatosAdmin([]);
-    }
+      if (Array.isArray(datos)) setDatosAdmin(datos); else setDatosAdmin([]);
+    } catch (error) { setDatosAdmin([]); }
     setCargandoAdmin(false)
   }
 
   const cambiarVistaAdmin = (nuevaVista: string) => { 
-    setVista(nuevaVista as any); 
-    cargarDatosPanel(nuevaVista); 
-    setMenuAbierto(false); 
-    
+    setVista(nuevaVista as any); cargarDatosPanel(nuevaVista); setMenuAbierto(false); 
     const sesionActual = localStorage.getItem('juzgado_sesion');
-    if (sesionActual) {
-      const data = JSON.parse(sesionActual);
-      localStorage.setItem('juzgado_sesion', JSON.stringify({ ...data, vista: nuevaVista }));
-    }
+    if (sesionActual) { const data = JSON.parse(sesionActual); localStorage.setItem('juzgado_sesion', JSON.stringify({ ...data, vista: nuevaVista })); }
   }
 
   const manejarCrearActa = async (e: React.FormEvent) => {
@@ -179,123 +149,54 @@ export default function JuzgadoFaltasUnificado() {
     if (nuevaFecha) {
       try {
          const partes = nuevaFecha.split('-'); 
-         if (partes.length === 3) {
-           const d = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10), 12, 0, 0);
-           if (!isNaN(d.getTime())) fechaSegura = d.toISOString();
-         }
+         if (partes.length === 3) { const d = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10), 12, 0, 0); if (!isNaN(d.getTime())) fechaSegura = d.toISOString(); }
       } catch(error) {}
     }
-
-    const datosActa = {
-      nroActa: nuevoNroActa, 
-      nombreTitular: nuevoNombre, 
-      dniTitular: nuevoDni, 
-      monto: Number(nuevoMonto), 
-      lugar: nuevoLugar || "No informado", 
-      articulo: nuevoArticulo || "No informado", 
-      inspector: nuevoInspector || "No informado", 
-      tipoInfraccion: nuevoTipo as any,
-      fechaInfraccion: fechaSegura
-    };
-
+    const datosActa = { nroActa: nuevoNroActa, nombreTitular: nuevoNombre, dniTitular: nuevoDni, monto: Number(nuevoMonto), lugar: nuevoLugar || "No informado", articulo: nuevoArticulo || "No informado", inspector: nuevoInspector || "No informado", tipoInfraccion: nuevoTipo as any, fechaInfraccion: fechaSegura };
     const res = await crearActa(datosActa);
-    if (res.success) { 
-      setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); 
-      setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto(""); setNuevoTipo("TRANSITO"); 
-      setNuevaFecha(""); 
-      cargarDatosPanel(vista);
-    } else { 
-      alert(res.error); 
-    }
+    if (res.success) { setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto(""); setNuevoTipo("TRANSITO"); setNuevaFecha(""); cargarDatosPanel(vista); } else { alert(res.error); }
     setGuardandoActa(false);
   }
 
   const manejarEditarActa = async (e: React.FormEvent) => {
     e.preventDefault(); setEditandoActa(true);
-    
     let fechaSegura = new Date().toISOString();
     if (modalEditarActa.fechaInfraccion_input) {
       try {
         const partes = modalEditarActa.fechaInfraccion_input.split('-');
-        if (partes.length === 3) {
-          const d = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10), 12, 0, 0);
-          if (!isNaN(d.getTime())) fechaSegura = d.toISOString();
-        }
+        if (partes.length === 3) { const d = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10), 12, 0, 0); if (!isNaN(d.getTime())) fechaSegura = d.toISOString(); }
       } catch(error) {}
     }
-
-    const datosActualizados = {
-      nroActa: modalEditarActa.nroActa,
-      nombreTitular: modalEditarActa.nombreTitular,
-      dniTitular: modalEditarActa.dniTitular,
-      monto: Number(modalEditarActa.monto),
-      lugar: modalEditarActa.lugar || "No informado",
-      articulo: modalEditarActa.articulo || "No informado",
-      inspector: modalEditarActa.inspector || "No informado",
-      tipoInfraccion: modalEditarActa.tipoInfraccion,
-      fechaInfraccion: fechaSegura
-    };
-
+    const datosActualizados = { nroActa: modalEditarActa.nroActa, nombreTitular: modalEditarActa.nombreTitular, dniTitular: modalEditarActa.dniTitular, monto: Number(modalEditarActa.monto), lugar: modalEditarActa.lugar || "No informado", articulo: modalEditarActa.articulo || "No informado", inspector: modalEditarActa.inspector || "No informado", tipoInfraccion: modalEditarActa.tipoInfraccion, fechaInfraccion: fechaSegura };
     const res = await editarActa(modalEditarActa.id, datosActualizados);
-    if (res.success) {
-      setModalEditarActa(null);
-      cargarDatosPanel(vista);
-    } else {
-      alert(res.error);
-    }
+    if (res.success) { setModalEditarActa(null); cargarDatosPanel(vista); } else { alert(res.error); }
     setEditandoActa(false);
   }
 
   const manejarCobroManual = async (item: any) => {
     const sugerenciaMonto = item.monto > 0 ? item.monto : "";
     const respuestaMonto = window.prompt(`Registrar cobro manual por mostrador para el Acta N° ${item.nroActa}.\n\nTitular: ${item.nombreTitular}\n\nIngrese el monto cobrado ($):`, sugerenciaMonto);
-    
     if (respuestaMonto === null) return; 
-    
     const montoFinal = Number(respuestaMonto);
     if (isNaN(montoFinal) || montoFinal <= 0) return alert("Error: Debe ingresar un monto numérico válido mayor a cero.");
-    
     if (!confirm(`¿Confirma que se ha efectuado el cobro de $${montoFinal} y desea cerrar el acta como PAGADA?`)) return;
 
-    setCargandoAdmin(true);
-    const res = await registrarPagoManual(item.id, montoFinal);
-    if (res.success) {
-      cargarDatosPanel('admin_actas');
-    } else {
-      alert("Error al registrar cobro: " + res.error);
-      setCargandoAdmin(false);
-    }
+    setCargandoAdmin(true); const res = await registrarPagoManual(item.id, montoFinal);
+    if (res.success) { cargarDatosPanel('admin_actas'); } else { alert("Error al registrar cobro: " + res.error); setCargandoAdmin(false); }
   }
 
   const manejarDesistimiento = async (item: any) => {
     if (!confirm(`¿Confirma el DESISTIMIENTO del Acta N° ${item.nroActa} por regularización de la falta (Subsanación)?\n\nEl titular ${item.nombreTitular} quedará eximido de responsabilidad en este expediente.`)) return;
-
-    setCargandoAdmin(true);
-    const res = await desistirActa(item.id);
-    if (res.success) {
-      cargarDatosPanel('admin_actas');
-    } else {
-      alert("Error al registrar desistimiento: " + res.error);
-      setCargandoAdmin(false);
-    }
+    setCargandoAdmin(true); const res = await desistirActa(item.id);
+    if (res.success) { cargarDatosPanel('admin_actas'); } else { alert("Error al registrar desistimiento: " + res.error); setCargandoAdmin(false); }
   }
 
   const manejarCrearNoticia = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); setProcesando(true);
     try {
-      const formData = new FormData(e.currentTarget)
-      const res = await procesarNoticia(formData)
-      if (res.success) {
-        alert("Noticia publicada con éxito.");
-        (e.target as HTMLFormElement).reset();
-        cargarDatosPanel(vista);
-        obtenerNoticiasAdmin().then(setNoticiasPublicas); 
-      } else { alert("Error: " + res.error) }
-    } catch (error: any) {
-      alert("Error de red al publicar la noticia.");
-    } finally {
-      setProcesando(false)
-    }
+      const formData = new FormData(e.currentTarget); const res = await procesarNoticia(formData);
+      if (res.success) { alert("Noticia publicada."); (e.target as HTMLFormElement).reset(); cargarDatosPanel(vista); obtenerNoticiasAdmin().then(setNoticiasPublicas); } else { alert("Error: " + res.error) }
+    } catch (error: any) { alert("Error de red al publicar la noticia."); } finally { setProcesando(false) }
   }
 
   const manejarEliminarDato = async (id: string, tipo: 'acta'|'noticia') => {
@@ -312,15 +213,13 @@ export default function JuzgadoFaltasUnificado() {
 
   const auditarDescargo = async (estado: string) => {
     if (estado === 'RECHAZADO' && !textoResolucion) return alert("Debe justificar el rechazo.")
-    setProcesando(true); 
-    const res = await resolverDescargo(itemModal.id, estado, textoResolucion);
+    setProcesando(true); const res = await resolverDescargo(itemModal.id, estado, textoResolucion);
     if(!res.success) alert(res.error);
     setItemModal(null); setTextoResolucion(""); setProcesando(false); cargarDatosPanel(vista);
   }
 
   const auditarPago = async (estado: string) => {
-    setProcesando(true); 
-    const res = await conciliarPago(itemModal.id, estado);
+    setProcesando(true); const res = await conciliarPago(itemModal.id, estado);
     if(!res.success) alert(res.error);
     setItemModal(null); setProcesando(false); cargarDatosPanel(vista);
   }
@@ -336,68 +235,44 @@ export default function JuzgadoFaltasUnificado() {
     e.preventDefault();
     if (passNueva !== passConfirmar) return alert("Las contraseñas nuevas no coinciden.");
     if (passNueva.length < 6) return alert("La nueva contraseña debe tener al menos 6 caracteres.");
-    setCambiandoPass(true);
-    const res = await cambiarContrasena(email, passActual, passNueva);
-    setCambiandoPass(false);
+    setCambiandoPass(true); const res = await cambiarContrasena(email, passActual, passNueva); setCambiandoPass(false);
     if (res.success) { alert("Contraseña actualizada con éxito."); setModalPassword(false); setPassActual(""); setPassNueva(""); setPassConfirmar(""); } else { alert(res.error); }
   }
 
   const manejarBlanquearClave = async (id: string, nombre: string) => {
-    if (!confirm(`¿Estás seguro de BLANQUEAR la contraseña de ${nombre}?\n\nSe le asignará una clave temporal y el empleado no podrá ingresar con su clave actual.`)) return;
+    if (!confirm(`¿Estás seguro de BLANQUEAR la contraseña de ${nombre}?`)) return;
     const res = await blanquearClave(id);
-    if (res.success) { alert(`✅ CLAVE RESTABLECIDA\n\nLa nueva clave para ${nombre} es: ${res.tempPass}`); } else { alert("Error al restablecer: " + res.error); }
+    if (res.success) { alert(`✅ CLAVE RESTABLECIDA\n\nLa nueva clave para ${nombre} es: ${res.tempPass}`); } else { alert("Error: " + res.error); }
   }
 
   const manejarConsultaDiaria = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setBuscandoRecaudacion(true);
     const res = await obtenerRecaudacionDiaria(fechaConsulta);
-    if (res.success && res.data) {
-      setRecaudacionDelDia(res.data);
-    } else {
-      setRecaudacionDelDia([]);
-      if (e) alert("Error al consultar recaudación: " + res.error);
-    }
+    if (res.success && res.data) { setRecaudacionDelDia(res.data); } else { setRecaudacionDelDia([]); if (e) alert("Error al consultar recaudación: " + res.error); }
     setBuscandoRecaudacion(false);
   }
 
   const exportarCSV = () => {
     if (recaudacionDelDia.length === 0) return alert("No hay datos para exportar en esta fecha.");
-    
     let csvContent = "Fecha de Carga,Hora,Acta Nro,Infractor,Monto Pagado,Medio de Pago\n";
-    
     recaudacionDelDia.forEach(pago => {
-      const fechaObj = new Date(pago.creadoEn);
-      const fechaStr = fechaObj.toLocaleDateString('es-AR');
-      const horaStr = fechaObj.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
-      const nroActa = pago.infraccion?.nroActa || '-';
-      const nombre = pago.infraccion?.nombreTitular || '-';
-      const monto = pago.montoInformado || 0;
+      const fechaObj = new Date(pago.creadoEn); const fechaStr = fechaObj.toLocaleDateString('es-AR'); const horaStr = fechaObj.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+      const nroActa = pago.infraccion?.nroActa || '-'; const nombre = pago.infraccion?.nombreTitular || '-'; const monto = pago.montoInformado || 0;
       const medio = pago.comprobanteUrl === 'PAGO_PRESENCIAL_VENTANILLA' ? 'Efectivo (Ventanilla)' : 'Transferencia Bancaria (Online)';
-      
       csvContent += `${fechaStr},${horaStr},${nroActa},"${nombre}",${monto},"${medio}"\n`;
     });
-
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Recaudacion_Juzgado_${fechaConsulta}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const link = document.createElement("a"); link.setAttribute("href", URL.createObjectURL(blob)); link.setAttribute("download", `Recaudacion_Juzgado_${fechaConsulta}.csv`);
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
   }
 
   // Lógica Balance: Reincidentes
-  const dnisReincidentes = new Set();
-  const actasReincidentes: any[] = [];
+  const dnisReincidentes = new Set(); const actasReincidentes: any[] = [];
   if (vista === 'admin_balance' && tabBalance === 'reincidentes') {
     datosAdmin.forEach(item => {
       const mismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion);
-      if (mismo.length > 1) {
-        dnisReincidentes.add(item.dniTitular);
-      }
+      if (mismo.length > 1) dnisReincidentes.add(item.dniTitular);
     });
     datosAdmin.forEach(item => {
       if (dnisReincidentes.has(item.dniTitular) && !actasReincidentes.some(a => a.dniTitular === item.dniTitular)) {
@@ -406,46 +281,29 @@ export default function JuzgadoFaltasUnificado() {
     });
   }
 
-  // Filtrado General (Sirve para Actas y para Balance > Pendientes)
+  // Filtrado General
   const actasFiltradas = datosAdmin.filter(item => {
     if (vista !== 'admin_actas' && vista !== 'admin_balance') return true;
-    
-    // Si estamos en balance > pendientes, forzamos el filtro estado
     if (vista === 'admin_balance' && tabBalance === 'pendientes' && item.estado !== 'PENDIENTE') return false;
-
     const textoBuscado = filtroActaNombre.toLowerCase();
-    const coincideTexto = 
-      (item.nroActa?.toLowerCase().includes(textoBuscado)) || 
-      (item.nombreTitular?.toLowerCase().includes(textoBuscado));
-
+    const coincideTexto = (item.nroActa?.toLowerCase().includes(textoBuscado)) || (item.nombreTitular?.toLowerCase().includes(textoBuscado));
     const coincideDni = item.dniTitular?.includes(filtroDniAdmin);
     const coincideDireccion = filtroDireccion ? item.tipoInfraccion === filtroDireccion : true;
-    
-    // El filtro visual de estado solo aplica si no estamos forzando 'pendientes'
     const coincideEstado = (vista === 'admin_balance' && tabBalance === 'pendientes') ? true : (filtroEstado ? item.estado === filtroEstado : true);
-    
     return coincideTexto && coincideDni && coincideDireccion && coincideEstado;
   });
 
-  const listaBase = (vista === 'admin_balance' && tabBalance === 'reincidentes') 
-    ? actasReincidentes 
-    : ((vista === 'admin_balance' && tabBalance === 'recaudacion')
-        ? recaudacionDelDia
-        : ((vista === 'admin_actas' || (vista === 'admin_balance' && tabBalance === 'pendientes')) ? actasFiltradas : datosAdmin));
-
-  const totalItems = listaBase.length;
-  const totalPaginas = Math.max(1, Math.ceil(totalItems / filasPorPagina));
-  const indicePrimerItem = (paginaActual - 1) * filasPorPagina;
-  const indiceUltimoItem = paginaActual * filasPorPagina;
+  const listaBase = (vista === 'admin_balance' && tabBalance === 'reincidentes') ? actasReincidentes : ((vista === 'admin_balance' && tabBalance === 'recaudacion') ? recaudacionDelDia : ((vista === 'admin_actas' || (vista === 'admin_balance' && tabBalance === 'pendientes')) ? actasFiltradas : datosAdmin));
+  const totalItems = listaBase.length; const totalPaginas = Math.max(1, Math.ceil(totalItems / filasPorPagina));
+  const indicePrimerItem = (paginaActual - 1) * filasPorPagina; const indiceUltimoItem = paginaActual * filasPorPagina;
   const listaPaginada = listaBase.slice(indicePrimerItem, indiceUltimoItem);
 
   const rol = usuario?.rol || ''
-  const puedeActas = ['SUPERADMIN', 'JUEZ', 'ADMINISTRATIVO', 'LETRADO'].includes(rol)
-  const puedeDescargos = ['SUPERADMIN', 'JUEZ', 'LETRADO'].includes(rol)
-  const puedePagos = ['SUPERADMIN', 'JUEZ', 'CONTABLE'].includes(rol)
-  const puedeBalance = ['SUPERADMIN', 'JUEZ', 'CONTABLE'].includes(rol)
+  const puedeActas = ['SUPERADMIN', 'JUEZ', 'ADMINISTRATIVO', 'LETRADO'].includes(rol);
+  const puedeDescargos = ['SUPERADMIN', 'JUEZ', 'LETRADO'].includes(rol);
+  const puedePagos = ['SUPERADMIN', 'JUEZ', 'CONTABLE'].includes(rol);
+  const puedeBalance = ['SUPERADMIN', 'JUEZ', 'CONTABLE'].includes(rol);
 
-  // Totales de recaudación diaria
   const recaudadoEfectivo = recaudacionDelDia.filter(p => p.comprobanteUrl === 'PAGO_PRESENCIAL_VENTANILLA').reduce((acc, p) => acc + (Number(p.montoInformado) || 0), 0);
   const recaudadoOnline = recaudacionDelDia.filter(p => p.comprobanteUrl !== 'PAGO_PRESENCIAL_VENTANILLA').reduce((acc, p) => acc + (Number(p.montoInformado) || 0), 0);
   const recaudadoTotalDia = recaudadoEfectivo + recaudadoOnline;
@@ -454,96 +312,74 @@ export default function JuzgadoFaltasUnificado() {
     <>
       <style dangerouslySetInnerHTML={{ __html: `
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap');
-        
         :root { --azul-loreto: #0B4A82; --celeste-loreto: #00B2D6; --rojo-loreto: #EB2128; --papel: #FFFFFF; --papel-alto: #F8F9FA; --tinta: #212529; --tinta-suave: #495057; --linea: #DEE2E6; --radius-s: 4px; --radius-m: 10px; --maxw: 1180px; }
         * { box-sizing: border-box; } html { scroll-behavior: smooth; overflow-x: hidden; } 
         body { margin: 0; background: var(--papel); color: var(--tinta); font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.55; overflow-x: hidden; }
         h1, h2, h3, h4 { font-family: 'Montserrat', sans-serif; color: var(--azul-loreto); margin: 0 0 0.5em; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; } 
         a { color: inherit; } .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
-        
         .topbar { background: var(--azul-loreto); color: #FFFFFF; font-size: 13.5px; font-family: 'Inter', sans-serif; font-weight: 500; } 
         .topbar .wrap { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; padding-bottom: 8px; gap: 16px; flex-wrap: wrap; } 
         .topbar a { text-decoration: none; opacity: .9; } .topbar a:hover { opacity: 1; text-decoration: underline; } .topbar__item { display: inline-flex; align-items: center; gap: 6px; margin-right: 18px; }
-        
         header.site { background: var(--papel); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 100; } 
         .nav-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; gap: 20px; flex-wrap: wrap; }
         .brand { display: flex; align-items: center; gap: 14px; text-decoration: none; z-index: 101; } .brand__logo { height: 55px; width: auto; flex: none; } 
         .brand__text .eyebrow { font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin: 0 0 2px; font-weight: 600; } 
         .brand__text strong { display: block; font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 18px; color: var(--azul-loreto); line-height: 1.1; letter-spacing: -0.02em; }
-        
         .menu-toggle { display: none; background: none; border: none; font-size: 28px; color: var(--azul-loreto); cursor: pointer; padding: 5px; z-index: 101; }
-        
         nav.primary { display: flex; align-items: center; gap: 28px; } nav.primary ul { list-style: none; display: flex; gap: 26px; margin: 0; padding: 0; } 
         nav.primary a { text-decoration: none; font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 14px; color: var(--tinta); padding: 6px 2px; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; } 
         nav.primary a:hover, nav.primary a.active { border-color: var(--rojo-loreto); color: var(--azul-loreto); }
-        
         .header-actions { display: flex; align-items: center; gap: 15px; }
-
         .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 22px; border-radius: var(--radius-s); font-weight: 600; font-size: 14px; text-decoration: none; border: 1.5px solid transparent; cursor: pointer; font-family: 'Montserrat', sans-serif; transition: all 0.2s; letter-spacing: 0.02em; } 
         .btn--primary { background: var(--azul-loreto); color: #fff; border-radius: 4px; } .btn--primary:hover { background: #083863; } 
         .btn--ghost { background: transparent; color: var(--azul-loreto); border-color: var(--azul-loreto); } .btn--ghost:hover { background: var(--azul-loreto); color: #fff; } 
         .btn--sm { padding: 8px 14px; font-size: 13px; } .btn--block { width: 100%; } .btn--success { background: #10B981; color: white; border: none; } .btn--danger { background: #EF4444; color: white; border: none; }
-        
         .hero { padding: 48px 0 32px; background: radial-gradient(circle at 88% 15%, rgba(0, 178, 214, 0.06), transparent 45%), var(--papel-alto); border-bottom: 1px solid var(--linea); } 
         .hero .wrap { display: grid; grid-template-columns: 1fr; text-align: center; max-width: 800px; } 
         .hero .eyebrow { font-family: 'Montserrat', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--celeste-loreto); margin-bottom: 12px; font-weight: 700; } 
         .hero h1 { font-size: clamp(28px, 3.5vw, 42px); font-weight: 800; letter-spacing: -0.02em; } 
         .hero p.lead { font-size: 16.5px; color: var(--tinta-suave); max-width: 55ch; margin: 12px auto 24px; font-weight: 400; }
-        
         section { padding: 80px 0; } .section-head { max-width: 60ch; margin-bottom: 48px; } 
         .section-head .kicker { font-family: 'Montserrat', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin-bottom: 12px; font-weight: 700; }
-        
         .art-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--linea); border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; } 
         .art-card { background: var(--papel); padding: 32px 24px; } .art-card h3 { font-size: 16px; font-weight: 700; } .art-card p { font-size: 14.5px; color: var(--tinta-suave); margin: 0; }
-        
         .autoridades-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
         .autoridad-card { background: var(--papel); padding: 32px; border-radius: var(--radius-m); border: 1px solid var(--linea); box-shadow: 0 2px 12px rgba(0,0,0,0.02); text-align: center; border-top: 4px solid var(--azul-loreto); }
         .autoridad-card.principal { border-top-color: var(--celeste-loreto); background: radial-gradient(circle at top, rgba(0,178,214,0.04), transparent 70%), var(--papel); }
         .autoridad-card span { font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); display: block; margin-bottom: 10px; font-weight: 700; }
         .autoridad-card h3 { font-size: 18px; color: var(--azul-loreto); margin: 0; font-weight: 700; }
-
         .news-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; } 
         .news-card { background: var(--papel); padding: 24px; border-radius: var(--radius-m); border: 1px solid var(--linea); box-shadow: 0 4px 16px rgba(0,0,0,0.03); }
         .news-card img { width: 100%; aspect-ratio: 3/2; object-fit: cover; margin-bottom: 16px; border-radius: 6px; } 
         .news-card h3 { font-size: 16px; text-transform: uppercase; color: var(--azul-loreto); line-height: 1.4; font-weight: 800; letter-spacing: 0.02em; margin-bottom: 10px; }
         .news-card p { font-size: 14.5px; color: var(--tinta-suave); line-height: 1.6; white-space: pre-wrap; margin: 0; }
-        
         .consulta-panel { background: var(--azul-loreto); color: #F8F9FA; border-radius: var(--radius-m); padding: 48px; max-width: 900px; margin: 0 auto; box-shadow: 0 16px 40px rgba(11,74,130,0.15); } 
         .consulta-panel h3 { color: #fff; font-size: 28px; text-align: center; }
         .consulta-form { background: var(--papel); border-radius: var(--radius-m); padding: 32px; color: var(--tinta); margin-top: 24px; } 
         .field { margin-bottom: 20px; } .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--tinta); font-family: 'Montserrat', sans-serif; } 
         .field input, .field textarea, .field select { width: 100%; padding: 12px 14px; border: 1.5px solid var(--linea); border-radius: var(--radius-s); font-family: 'Inter', sans-serif; font-size: 14.5px; background: #fff; color: var(--tinta); transition: border-color 0.2s; }
         .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--celeste-loreto); }
-        
         .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; align-items: end; background: var(--papel); padding: 24px; border-radius: var(--radius-m); border: 1px solid var(--linea); margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
         .admin-table { width: 100%; text-align: left; border-collapse: collapse; background: #fff; border-radius: var(--radius-m); overflow: hidden; border: 1px solid var(--linea); box-shadow: 0 4px 12px rgba(0,0,0,0.03); } 
         .admin-table th { background: var(--papel-alto); padding: 18px 20px; font-weight: 700; border-bottom: 2px solid var(--linea); font-size: 13px; color: var(--azul-loreto); font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 0.04em; } 
         .admin-table td { padding: 18px 20px; border-bottom: 1px solid var(--linea); font-size: 14.5px; } 
         .badge { padding: 6px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; font-family: 'Montserrat', sans-serif; text-transform: uppercase; }
-        
         .modal-overlay { position: fixed; inset: 0; background: rgba(11, 74, 130, 0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; } 
         .modal-content { background: var(--papel); padding: 40px; border-radius: var(--radius-m); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.15); border: 1px solid var(--linea); }
-        
         .contacto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; } .contacto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 24px; } .contacto-list li { display: flex; gap: 16px; align-items: flex-start; } .contacto-list .ico { width: 40px; height: 40px; border-radius: 50%; background: rgba(235, 33, 40, 0.1); color: var(--rojo-loreto); display: flex; align-items: center; justify-content: center; flex: none; font-size: 18px; } .contacto-list strong { display: block; font-size: 15px; color: var(--azul-loreto); font-weight: 600; margin-bottom: 4px; } .contacto-list span, .contacto-list a { font-size: 14.5px; color: var(--tinta-suave); text-decoration: none; } .contacto-list a:hover { color: var(--rojo-loreto); text-decoration: underline; } .map-frame { border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; height: 380px; } .map-frame iframe { width: 100%; height: 100%; border: 0; }
-
         /* TABS BALANCE */
         .tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--linea); padding-bottom: 12px; overflow-x: auto; }
         .tabs button { background: none; border: none; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 700; color: var(--tinta-suave); cursor: pointer; padding: 8px 16px; border-radius: 6px; transition: all 0.2s; white-space: nowrap; }
         .tabs button:hover { background: var(--papel); color: var(--azul-loreto); }
         .tabs button.active { background: var(--azul-loreto); color: #fff; }
-
         @media (max-width: 980px) { 
           .contacto-grid, .hero .wrap, .news-grid, .autoridades-grid, .art-grid { grid-template-columns: 1fr; } 
-          .hero { padding: 30px 0; }
-          .consulta-panel { padding: 24px 16px; }
-          .menu-toggle { display: block; }
+          .hero { padding: 30px 0; } .consulta-panel { padding: 24px 16px; } .menu-toggle { display: block; }
           nav.primary { display: none; width: 100%; order: 3; padding: 20px 0; border-top: 1px solid var(--linea); margin-top: 15px; }
           nav.primary.abierto { display: flex; flex-direction: column; align-items: flex-start; }
-          nav.primary ul { flex-direction: column; gap: 15px; width: 100%; }
-          nav.primary a { display: block; width: 100%; padding: 5px 0; }
+          nav.primary ul { flex-direction: column; gap: 15px; width: 100%; } nav.primary a { display: block; width: 100%; padding: 5px 0; }
           .header-actions { display: none; width: 100%; order: 4; flex-direction: column; padding-bottom: 20px; gap: 15px; }
-          .header-actions.abierto { display: flex; }
-          .header-actions .btn { width: 100%; }
+          .header-actions.abierto { display: flex; } .header-actions .btn { width: 100%; }
           .admin-table { display: block; overflow-x: auto; white-space: nowrap; }
         }
       `}} />
@@ -559,15 +395,9 @@ export default function JuzgadoFaltasUnificado() {
         <div className="wrap nav-row">
           <a className="brand" href="#" onClick={(e) => { e.preventDefault(); setVista('publica'); setMenuAbierto(false); }}>
             <img src="/logojdf.png" alt="Logo Juzgado" className="brand__logo" />
-            <span className="brand__text">
-              <span className="eyebrow">Municipalidad de Loreto</span>
-              <strong>Juzgado de Faltas</strong>
-            </span>
+            <span className="brand__text"><span className="eyebrow">Municipalidad de Loreto</span><strong>Juzgado de Faltas</strong></span>
           </a>
-          
-          <button className="menu-toggle" onClick={() => setMenuAbierto(!menuAbierto)}>
-            {menuAbierto ? '✖' : '☰'}
-          </button>
+          <button className="menu-toggle" onClick={() => setMenuAbierto(!menuAbierto)}>{menuAbierto ? '✖' : '☰'}</button>
 
           {vista === 'publica' ? (
             <nav className={`primary ${menuAbierto ? 'abierto' : ''}`}>
@@ -603,15 +433,7 @@ export default function JuzgadoFaltasUnificado() {
             {autenticado && <span style={{fontSize: '13px', color: 'var(--tinta-suave)', fontWeight: 600, fontFamily: 'Montserrat, sans-serif'}}>👤 {usuario?.nombre}</span>}
             {autenticado && <a onClick={() => { setModalPassword(true); setMenuAbierto(false); }} style={{fontSize: '13px', cursor: 'pointer', color: 'var(--celeste-loreto)', fontWeight: 700, fontFamily: 'Montserrat, sans-serif'}}>Cambiar Clave</a>}
             <button onClick={() => { 
-              if (vista === 'publica') { 
-                setVista('admin_actas'); 
-              } else { 
-                localStorage.removeItem('juzgado_sesion');
-                setVista('publica'); 
-                setAutenticado(false); 
-                setUsuario(null); 
-                setPassword(""); 
-              } 
+              if (vista === 'publica') { setVista('admin_actas'); } else { localStorage.removeItem('juzgado_sesion'); setVista('publica'); setAutenticado(false); setUsuario(null); setPassword(""); } 
               setMenuAbierto(false); 
             }} className="btn btn--ghost btn--sm">
               {vista === 'publica' ? 'Acceso Personal' : 'Cerrar Sesión'}
@@ -723,43 +545,20 @@ export default function JuzgadoFaltasUnificado() {
 
             <section id="autoridades" style={{background: 'var(--papel-alto)', borderBottom: '1px solid var(--linea)'}}>
               <div className="wrap">
-                <div className="section-head">
-                  <p className="kicker">Estructura Institucional</p>
-                  <h2>Autoridades del Juzgado</h2>
-                  <p>Conozca al equipo de magistrados y profesionales que integran la administración del Juzgado de Faltas Municipal.</p>
-                </div>
+                <div className="section-head"><p className="kicker">Estructura Institucional</p><h2>Autoridades del Juzgado</h2><p>Conozca al equipo de magistrados y profesionales que integran la administración del Juzgado de Faltas Municipal.</p></div>
                 <div className="autoridades-grid">
-                  <div className="autoridad-card principal">
-                    <span>Juez de Faltas</span>
-                    <h3>Dr. Facundo Mansilla</h3>
-                  </div>
-                  <div className="autoridad-card">
-                    <span>Secretaria Letrada</span>
-                    <h3>Dra. Romina Casaubon</h3>
-                  </div>
-                  <div className="autoridad-card">
-                    <span>Secretario Letrado</span>
-                    <h3>Dr. Agustín González Fiad</h3>
-                  </div>
-                  <div className="autoridad-card">
-                    <span>Secretario Letrado</span>
-                    <h3>Dr. Leandro Ledesma</h3>
-                  </div>
-                  <div className="autoridad-card">
-                    <span>Contadora</span>
-                    <h3>CPN Nur Salomón</h3>
-                  </div>
+                  <div className="autoridad-card principal"><span>Juez de Faltas</span><h3>Dr. Facundo Mansilla</h3></div>
+                  <div className="autoridad-card"><span>Secretaria Letrada</span><h3>Dra. Romina Casaubon</h3></div>
+                  <div className="autoridad-card"><span>Secretario Letrado</span><h3>Dr. Agustín González Fiad</h3></div>
+                  <div className="autoridad-card"><span>Secretario Letrado</span><h3>Dr. Leandro Ledesma</h3></div>
+                  <div className="autoridad-card"><span>Contadora</span><h3>CPN Nur Salomón</h3></div>
                 </div>
               </div>
             </section>
             
             <section id="institucion">
               <div className="wrap">
-                <div className="section-head">
-                  <p className="kicker">Competencia y Funciones</p>
-                  <h2>Sobre el Juzgado de Faltas</h2>
-                  <p>El Juzgado interviene como órgano de juzgamiento una vez agotada la instancia administrativa preventiva, garantizando el derecho de defensa del ciudadano.</p>
-                </div>
+                <div className="section-head"><p className="kicker">Competencia y Funciones</p><h2>Sobre el Juzgado de Faltas</h2><p>El Juzgado interviene como órgano de juzgamiento una vez agotada la instancia administrativa preventiva, garantizando el derecho de defensa del ciudadano.</p></div>
                 <div className="art-grid">
                   <div className="art-card"><h3>Jurisdicción</h3><p>Entiende en las faltas cometidas dentro del ejido municipal de Loreto, conforme a la normativa vigente.</p></div>
                   <div className="art-card"><h3>Imparcialidad</h3><p>Actúa como órgano autónomo, garantizando al presunto infractor el derecho a ser oído antes de cualquier sanción.</p></div>
@@ -775,9 +574,7 @@ export default function JuzgadoFaltasUnificado() {
                   <div style={{ flex: 1, minWidth: '250px' }}>
                     <p className="kicker" style={{ color: 'var(--rojo-loreto)', fontFamily: 'Montserrat, sans-serif', fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '12px' }}>Transparencia Municipal</p>
                     <h2 style={{ fontSize: '32px', marginBottom: '16px', color: 'var(--azul-loreto)' }}>Código de Convivencia y Faltas de Tránsito</h2>
-                    <p style={{ fontSize: '16px', color: 'var(--tinta-suave)', lineHeight: '1.6' }}>
-                      Acceda de forma directa a la normativa oficial de la Ciudad de Loreto. Conozca sus derechos, obligaciones ciudadanas y las reglamentaciones de tránsito vigentes escaneando el código QR con la cámara de su dispositivo móvil.
-                    </p>
+                    <p style={{ fontSize: '16px', color: 'var(--tinta-suave)', lineHeight: '1.6' }}>Acceda de forma directa a la normativa oficial de la Ciudad de Loreto. Conozca sus derechos, obligaciones ciudadanas y las reglamentaciones de tránsito vigentes escaneando el código QR con la cámara de su dispositivo móvil.</p>
                   </div>
                   <div style={{ flex: 'none', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 8px 32px rgba(11,74,130,0.08)', textAlign: 'center', border: '1px solid var(--linea)', margin: '0 auto', maxWidth: '100%' }}>
                     <img src="/qrparacodigo.png" alt="QR Código de Convivencia" style={{ width: '100%', maxWidth: '180px', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
@@ -791,9 +588,7 @@ export default function JuzgadoFaltasUnificado() {
             {noticiasPublicas.length > 0 && (
               <section id="noticias" style={{background: '#FFFFFF', paddingTop: '60px', paddingBottom: '80px'}}>
                 <div className="wrap">
-                  <div style={{textAlign: 'center', marginBottom: '56px'}}>
-                    <h2 style={{fontSize: '36px', color: 'var(--tinta)'}}>Novedades Institucionales</h2>
-                  </div>
+                  <div style={{textAlign: 'center', marginBottom: '56px'}}><h2 style={{fontSize: '36px', color: 'var(--tinta)'}}>Novedades Institucionales</h2></div>
                   <div className="news-grid">
                     {noticiasPublicas.slice(0, 3).map(n => (
                       <div className="news-card" key={n.id}>
@@ -804,11 +599,7 @@ export default function JuzgadoFaltasUnificado() {
                       </div>
                     ))}
                   </div>
-                  {noticiasPublicas.length > 3 && (
-                    <div style={{textAlign: 'center', marginTop: '56px'}}>
-                      <button className="btn btn--ghost">Ver histórico de noticias</button>
-                    </div>
-                  )}
+                  {noticiasPublicas.length > 3 && (<div style={{textAlign: 'center', marginTop: '56px'}}><button className="btn btn--ghost">Ver histórico de noticias</button></div>)}
                 </div>
               </section>
             )}
@@ -851,7 +642,7 @@ export default function JuzgadoFaltasUnificado() {
                   <div className="section-head" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px'}}>
                     <div>
                       <p className="kicker">Panel de Administración</p>
-                      <h2>{vista === 'admin_actas' ? 'Carga y Edición de Actas' : vista === 'admin_balance' ? 'Balance General e Informes' : vista === 'admin_descargos' ? 'Auditoría Legal de Descargos' : vista === 'admin_usuarios' ? 'Gestión de Recursos Humanos' : vista === 'admin_noticias' ? 'Publicación Institucional' : vista === 'admin_calculadora' ? 'Calculadora de Multas' : 'Conciliación Bancaria y Pagos'}</h2>
+                      <h2>{vista === 'admin_actas' ? 'Carga y Edición de Actas' : vista === 'admin_balance' ? 'Balance General e Informes' : vista === 'admin_descargos' ? 'Auditoría Legal de Descargos' : vista === 'admin_usuarios' ? 'Gestión de Recursos Humanos' : vista === 'admin_noticias' ? 'Publicación Institucional' : vista === 'admin_calculadora' ? 'Calculadora de Multas (UEM)' : 'Conciliación Bancaria y Pagos'}</h2>
                     </div>
                   </div>
                   
@@ -915,6 +706,84 @@ export default function JuzgadoFaltasUnificado() {
                           </div>
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* VISTA CALCULADORA RESTAURADA */}
+                  {vista === 'admin_calculadora' && (
+                    <div style={{background: 'var(--papel)', padding: '40px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', maxWidth: '900px', margin: '0 auto'}}>
+                      <h3 style={{fontSize: '18px', marginBottom: '8px'}}>Simulador Rápido de Infracciones</h3>
+                      <p style={{fontSize: '14px', color: 'var(--tinta-suave)', marginBottom: '32px'}}>Ingrese el valor actual de la Unidad Económica Municipal y la cantidad de UEM correspondientes a la falta para obtener los montos finales.</p>
+                      
+                      <div style={{display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '32px'}}>
+                        <div className="field" style={{flex: 1, minWidth: '150px'}}>
+                          <label>Artículo (Referencia)</label>
+                          <input type="text" placeholder="Ej: Art. 45" value={calcArticulo} onChange={e => setCalcArticulo(e.target.value)} />
+                        </div>
+                        <div className="field" style={{flex: 1, minWidth: '180px'}}>
+                          <label>Valor 1 UEM ($)</label>
+                          <input type="number" placeholder="Ej: 850" value={calcUemValor} onChange={e => setCalcUemValor(e.target.value)} />
+                        </div>
+                        <div className="field" style={{flex: 1, minWidth: '180px'}}>
+                          <label>Cantidad de UEM</label>
+                          <input type="number" placeholder="Ej: 150" value={calcUemCantidad} onChange={e => setCalcUemCantidad(e.target.value)} />
+                        </div>
+                      </div>
+
+                      {calcTotal > 0 && (
+                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px'}}>
+                          <div style={{background: 'rgba(11, 74, 130, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(11, 74, 130, 0.2)'}}>
+                            <span style={{fontSize: '12px', fontWeight: 700, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Pago Voluntario (50%)</span>
+                            <p style={{fontSize: '32px', fontWeight: 800, color: 'var(--azul-loreto)', margin: '12px 0 0 0', fontFamily: 'Montserrat, sans-serif'}}>${calcVoluntario.toLocaleString('es-AR')}</p>
+                          </div>
+                          <div style={{background: 'rgba(245, 158, 11, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)'}}>
+                            <span style={{fontSize: '12px', fontWeight: 700, color: '#B45309', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Pago Notificación</span>
+                            <p style={{fontSize: '32px', fontWeight: 800, color: '#B45309', margin: '12px 0 4px 0', fontFamily: 'Montserrat, sans-serif'}}>${calcNotificacion.toLocaleString('es-AR')}</p>
+                            <span style={{fontSize: '11px', color: '#B45309', opacity: 0.8, fontWeight: 600}}>Incluye $5.000 de gastos admin.</span>
+                          </div>
+                          <div style={{background: 'rgba(239, 68, 68, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)'}}>
+                            <span style={{fontSize: '12px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Con Sentencia (100%)</span>
+                            <p style={{fontSize: '32px', fontWeight: 800, color: '#DC2626', margin: '12px 0 0 0', fontFamily: 'Montserrat, sans-serif'}}>${calcTotal.toLocaleString('es-AR')}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* VISTA NOTICIAS RESTAURADA */}
+                  {vista === 'admin_noticias' && (
+                    <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
+                      <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Emitir Nuevo Comunicado</h3>
+                      <form onSubmit={manejarCrearNoticia}>
+                        <div className="field"><label>Titular Principal</label><input type="text" name="titulo" required /></div>
+                        <div className="field"><label>Cuerpo del Comunicado</label><textarea name="contenido" rows={5} required></textarea></div>
+                        <div className="field">
+                          <label>Material Fotográfico (JPG/PNG — Máx. recomendado: 4 MB)</label>
+                          <input type="file" name="archivo" accept=".jpg, .jpeg, .png" required style={{padding: '10px'}} />
+                        </div>
+                        <button type="submit" disabled={procesando} className="btn btn--primary">{procesando ? 'Procesando...' : 'Publicar Comunicado'}</button>
+                      </form>
+                    </div>
+                  )}
+
+                  {/* VISTA USUARIOS RESTAURADA */}
+                  {vista === 'admin_usuarios' && (
+                    <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
+                      <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Alta de Nuevo Funcionario / Empleado</h3>
+                      <form onSubmit={manejarCrearUsuario} style={{display: 'flex', gap: '20px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}><label>Nombre y Apellido</label><input type="text" value={nuevoUsuarioNombre} onChange={(e) => setNuevoUsuarioNombre(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}><label>Casilla de Correo</label><input type="email" value={nuevoUsuarioEmail} onChange={(e) => setNuevoUsuarioEmail(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}>
+                          <label>Jerarquía / Rol en el Sistema</label>
+                          <select value={nuevoUsuarioRol} onChange={(e) => setNuevoUsuarioRol(e.target.value)}>
+                            <option value="JUEZ">Juez de Faltas</option>
+                            <option value="LETRADO">Secretario Letrado</option>
+                            <option value="CONTABLE">Contadora</option>
+                            <option value="ADMINISTRATIVO">Mesa de Entradas</option>
+                          </select>
+                        </div>
+                        <button type="submit" disabled={guardandoUsuario} className="btn btn--primary">{guardandoUsuario ? 'Registrando...' : 'Generar Credenciales'}</button>
+                      </form>
                     </div>
                   )}
 
@@ -1036,6 +905,9 @@ export default function JuzgadoFaltasUnificado() {
                                         const d = new Date(item.fechaInfraccion);
                                         setModalEditarActa({...item, fechaInfraccion_input: !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : ''});
                                       }} className="btn btn--ghost btn--sm">Editar</button>
+                                      
+                                      {/* BOTÓN ANULAR RESTAURADO */}
+                                      <button onClick={() => manejarEliminarDato(item.id, 'acta')} className="btn btn--danger btn--sm">Anular</button>
                                     </div>
                                   </td>
                                 </tr>
@@ -1045,7 +917,7 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* ... TABLAS RESTANTES (USUARIOS, NOTICIAS, DESCARGOS) INTACTAS ... */}
+                        {/* TABLA USUARIOS */}
                         {vista === 'admin_usuarios' && (
                           <table className="admin-table">
                             <thead><tr><th>Funcionario / Contacto</th><th>Jerarquía</th><th>Estado de Cuenta</th><th>Acciones Administrativas</th></tr></thead>
@@ -1071,6 +943,7 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
+                        {/* TABLA NOTICIAS */}
                         {vista === 'admin_noticias' && (
                           <table className="admin-table">
                             <thead><tr><th>Previsualización</th><th>Titular Emitido</th><th>Fecha de Publicación</th><th>Acción</th></tr></thead>
@@ -1088,6 +961,7 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
+                        {/* TABLA DESCARGOS / PAGOS */}
                         {(vista === 'admin_descargos' || vista === 'admin_pagos') && (
                           <table className="admin-table">
                             <thead><tr><th>Identificador Expediente</th><th>Fase Procesal</th><th>Fecha de Ingreso</th><th>Acción de Auditoría</th></tr></thead>
@@ -1107,6 +981,7 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
+                        {/* PAGINACIÓN */}
                         {totalPaginas > 1 && vista !== 'admin_calculadora' && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'var(--papel-alto)', borderTop: '1px solid var(--linea)', borderBottomLeftRadius: 'var(--radius-m)', borderBottomRightRadius: 'var(--radius-m)', flexWrap: 'wrap', gap: '10px' }}>
                             <span style={{ fontSize: '13px', color: 'var(--tinta-suave)' }}>
@@ -1129,7 +1004,7 @@ export default function JuzgadoFaltasUnificado() {
         )}
       </main>
 
-      {/* MODALES MANTENIDOS EXACTAMENTE IGUAL */}
+      {/* MODAL EDITAR ACTA */}
       {modalEditarActa && (
         <div className="modal-overlay" onClick={() => setModalEditarActa(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '800px'}}>

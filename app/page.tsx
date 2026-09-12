@@ -902,6 +902,10 @@ export default function JuzgadoFaltasUnificado() {
                             <input type="text" placeholder="Ej: 0001 o Pérez..." value={filtroActaNombre} onChange={e => setFiltroActaNombre(e.target.value)} />
                           </div>
                           <div className="field" style={{marginBottom: 0}}>
+                            <label>DNI del Titular</label>
+                            <input type="text" placeholder="Buscar DNI..." value={filtroDniAdmin} onChange={e => setFiltroDniAdmin(e.target.value)} />
+                          </div>
+                          <div className="field" style={{marginBottom: 0}}>
                             <label>Repartición (Búsqueda)</label>
                             <select value={filtroDireccion} onChange={e => setFiltroDireccion(e.target.value)}>
                               <option value="">Consolidado Histórico</option>
@@ -914,7 +918,7 @@ export default function JuzgadoFaltasUnificado() {
                     </div>
                   )}
 
-                  {/* VISTA ACTAS - LIMPIA, SOLO CARGA */}
+                  {/* VISTA ACTAS - Carga y buscador restaurados */}
                   {vista === 'admin_actas' && (
                     <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
                       <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Carga de Nueva Acta de Infracción</h3>
@@ -924,16 +928,43 @@ export default function JuzgadoFaltasUnificado() {
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Fecha</label><input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '160px'}}><label>Infractor</label><input type="text" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} required /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>DNI</label><input type="text" value={nuevoDni} onChange={(e) => setNuevoDni(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '130px'}}><label>Domicilio</label><input type="text" value={nuevoLugar} onChange={(e) => setNuevoLugar(e.target.value)} placeholder="Opcional..." /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '90px'}}><label>Art. Infringido</label><input type="text" value={nuevoArticulo} onChange={(e) => setNuevoArticulo(e.target.value)} placeholder="Opcional..." /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Inspector</label><input type="text" value={nuevoInspector} onChange={(e) => setNuevoInspector(e.target.value)} placeholder="Opcional..." /></div>
                         <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>Monto ($)</label><input type="number" value={nuevoMonto} onChange={(e) => setNuevoMonto(e.target.value)} required /></div>
-                        <button type="submit" disabled={guardandoActa} className="btn btn--primary">{guardandoActa ? 'Procesando...' : 'Asentar Acta'}</button>
+                        <button type="submit" disabled={guardandoActa} className="btn btn--primary" style={{width: '100%'}}>{guardandoActa ? 'Procesando...' : 'Asentar Acta'}</button>
                       </form>
                     </div>
                   )}
 
                   {vista === 'admin_actas' && (
                     <div className="filter-grid">
-                      <div className="field" style={{marginBottom: 0}}><label>Buscar (N° Acta o Nombre)</label><input type="text" value={filtroActaNombre} onChange={e => setFiltroActaNombre(e.target.value)} /></div>
-                      <div className="field" style={{marginBottom: 0}}><label>Estado Procesal</label><select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}><option value="">Todos</option><option value="PENDIENTE">Pendientes</option><option value="PAGADO">Pagadas</option><option value="DESISTIDO">Desistidas</option></select></div>
+                      <div className="field" style={{marginBottom: 0}}>
+                        <label>Buscar (N° Acta o Nombre)</label>
+                        <input type="text" value={filtroActaNombre} onChange={e => setFiltroActaNombre(e.target.value)} placeholder="Ej: 0001 o Pérez..." />
+                      </div>
+                      <div className="field" style={{marginBottom: 0}}>
+                        <label>DNI del Titular</label>
+                        <input type="text" placeholder="Buscar DNI..." value={filtroDniAdmin} onChange={e => setFiltroDniAdmin(e.target.value)} />
+                      </div>
+                      <div className="field" style={{marginBottom: 0}}>
+                        <label>Repartición (Búsqueda)</label>
+                        <select value={filtroDireccion} onChange={e => setFiltroDireccion(e.target.value)}>
+                          <option value="">Consolidado Histórico</option>
+                          <option value="TRANSITO">Exclusivo Tránsito</option>
+                          <option value="BROMATOLOGIA">Exclusivo Bromatología</option>
+                        </select>
+                      </div>
+                      <div className="field" style={{marginBottom: 0}}>
+                        <label>Estado Procesal</label>
+                        <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
+                          <option value="">Todos</option>
+                          <option value="PENDIENTE">Pendientes</option>
+                          <option value="PRESENTADO">Con descargo</option>
+                          <option value="PAGADO">Pagadas</option>
+                          <option value="DESISTIDO">Desistidas</option>
+                        </select>
+                      </div>
                     </div>
                   )}
 
@@ -963,14 +994,28 @@ export default function JuzgadoFaltasUnificado() {
                         {/* TABLA: ACTAS GENERALES, PENDIENTES Y REINCIDENTES */}
                         {(vista === 'admin_actas' || (vista === 'admin_balance' && tabBalance !== 'recaudacion')) && (
                           <table className="admin-table">
-                            <thead><tr><th>N° Acta Físico</th><th>Infractor</th><th>DNI</th><th>Fecha del Hecho</th><th>Fase Procesal</th>{vista === 'admin_balance' && tabBalance === 'reincidentes' ? <th>Faltas Acumuladas</th> : <th>Monto Base</th>}<th>Acciones</th></tr></thead>
+                            <thead>
+                              <tr>
+                                <th>N° Acta Físico</th>
+                                <th>Infractor</th>
+                                <th>DNI</th>
+                                <th>Domicilio</th>
+                                <th>Fecha del Hecho</th>
+                                <th>Art. Infringido</th>
+                                <th>Fase Procesal</th>
+                                {vista === 'admin_balance' && tabBalance === 'reincidentes' ? <th>Faltas Acumuladas</th> : <th>Monto Base</th>}
+                                <th>Acciones</th>
+                              </tr>
+                            </thead>
                             <tbody>
                               {listaPaginada.map((item: any) => (
                                 <tr key={item.id}>
                                   <td><strong style={{fontSize: '15px'}}>{item.nroActa}</strong></td>
                                   <td><strong style={{display: 'block', fontSize: '14px'}}>{item.nombreTitular}</strong></td>
                                   <td style={{fontFamily: 'Montserrat, sans-serif', fontWeight: 600}}>{item.dniTitular}</td>
+                                  <td><span style={{fontSize: '13.5px', color: 'var(--tinta-suave)'}}>{item.lugar || 'No informado'}</span></td>
                                   <td style={{fontSize: '13.5px'}}>{new Date(item.fechaInfraccion).toLocaleDateString('es-AR')}</td>
+                                  <td style={{fontSize: '13.5px'}}>{item.articulo || '-'}</td>
                                   <td><span className="badge" style={{background: item.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : (item.estado === 'DESISTIDO' ? 'rgba(11, 74, 130, 0.15)' : 'rgba(16, 185, 129, 0.15)'), color: item.estado === 'PENDIENTE' ? '#B45309' : (item.estado === 'DESISTIDO' ? 'var(--azul-loreto)' : '#047857')}}>{item.estado}</span></td>
                                   
                                   {vista === 'admin_balance' && tabBalance === 'reincidentes' ? (
@@ -995,7 +1040,7 @@ export default function JuzgadoFaltasUnificado() {
                                   </td>
                                 </tr>
                               ))}
-                              {listaPaginada.length === 0 && (<tr><td colSpan={7} style={{textAlign: 'center', padding: '40px'}}>No hay resultados.</td></tr>)}
+                              {listaPaginada.length === 0 && (<tr><td colSpan={9} style={{textAlign: 'center', padding: '40px'}}>No hay resultados.</td></tr>)}
                             </tbody>
                           </table>
                         )}

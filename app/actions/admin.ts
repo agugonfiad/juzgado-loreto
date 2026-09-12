@@ -338,3 +338,27 @@ export async function desistirActa(id: string) {
     return { success: false, error: error.message }
   }
 }
+// === NUEVO: REPORTE DE RECAUDACIÓN EXACTA ===
+export async function obtenerRecaudacionDiaria(fechaLocalString: string) {
+  try {
+    // Calculamos el inicio y fin del día elegido en horario de Argentina (-03:00)
+    const inicioDia = new Date(`${fechaLocalString}T00:00:00.000-03:00`);
+    const finDia = new Date(`${fechaLocalString}T23:59:59.999-03:00`);
+
+    const pagos = await prisma.pago.findMany({
+      where: {
+        estado: 'CONCILIADO', // Solo cobros efectivos
+        creadoEn: {
+          gte: inicioDia,
+          lte: finDia
+        }
+      },
+      include: { infraccion: true },
+      orderBy: { creadoEn: 'asc' } // Ordenados por hora de carga
+    });
+
+    return { success: true, data: pagos };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

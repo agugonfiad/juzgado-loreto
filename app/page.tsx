@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react"
 import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano, procesarNoticia } from "./actions/subidas"
-import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearClave, registrarPagoManual, desistirActa } from "./actions/admin"
+import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearClave, registrarPagoManual, desistirActa, obtenerRecaudacionDiaria } from "./actions/admin"
 
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
-  const [vista, setVista] = useState<'publica' | 'admin_actas' | 'admin_descargos' | 'admin_pagos' | 'admin_usuarios' | 'admin_noticias' | 'admin_calculadora'>('publica')
+  const [vista, setVista] = useState<'publica' | 'admin_actas' | 'admin_descargos' | 'admin_pagos' | 'admin_usuarios' | 'admin_noticias' | 'admin_calculadora' | 'admin_balance'>('publica')
+  const [tabBalance, setTabBalance] = useState<'pendientes' | 'recaudacion' | 'reincidentes'>('pendientes')
 
   const [autenticado, setAutenticado] = useState(false)
   const [email, setEmail] = useState("")
@@ -31,6 +32,11 @@ export default function JuzgadoFaltasUnificado() {
   const [mensaje, setMensaje] = useState("")
   const [tramiteActivo, setTramiteActivo] = useState<{ id: string, tipo: 'pago' | 'descargo' } | null>(null)
   const [enviando, setEnviando] = useState(false)
+
+  // Estados Reporte Diario
+  const [fechaConsulta, setFechaConsulta] = useState(new Date().toISOString().split('T')[0])
+  const [recaudacionDelDia, setRecaudacionDelDia] = useState<any[]>([])
+  const [buscandoRecaudacion, setBuscandoRecaudacion] = useState(false)
 
   // Estados Formularios Carga
   const [nuevoNroActa, setNuevoNroActa] = useState(""); const [nuevoNombre, setNuevoNombre] = useState(""); const [nuevoDni, setNuevoDni] = useState(""); const [nuevoLugar, setNuevoLugar] = useState(""); const [nuevoArticulo, setNuevoArticulo] = useState(""); const [nuevoInspector, setNuevoInspector] = useState(""); const [nuevoMonto, setNuevoMonto] = useState(""); const [nuevoTipo, setNuevoTipo] = useState("TRANSITO"); const [nuevaFecha, setNuevaFecha] = useState(""); const [guardandoActa, setGuardandoActa] = useState(false);
@@ -74,7 +80,7 @@ export default function JuzgadoFaltasUnificado() {
 
   useEffect(() => {
     setPaginaActual(1);
-  }, [filtroActaNombre, filtroDniAdmin, filtroDireccion, filtroEstado, vista]);
+  }, [filtroActaNombre, filtroDniAdmin, filtroDireccion, filtroEstado, vista, tabBalance]);
 
   const manejarBusqueda = async (e: React.FormEvent) => {
     e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null);
@@ -131,10 +137,13 @@ export default function JuzgadoFaltasUnificado() {
     setCargandoAdmin(true)
     try {
       let datos: any = [];
-      if (vistaDestino === 'admin_actas') {
+      if (vistaDestino === 'admin_actas' || vistaDestino === 'admin_balance') {
         datos = await obtenerActasAdmin();
         const pagosGeneral = await obtenerPagosAdmin();
         setPagosAdmin(pagosGeneral);
+        if (vistaDestino === 'admin_balance' && tabBalance === 'recaudacion') {
+          manejarConsultaDiaria();
+        }
       }
       if (vistaDestino === 'admin_descargos') datos = await obtenerDescargosAdmin();
       if (vistaDestino === 'admin_pagos') datos = await obtenerPagosAdmin();
@@ -339,23 +348,71 @@ export default function JuzgadoFaltasUnificado() {
     if (res.success) { alert(`✅ CLAVE RESTABLECIDA\n\nLa nueva clave para ${nombre} es: ${res.tempPass}`); } else { alert("Error al restablecer: " + res.error); }
   }
 
-  const totalActasCount = datosAdmin.length;
-  const actasPendientesCount = datosAdmin.filter(d => d.estado === 'PENDIENTE').length;
-  const montoRecaudadoTotal = pagosAdmin
-    .filter(p => p.estado === 'CONCILIADO')
-    .reduce((acc, p) => acc + (Number(p.montoInformado) || 0), 0);
-  
-  const dnisReincidentes = new Set();
-  datosAdmin.forEach(item => {
-    const mismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion);
-    if (mismo.length > 1) {
-      dnisReincidentes.add(item.dniTitular);
+  const manejarConsultaDiaria = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setBuscandoRecaudacion(true);
+    const res = await obtenerRecaudacionDiaria(fechaConsulta);
+    if (res.success && res.data) {
+      setRecaudacionDelDia(res.data);
+    } else {
+      setRecaudacionDelDia([]);
+      if (e) alert("Error al consultar recaudación: " + res.error);
     }
-  });
-  const reincidentesCount = dnisReincidentes.size;
+    setBuscandoRecaudacion(false);
+  }
 
+  const exportarCSV = () => {
+    if (recaudacionDelDia.length === 0) return alert("No hay datos para exportar en esta fecha.");
+    
+    let csvContent = "Fecha de Carga,Hora,Acta Nro,Infractor,Monto Pagado,Medio de Pago\n";
+    
+    recaudacionDelDia.forEach(pago => {
+      const fechaObj = new Date(pago.creadoEn);
+      const fechaStr = fechaObj.toLocaleDateString('es-AR');
+      const horaStr = fechaObj.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+      const nroActa = pago.infraccion?.nroActa || '-';
+      const nombre = pago.infraccion?.nombreTitular || '-';
+      const monto = pago.montoInformado || 0;
+      const medio = pago.comprobanteUrl === 'PAGO_PRESENCIAL_VENTANILLA' ? 'Efectivo (Ventanilla)' : 'Transferencia Bancaria (Online)';
+      
+      csvContent += `${fechaStr},${horaStr},${nroActa},"${nombre}",${monto},"${medio}"\n`;
+    });
+
+    const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Recaudacion_Juzgado_${fechaConsulta}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // Lógica Balance: Reincidentes
+  const dnisReincidentes = new Set();
+  const actasReincidentes: any[] = [];
+  if (vista === 'admin_balance' && tabBalance === 'reincidentes') {
+    datosAdmin.forEach(item => {
+      const mismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion);
+      if (mismo.length > 1) {
+        dnisReincidentes.add(item.dniTitular);
+      }
+    });
+    datosAdmin.forEach(item => {
+      if (dnisReincidentes.has(item.dniTitular) && !actasReincidentes.some(a => a.dniTitular === item.dniTitular)) {
+        actasReincidentes.push({...item, totalActas: datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion).length});
+      }
+    });
+  }
+
+  // Filtrado General (Sirve para Actas y para Balance > Pendientes)
   const actasFiltradas = datosAdmin.filter(item => {
-    if (vista !== 'admin_actas') return true;
+    if (vista !== 'admin_actas' && vista !== 'admin_balance') return true;
+    
+    // Si estamos en balance > pendientes, forzamos el filtro estado
+    if (vista === 'admin_balance' && tabBalance === 'pendientes' && item.estado !== 'PENDIENTE') return false;
+
     const textoBuscado = filtroActaNombre.toLowerCase();
     const coincideTexto = 
       (item.nroActa?.toLowerCase().includes(textoBuscado)) || 
@@ -363,11 +420,19 @@ export default function JuzgadoFaltasUnificado() {
 
     const coincideDni = item.dniTitular?.includes(filtroDniAdmin);
     const coincideDireccion = filtroDireccion ? item.tipoInfraccion === filtroDireccion : true;
-    const coincideEstado = filtroEstado ? item.estado === filtroEstado : true;
+    
+    // El filtro visual de estado solo aplica si no estamos forzando 'pendientes'
+    const coincideEstado = (vista === 'admin_balance' && tabBalance === 'pendientes') ? true : (filtroEstado ? item.estado === filtroEstado : true);
+    
     return coincideTexto && coincideDni && coincideDireccion && coincideEstado;
   });
 
-  const listaBase = vista === 'admin_actas' ? actasFiltradas : datosAdmin;
+  const listaBase = (vista === 'admin_balance' && tabBalance === 'reincidentes') 
+    ? actasReincidentes 
+    : ((vista === 'admin_balance' && tabBalance === 'recaudacion')
+        ? recaudacionDelDia
+        : ((vista === 'admin_actas' || (vista === 'admin_balance' && tabBalance === 'pendientes')) ? actasFiltradas : datosAdmin));
+
   const totalItems = listaBase.length;
   const totalPaginas = Math.max(1, Math.ceil(totalItems / filasPorPagina));
   const indicePrimerItem = (paginaActual - 1) * filasPorPagina;
@@ -378,6 +443,12 @@ export default function JuzgadoFaltasUnificado() {
   const puedeActas = ['SUPERADMIN', 'JUEZ', 'ADMINISTRATIVO', 'LETRADO'].includes(rol)
   const puedeDescargos = ['SUPERADMIN', 'JUEZ', 'LETRADO'].includes(rol)
   const puedePagos = ['SUPERADMIN', 'JUEZ', 'CONTABLE'].includes(rol)
+  const puedeBalance = ['SUPERADMIN', 'JUEZ', 'CONTABLE'].includes(rol)
+
+  // Totales de recaudación diaria
+  const recaudadoEfectivo = recaudacionDelDia.filter(p => p.comprobanteUrl === 'PAGO_PRESENCIAL_VENTANILLA').reduce((acc, p) => acc + (Number(p.montoInformado) || 0), 0);
+  const recaudadoOnline = recaudacionDelDia.filter(p => p.comprobanteUrl !== 'PAGO_PRESENCIAL_VENTANILLA').reduce((acc, p) => acc + (Number(p.montoInformado) || 0), 0);
+  const recaudadoTotalDia = recaudadoEfectivo + recaudadoOnline;
 
   return (
     <>
@@ -455,6 +526,12 @@ export default function JuzgadoFaltasUnificado() {
         
         .contacto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; } .contacto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 24px; } .contacto-list li { display: flex; gap: 16px; align-items: flex-start; } .contacto-list .ico { width: 40px; height: 40px; border-radius: 50%; background: rgba(235, 33, 40, 0.1); color: var(--rojo-loreto); display: flex; align-items: center; justify-content: center; flex: none; font-size: 18px; } .contacto-list strong { display: block; font-size: 15px; color: var(--azul-loreto); font-weight: 600; margin-bottom: 4px; } .contacto-list span, .contacto-list a { font-size: 14.5px; color: var(--tinta-suave); text-decoration: none; } .contacto-list a:hover { color: var(--rojo-loreto); text-decoration: underline; } .map-frame { border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; height: 380px; } .map-frame iframe { width: 100%; height: 100%; border: 0; }
 
+        /* TABS BALANCE */
+        .tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--linea); padding-bottom: 12px; overflow-x: auto; }
+        .tabs button { background: none; border: none; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 700; color: var(--tinta-suave); cursor: pointer; padding: 8px 16px; border-radius: 6px; transition: all 0.2s; white-space: nowrap; }
+        .tabs button:hover { background: var(--papel); color: var(--azul-loreto); }
+        .tabs button.active { background: var(--azul-loreto); color: #fff; }
+
         @media (max-width: 980px) { 
           .contacto-grid, .hero .wrap, .news-grid, .autoridades-grid, .art-grid { grid-template-columns: 1fr; } 
           .hero { padding: 30px 0; }
@@ -507,6 +584,7 @@ export default function JuzgadoFaltasUnificado() {
               {autenticado && (
                 <ul>
                   {puedeActas && <li><a className={vista === 'admin_actas' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_actas')}>Gestión Actas</a></li>}
+                  {puedeBalance && <li><a className={vista === 'admin_balance' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_balance')}>Balance</a></li>}
                   {puedeActas && <li><a className={vista === 'admin_calculadora' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_calculadora')}>Calculadora</a></li>}
                   {puedeDescargos && <li><a className={vista === 'admin_descargos' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_descargos')}>Auditoría</a></li>}
                   {puedePagos && <li><a className={vista === 'admin_pagos' ? 'active' : ''} onClick={() => cambiarVistaAdmin('admin_pagos')}>Conciliación</a></li>}
@@ -773,127 +851,80 @@ export default function JuzgadoFaltasUnificado() {
                   <div className="section-head" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px'}}>
                     <div>
                       <p className="kicker">Panel de Administración</p>
-                      <h2>{vista === 'admin_actas' ? 'Gestión Documental de Actas' : vista === 'admin_descargos' ? 'Auditoría Legal de Descargos' : vista === 'admin_usuarios' ? 'Gestión de Recursos Humanos' : vista === 'admin_noticias' ? 'Publicación Institucional' : vista === 'admin_calculadora' ? 'Calculadora de Multas (UEM)' : 'Conciliación Bancaria y Pagos'}</h2>
+                      <h2>{vista === 'admin_actas' ? 'Carga y Edición de Actas' : vista === 'admin_balance' ? 'Balance General e Informes' : vista === 'admin_descargos' ? 'Auditoría Legal de Descargos' : vista === 'admin_usuarios' ? 'Gestión de Recursos Humanos' : vista === 'admin_noticias' ? 'Publicación Institucional' : vista === 'admin_calculadora' ? 'Calculadora de Multas' : 'Conciliación Bancaria y Pagos'}</h2>
                     </div>
-                    
-                    {vista === 'admin_actas' && (
-                      <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
-                        <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
-                          <span style={{fontSize: '11px', fontWeight: 700, color: 'var(--azul-loreto)', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Total Actas</span>
-                          <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: 'var(--tinta)', fontFamily: 'Montserrat, sans-serif'}}>{totalActasCount}</p>
-                        </div>
-                        <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
-                          <span style={{fontSize: '11px', fontWeight: 700, color: '#B45309', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Pendientes</span>
-                          <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#B45309', fontFamily: 'Montserrat, sans-serif'}}>{actasPendientesCount}</p>
-                        </div>
-                        <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '140px'}}>
-                          <span style={{fontSize: '11px', fontWeight: 700, color: '#10B981', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Recaudación</span>
-                          <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#10B981', fontFamily: 'Montserrat, sans-serif'}}>${montoRecaudadoTotal.toLocaleString('es-AR')}</p>
-                        </div>
-                        <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
-                          <span style={{fontSize: '11px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Reincidentes</span>
-                          <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#DC2626', fontFamily: 'Montserrat, sans-serif'}}>{reincidentesCount}</p>
-                        </div>
-                      </div>
-                    )}
                   </div>
                   
-                  {vista === 'admin_calculadora' && (
-                    <div style={{background: 'var(--papel)', padding: '40px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', maxWidth: '900px', margin: '0 auto'}}>
-                      <h3 style={{fontSize: '18px', marginBottom: '8px'}}>Simulador Rápido de Infracciones</h3>
-                      <p style={{fontSize: '14px', color: 'var(--tinta-suave)', marginBottom: '32px'}}>Ingrese el valor actual de la Unidad Económica Municipal y la cantidad de UEM correspondientes a la falta para obtener los montos finales.</p>
+                  {/* MODULO BALANCE NUEVO */}
+                  {vista === 'admin_balance' && (
+                    <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
                       
-                      <div style={{display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '32px'}}>
-                        <div className="field" style={{flex: 1, minWidth: '150px'}}>
-                          <label>Artículo (Referencia)</label>
-                          <input type="text" placeholder="Ej: Art. 45" value={calcArticulo} onChange={e => setCalcArticulo(e.target.value)} />
-                        </div>
-                        <div className="field" style={{flex: 1, minWidth: '180px'}}>
-                          <label>Valor 1 UEM ($)</label>
-                          <input type="number" placeholder="Ej: 850" value={calcUemValor} onChange={e => setCalcUemValor(e.target.value)} />
-                        </div>
-                        <div className="field" style={{flex: 1, minWidth: '180px'}}>
-                          <label>Cantidad de UEM</label>
-                          <input type="number" placeholder="Ej: 150" value={calcUemCantidad} onChange={e => setCalcUemCantidad(e.target.value)} />
-                        </div>
+                      <div className="tabs">
+                        <button className={tabBalance === 'pendientes' ? 'active' : ''} onClick={() => setTabBalance('pendientes')}>Actas Pendientes</button>
+                        <button className={tabBalance === 'recaudacion' ? 'active' : ''} onClick={() => { setTabBalance('recaudacion'); manejarConsultaDiaria(); }}>Recaudación Diaria</button>
+                        <button className={tabBalance === 'reincidentes' ? 'active' : ''} onClick={() => setTabBalance('reincidentes')}>Reincidentes</button>
                       </div>
 
-                      {calcTotal > 0 && (
-                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px'}}>
-                          <div style={{background: 'rgba(11, 74, 130, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(11, 74, 130, 0.2)'}}>
-                            <span style={{fontSize: '12px', fontWeight: 700, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Pago Voluntario (50%)</span>
-                            <p style={{fontSize: '32px', fontWeight: 800, color: 'var(--azul-loreto)', margin: '12px 0 0 0', fontFamily: 'Montserrat, sans-serif'}}>${calcVoluntario.toLocaleString('es-AR')}</p>
+                      {tabBalance === 'recaudacion' && (
+                        <div style={{marginBottom: '24px'}}>
+                          <div style={{background: 'var(--papel-alto)', padding: '24px', borderRadius: '8px', border: '1px solid var(--linea)', display: 'flex', gap: '20px', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '24px'}}>
+                            <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}>
+                              <label>Seleccionar Fecha de Carga en Sistema</label>
+                              <input type="date" value={fechaConsulta} onChange={e => setFechaConsulta(e.target.value)} max={new Date().toISOString().split('T')[0]} />
+                            </div>
+                            <button onClick={manejarConsultaDiaria} disabled={buscandoRecaudacion} className="btn btn--primary">{buscandoRecaudacion ? 'Consultando...' : 'Ver Ingresos'}</button>
+                            <button onClick={exportarCSV} className="btn btn--ghost">📥 Exportar Reporte CSV</button>
                           </div>
-                          <div style={{background: 'rgba(245, 158, 11, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)'}}>
-                            <span style={{fontSize: '12px', fontWeight: 700, color: '#B45309', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Pago Notificación</span>
-                            <p style={{fontSize: '32px', fontWeight: 800, color: '#B45309', margin: '12px 0 4px 0', fontFamily: 'Montserrat, sans-serif'}}>${calcNotificacion.toLocaleString('es-AR')}</p>
-                            <span style={{fontSize: '11px', color: '#B45309', opacity: 0.8, fontWeight: 600}}>Incluye $5.000 de gastos admin.</span>
+
+                          {!buscandoRecaudacion && (
+                            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px'}}>
+                              <div style={{background: 'rgba(16, 185, 129, 0.05)', padding: '20px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)'}}>
+                                <span style={{fontSize: '11px', fontWeight: 700, color: '#047857', textTransform: 'uppercase'}}>Total Recaudado (Día)</span>
+                                <p style={{fontSize: '24px', fontWeight: 800, margin: '4px 0 0 0', color: '#047857'}}>${recaudadoTotalDia.toLocaleString('es-AR')}</p>
+                              </div>
+                              <div style={{background: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid var(--linea)'}}>
+                                <span style={{fontSize: '11px', fontWeight: 700, color: 'var(--tinta-suave)', textTransform: 'uppercase'}}>Por Ventanilla (Efectivo)</span>
+                                <p style={{fontSize: '20px', fontWeight: 700, margin: '4px 0 0 0', color: 'var(--tinta)'}}>${recaudadoEfectivo.toLocaleString('es-AR')}</p>
+                              </div>
+                              <div style={{background: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid var(--linea)'}}>
+                                <span style={{fontSize: '11px', fontWeight: 700, color: 'var(--tinta-suave)', textTransform: 'uppercase'}}>Por Transferencia (Online)</span>
+                                <p style={{fontSize: '20px', fontWeight: 700, margin: '4px 0 0 0', color: 'var(--tinta)'}}>${recaudadoOnline.toLocaleString('es-AR')}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {tabBalance === 'pendientes' && (
+                        <div className="filter-grid" style={{marginBottom: 0, padding: 0, border: 'none', boxShadow: 'none'}}>
+                          <div className="field" style={{marginBottom: 0}}>
+                            <label>Búsqueda (N° Acta o Nombre)</label>
+                            <input type="text" placeholder="Ej: 0001 o Pérez..." value={filtroActaNombre} onChange={e => setFiltroActaNombre(e.target.value)} />
                           </div>
-                          <div style={{background: 'rgba(239, 68, 68, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)'}}>
-                            <span style={{fontSize: '12px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Con Sentencia (100%)</span>
-                            <p style={{fontSize: '32px', fontWeight: 800, color: '#DC2626', margin: '12px 0 0 0', fontFamily: 'Montserrat, sans-serif'}}>${calcTotal.toLocaleString('es-AR')}</p>
+                          <div className="field" style={{marginBottom: 0}}>
+                            <label>Repartición (Búsqueda)</label>
+                            <select value={filtroDireccion} onChange={e => setFiltroDireccion(e.target.value)}>
+                              <option value="">Consolidado Histórico</option>
+                              <option value="TRANSITO">Exclusivo Tránsito</option>
+                              <option value="BROMATOLOGIA">Exclusivo Bromatología</option>
+                            </select>
                           </div>
                         </div>
                       )}
                     </div>
                   )}
 
-                  {vista === 'admin_noticias' && (
-                    <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
-                      <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Emitir Nuevo Comunicado</h3>
-                      <form onSubmit={manejarCrearNoticia}>
-                        <div className="field"><label>Titular Principal</label><input type="text" name="titulo" required /></div>
-                        <div className="field"><label>Cuerpo del Comunicado</label><textarea name="contenido" rows={5} required></textarea></div>
-                        <div className="field">
-                          <label>Material Fotográfico (JPG/PNG — Máx. recomendado: 4 MB)</label>
-                          <input type="file" name="archivo" accept=".jpg, .jpeg, .png" required style={{padding: '10px'}} />
-                        </div>
-                        <button type="submit" disabled={procesando} className="btn btn--primary">{procesando ? 'Procesando...' : 'Publicar Comunicado'}</button>
-                      </form>
-                    </div>
-                  )}
-
-                  {vista === 'admin_usuarios' && (
-                    <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
-                      <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Alta de Nuevo Funcionario / Empleado</h3>
-                      <form onSubmit={manejarCrearUsuario} style={{display: 'flex', gap: '20px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}><label>Nombre y Apellido</label><input type="text" value={nuevoUsuarioNombre} onChange={(e) => setNuevoUsuarioNombre(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}><label>Casilla de Correo</label><input type="email" value={nuevoUsuarioEmail} onChange={(e) => setNuevoUsuarioEmail(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}>
-                          <label>Jerarquía / Rol en el Sistema</label>
-                          <select value={nuevoUsuarioRol} onChange={(e) => setNuevoUsuarioRol(e.target.value)}>
-                            <option value="JUEZ">Juez de Faltas</option>
-                            <option value="LETRADO">Secretario Letrado</option>
-                            <option value="CONTABLE">Contadora</option>
-                            <option value="ADMINISTRATIVO">Mesa de Entradas</option>
-                          </select>
-                        </div>
-                        <button type="submit" disabled={guardandoUsuario} className="btn btn--primary">{guardandoUsuario ? 'Registrando...' : 'Generar Credenciales'}</button>
-                      </form>
-                    </div>
-                  )}
-
+                  {/* VISTA ACTAS - LIMPIA, SOLO CARGA */}
                   {vista === 'admin_actas' && (
                     <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
                       <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Carga de Nueva Acta de Infracción</h3>
                       <form onSubmit={manejarCrearActa} style={{display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '180px'}}>
-                          <label>Repartición Emisora</label>
-                          <select value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value)} required>
-                            <option value="TRANSITO">Dirección de Tránsito</option>
-                            <option value="BROMATOLOGIA">Bromatología y Calidad de Vida</option>
-                          </select>
-                        </div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '110px'}}><label>N° Físico de Acta</label><input type="text" value={nuevoNroActa} onChange={(e) => setNuevoNroActa(e.target.value)} required /></div>
-                        
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Fecha del Hecho</label><input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} /></div>
-                        
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '160px'}}><label>Nombre del Imputado</label><input type="text" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>DNI / CUIT</label><input type="text" value={nuevoDni} onChange={(e) => setNuevoDni(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '130px'}}><label>Domicilio del Infractor</label><input type="text" value={nuevoLugar} onChange={(e) => setNuevoLugar(e.target.value)} placeholder="Opcional..." /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '90px'}}><label>Art. Infringido</label><input type="text" value={nuevoArticulo} onChange={(e) => setNuevoArticulo(e.target.value)} placeholder="Opcional..." /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Agente Interviniente</label><input type="text" value={nuevoInspector} onChange={(e) => setNuevoInspector(e.target.value)} placeholder="Opcional..." /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>Monto a Cobrar ($)</label><input type="number" value={nuevoMonto} onChange={(e) => setNuevoMonto(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '180px'}}><label>Repartición</label><select value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value)}><option value="TRANSITO">Tránsito</option><option value="BROMATOLOGIA">Bromatología</option></select></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '110px'}}><label>N° Acta</label><input type="text" value={nuevoNroActa} onChange={(e) => setNuevoNroActa(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Fecha</label><input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '160px'}}><label>Infractor</label><input type="text" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>DNI</label><input type="text" value={nuevoDni} onChange={(e) => setNuevoDni(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>Monto ($)</label><input type="number" value={nuevoMonto} onChange={(e) => setNuevoMonto(e.target.value)} required /></div>
                         <button type="submit" disabled={guardandoActa} className="btn btn--primary">{guardandoActa ? 'Procesando...' : 'Asentar Acta'}</button>
                       </form>
                     </div>
@@ -901,35 +932,75 @@ export default function JuzgadoFaltasUnificado() {
 
                   {vista === 'admin_actas' && (
                     <div className="filter-grid">
-                      <div className="field" style={{marginBottom: 0}}>
-                        <label>Búsqueda (N° Acta o Nombre)</label>
-                        <input type="text" placeholder="Ej: 0001 o Pérez..." value={filtroActaNombre} onChange={e => setFiltroActaNombre(e.target.value)} />
-                      </div>
-                      <div className="field" style={{marginBottom: 0}}><label>DNI del Titular</label><input type="text" placeholder="Buscar DNI..." value={filtroDniAdmin} onChange={e => setFiltroDniAdmin(e.target.value)} /></div>
-                      <div className="field" style={{marginBottom: 0}}>
-                        <label>Repartición (Búsqueda)</label>
-                        <select value={filtroDireccion} onChange={e => setFiltroDireccion(e.target.value)}>
-                          <option value="">Consolidado Histórico</option>
-                          <option value="TRANSITO">Exclusivo Tránsito</option>
-                          <option value="BROMATOLOGIA">Exclusivo Bromatología</option>
-                        </select>
-                      </div>
-                      <div className="field" style={{marginBottom: 0}}>
-                        <label>Estado Procesal</label>
-                        <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
-                          <option value="">Cualquier estado</option>
-                          <option value="PENDIENTE">Pendientes de resolución</option>
-                          <option value="PRESENTADO">Con descargo presentado</option>
-                          <option value="PAGADO">Finalizadas (Pagado)</option>
-                          <option value="DESISTIDO">Desistidas por regularización</option>
-                        </select>
-                      </div>
+                      <div className="field" style={{marginBottom: 0}}><label>Buscar (N° Acta o Nombre)</label><input type="text" value={filtroActaNombre} onChange={e => setFiltroActaNombre(e.target.value)} /></div>
+                      <div className="field" style={{marginBottom: 0}}><label>Estado Procesal</label><select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}><option value="">Todos</option><option value="PENDIENTE">Pendientes</option><option value="PAGADO">Pagadas</option><option value="DESISTIDO">Desistidas</option></select></div>
                     </div>
                   )}
 
+                  {/* TABLAS GENERALES */}
                   <div style={{overflowX: 'auto'}}>
-                    {cargandoAdmin ? <p style={{textAlign: 'center', padding: '60px', color: 'var(--tinta-suave)'}}>Sincronizando con la base de datos central...</p> : (
+                    {cargandoAdmin ? <p style={{textAlign: 'center', padding: '60px', color: 'var(--tinta-suave)'}}>Cargando información del servidor...</p> : (
                       <>
+                        {/* TABLA: RECAUDACION DIARIA (Solo en módulo Balance) */}
+                        {vista === 'admin_balance' && tabBalance === 'recaudacion' && (
+                          <table className="admin-table">
+                            <thead><tr><th>Hora Carga</th><th>N° Acta Vinculada</th><th>Infractor (DNI)</th><th>Monto</th><th>Medio de Ingreso</th></tr></thead>
+                            <tbody>
+                              {listaPaginada.map((item: any) => (
+                                <tr key={item.id}>
+                                  <td><strong>{new Date(item.creadoEn).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} hs</strong></td>
+                                  <td>Acta N° {item.infraccion?.nroActa || '-'}</td>
+                                  <td>{item.infraccion?.nombreTitular || '-'} ({item.infraccion?.dniTitular || '-'})</td>
+                                  <td style={{color: '#047857', fontWeight: 700}}>${item.montoInformado}</td>
+                                  <td>{item.comprobanteUrl === 'PAGO_PRESENCIAL_VENTANILLA' ? 'Efectivo (Ventanilla)' : 'Transferencia Bancaria (Online)'}</td>
+                                </tr>
+                              ))}
+                              {listaPaginada.length === 0 && (<tr><td colSpan={5} style={{textAlign: 'center', padding: '40px'}}>No hay registros de cobro en la fecha seleccionada.</td></tr>)}
+                            </tbody>
+                          </table>
+                        )}
+
+                        {/* TABLA: ACTAS GENERALES, PENDIENTES Y REINCIDENTES */}
+                        {(vista === 'admin_actas' || (vista === 'admin_balance' && tabBalance !== 'recaudacion')) && (
+                          <table className="admin-table">
+                            <thead><tr><th>N° Acta Físico</th><th>Infractor</th><th>DNI</th><th>Fecha del Hecho</th><th>Fase Procesal</th>{vista === 'admin_balance' && tabBalance === 'reincidentes' ? <th>Faltas Acumuladas</th> : <th>Monto Base</th>}<th>Acciones</th></tr></thead>
+                            <tbody>
+                              {listaPaginada.map((item: any) => (
+                                <tr key={item.id}>
+                                  <td><strong style={{fontSize: '15px'}}>{item.nroActa}</strong></td>
+                                  <td><strong style={{display: 'block', fontSize: '14px'}}>{item.nombreTitular}</strong></td>
+                                  <td style={{fontFamily: 'Montserrat, sans-serif', fontWeight: 600}}>{item.dniTitular}</td>
+                                  <td style={{fontSize: '13.5px'}}>{new Date(item.fechaInfraccion).toLocaleDateString('es-AR')}</td>
+                                  <td><span className="badge" style={{background: item.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : (item.estado === 'DESISTIDO' ? 'rgba(11, 74, 130, 0.15)' : 'rgba(16, 185, 129, 0.15)'), color: item.estado === 'PENDIENTE' ? '#B45309' : (item.estado === 'DESISTIDO' ? 'var(--azul-loreto)' : '#047857')}}>{item.estado}</span></td>
+                                  
+                                  {vista === 'admin_balance' && tabBalance === 'reincidentes' ? (
+                                    <td><span style={{background: '#DC2626', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold'}}>{item.totalActas} registradas</span></td>
+                                  ) : (
+                                    <td style={{fontWeight: 600}}>${item.monto}</td>
+                                  )}
+                                  
+                                  <td>
+                                    <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                                      {item.estado !== 'PAGADO' && item.estado !== 'SOBRESEIDO' && item.estado !== 'DESISTIDO' && (
+                                        <>
+                                          <button onClick={() => manejarCobroManual(item)} className="btn btn--success btn--sm" style={{background: '#10B981'}}>Cobrar</button>
+                                          <button onClick={() => manejarDesistimiento(item)} className="btn btn--primary btn--sm" style={{background: 'var(--azul-loreto)'}}>Desistimiento</button>
+                                        </>
+                                      )}
+                                      <button onClick={() => {
+                                        const d = new Date(item.fechaInfraccion);
+                                        setModalEditarActa({...item, fechaInfraccion_input: !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : ''});
+                                      }} className="btn btn--ghost btn--sm">Editar</button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))}
+                              {listaPaginada.length === 0 && (<tr><td colSpan={7} style={{textAlign: 'center', padding: '40px'}}>No hay resultados.</td></tr>)}
+                            </tbody>
+                          </table>
+                        )}
+
+                        {/* ... TABLAS RESTANTES (USUARIOS, NOTICIAS, DESCARGOS) INTACTAS ... */}
                         {vista === 'admin_usuarios' && (
                           <table className="admin-table">
                             <thead><tr><th>Funcionario / Contacto</th><th>Jerarquía</th><th>Estado de Cuenta</th><th>Acciones Administrativas</th></tr></thead>
@@ -968,50 +1039,6 @@ export default function JuzgadoFaltasUnificado() {
                                 </tr>
                               ))}
                               {listaPaginada.length === 0 && (<tr><td colSpan={4} style={{textAlign: 'center', padding: '40px'}}>No hay comunicados activos.</td></tr>)}
-                            </tbody>
-                          </table>
-                        )}
-
-                        {vista === 'admin_actas' && (
-                          <table className="admin-table">
-                            <thead><tr><th>N° Acta Físico</th><th>Infractor</th><th>DNI</th><th>Domicilio</th><th>Fecha del Hecho</th><th>Art. Infringido</th><th>Fase Procesal</th><th>Monto Base</th><th>Acciones</th></tr></thead>
-                            <tbody>
-                              {listaPaginada.map((item: any) => {
-                                const actasMismoOrganismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion);
-                                const esReincidente = actasMismoOrganismo.length > 1;
-
-                                return (
-                                <tr key={item.id}>
-                                  <td><strong style={{fontSize: '15px'}}>{item.nroActa}</strong></td>
-                                  <td>
-                                    <strong style={{display: 'block', fontSize: '14px'}}>{item.nombreTitular}</strong>
-                                    {esReincidente && <span style={{display: 'inline-block', marginTop: '4px', fontSize: '10px', background: '#DC2626', color: '#fff', padding: '3px 6px', borderRadius: '4px', fontWeight: 'bold', letterSpacing: '0.04em'}}>REINCIDENTE</span>}
-                                  </td>
-                                  <td style={{fontFamily: 'Montserrat, sans-serif', fontWeight: 600}}>{item.dniTitular}</td>
-                                  <td><span style={{fontSize: '13.5px', color: 'var(--tinta-suave)'}}>{item.lugar || 'No informado'}</span></td>
-                                  <td style={{fontSize: '13.5px'}}>{new Date(item.fechaInfraccion).toLocaleDateString('es-AR')}</td>
-                                  <td style={{fontSize: '13.5px'}}>{item.articulo || '-'}</td>
-                                  <td><span className="badge" style={{background: item.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : (item.estado === 'DESISTIDO' ? 'rgba(11, 74, 130, 0.15)' : 'rgba(16, 185, 129, 0.15)'), color: item.estado === 'PENDIENTE' ? '#B45309' : (item.estado === 'DESISTIDO' ? 'var(--azul-loreto)' : '#047857')}}>{item.estado}</span></td>
-                                  <td style={{fontWeight: 600}}>${item.monto}</td>
-                                  <td>
-                                    <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
-                                      {item.estado !== 'PAGADO' && item.estado !== 'SOBRESEIDO' && item.estado !== 'DESISTIDO' && (
-                                        <>
-                                          <button onClick={() => manejarCobroManual(item)} className="btn btn--success btn--sm" style={{background: '#10B981', color: '#fff', border: 'none'}}>Cobrar</button>
-                                          <button onClick={() => manejarDesistimiento(item)} className="btn btn--primary btn--sm" style={{background: 'var(--azul-loreto)', color: '#fff', border: 'none'}}>Desistimiento</button>
-                                        </>
-                                      )}
-                                      <button onClick={() => {
-                                        const d = new Date(item.fechaInfraccion);
-                                        const formatted = !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : '';
-                                        setModalEditarActa({...item, fechaInfraccion_input: formatted});
-                                      }} className="btn btn--ghost btn--sm">Editar</button>
-                                      <button onClick={() => manejarEliminarDato(item.id, 'acta')} className="btn btn--danger btn--sm">Anular</button>
-                                    </div>
-                                  </td>
-                                </tr>
-                              )})}
-                              {listaPaginada.length === 0 && (<tr><td colSpan={9} style={{textAlign: 'center', padding: '40px'}}>La búsqueda no arrojó resultados en la base de datos.</td></tr>)}
                             </tbody>
                           </table>
                         )}
@@ -1057,7 +1084,7 @@ export default function JuzgadoFaltasUnificado() {
         )}
       </main>
 
-      {/* MODAL EDITAR ACTA */}
+      {/* MODALES MANTENIDOS EXACTAMENTE IGUAL */}
       {modalEditarActa && (
         <div className="modal-overlay" onClick={() => setModalEditarActa(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '800px'}}>
@@ -1090,7 +1117,6 @@ export default function JuzgadoFaltasUnificado() {
         </div>
       )}
 
-      {/* MODAL CLAVES */}
       {modalPassword && (
         <div className="modal-overlay" onClick={() => setModalPassword(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '440px'}}>
@@ -1108,7 +1134,6 @@ export default function JuzgadoFaltasUnificado() {
         </div>
       )}
 
-      {/* MODAL EXPEDIENTE */}
       {itemModal && (
         <div className="modal-overlay" onClick={() => setItemModal(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>

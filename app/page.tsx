@@ -181,7 +181,7 @@ export default function JuzgadoFaltasUnificado() {
     if (isNaN(montoFinal) || montoFinal <= 0) return alert("Error: Debe ingresar un monto numérico válido mayor a cero.");
     if (!confirm(`¿Confirma que se ha efectuado el cobro de $${montoFinal} y desea cerrar el acta como PAGADA?`)) return;
 
-    setCargandoAdmin(true); const res = await registrarPagoManual(item.id, montoFinal);
+    setCargandoAdmin(true); const res = await registrarPagoManual(item.id, montoFinal, usuario?.nombre || "Empleado");
     if (res.success) { cargarDatosPanel('admin_actas'); } else { alert("Error al registrar cobro: " + res.error); setCargandoAdmin(false); }
   }
 
@@ -219,7 +219,7 @@ export default function JuzgadoFaltasUnificado() {
   }
 
   const auditarPago = async (estado: string) => {
-    setProcesando(true); const res = await conciliarPago(itemModal.id, estado);
+    setProcesando(true); const res = await conciliarPago(itemModal.id, estado, usuario?.nombre);
     if(!res.success) alert(res.error);
     setItemModal(null); setProcesando(false); cargarDatosPanel(vista);
   }
@@ -267,7 +267,23 @@ export default function JuzgadoFaltasUnificado() {
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   }
 
-  // Lógica Balance: Reincidentes
+  // === TOTALES GLOBALES (Para las tarjetas de resumen superior) ===
+  const totalActasCount = datosAdmin.length;
+  const actasPendientesCount = datosAdmin.filter(d => d.estado === 'PENDIENTE').length;
+  const montoRecaudadoTotal = pagosAdmin
+    .filter(p => p.estado === 'CONCILIADO')
+    .reduce((acc, p) => acc + (Number(p.montoInformado) || 0), 0);
+  
+  const dnisReincidentesGlobal = new Set();
+  datosAdmin.forEach(item => {
+    const mismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion);
+    if (mismo.length > 1) {
+      dnisReincidentesGlobal.add(item.dniTitular);
+    }
+  });
+  const reincidentesCount = dnisReincidentesGlobal.size;
+
+  // Lógica Balance: Reincidentes (Solo para la pestaña de Balance)
   const dnisReincidentes = new Set(); const actasReincidentes: any[] = [];
   if (vista === 'admin_balance' && tabBalance === 'reincidentes') {
     datosAdmin.forEach(item => {
@@ -642,8 +658,30 @@ export default function JuzgadoFaltasUnificado() {
                   <div className="section-head" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px'}}>
                     <div>
                       <p className="kicker">Panel de Administración</p>
-                      <h2>{vista === 'admin_actas' ? 'Carga y Edición de Actas' : vista === 'admin_balance' ? 'Balance General e Informes' : vista === 'admin_descargos' ? 'Auditoría Legal de Descargos' : vista === 'admin_usuarios' ? 'Gestión de Recursos Humanos' : vista === 'admin_noticias' ? 'Publicación Institucional' : vista === 'admin_calculadora' ? 'Calculadora de Multas (UEM)' : 'Conciliación Bancaria y Pagos'}</h2>
+                      <h2>{vista === 'admin_actas' ? 'Carga y Edición de Actas' : vista === 'admin_balance' ? 'Balance General e Informes' : vista === 'admin_descargos' ? 'Auditoría Legal de Descargos' : vista === 'admin_usuarios' ? 'Gestión de Recursos Humanos' : vista === 'admin_noticias' ? 'Publicación Institucional' : vista === 'admin_calculadora' ? 'Calculadora de Multas' : 'Conciliación Bancaria y Pagos'}</h2>
                     </div>
+
+                    {/* VUELVEN LAS TARJETAS DE RESUMEN A LA VISTA DE ACTAS */}
+                    {vista === 'admin_actas' && (
+                      <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
+                        <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
+                          <span style={{fontSize: '11px', fontWeight: 700, color: 'var(--azul-loreto)', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Total Actas</span>
+                          <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: 'var(--tinta)', fontFamily: 'Montserrat, sans-serif'}}>{totalActasCount}</p>
+                        </div>
+                        <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
+                          <span style={{fontSize: '11px', fontWeight: 700, color: '#B45309', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Pendientes</span>
+                          <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#B45309', fontFamily: 'Montserrat, sans-serif'}}>{actasPendientesCount}</p>
+                        </div>
+                        <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '140px'}}>
+                          <span style={{fontSize: '11px', fontWeight: 700, color: '#10B981', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Recaudación</span>
+                          <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#10B981', fontFamily: 'Montserrat, sans-serif'}}>${montoRecaudadoTotal.toLocaleString('es-AR')}</p>
+                        </div>
+                        <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
+                          <span style={{fontSize: '11px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Reincidentes</span>
+                          <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#DC2626', fontFamily: 'Montserrat, sans-serif'}}>{reincidentesCount}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   
                   {/* MODULO BALANCE NUEVO */}
@@ -706,84 +744,6 @@ export default function JuzgadoFaltasUnificado() {
                           </div>
                         </div>
                       )}
-                    </div>
-                  )}
-
-                  {/* VISTA CALCULADORA RESTAURADA */}
-                  {vista === 'admin_calculadora' && (
-                    <div style={{background: 'var(--papel)', padding: '40px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', maxWidth: '900px', margin: '0 auto'}}>
-                      <h3 style={{fontSize: '18px', marginBottom: '8px'}}>Simulador Rápido de Infracciones</h3>
-                      <p style={{fontSize: '14px', color: 'var(--tinta-suave)', marginBottom: '32px'}}>Ingrese el valor actual de la Unidad Económica Municipal y la cantidad de UEM correspondientes a la falta para obtener los montos finales.</p>
-                      
-                      <div style={{display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '32px'}}>
-                        <div className="field" style={{flex: 1, minWidth: '150px'}}>
-                          <label>Artículo (Referencia)</label>
-                          <input type="text" placeholder="Ej: Art. 45" value={calcArticulo} onChange={e => setCalcArticulo(e.target.value)} />
-                        </div>
-                        <div className="field" style={{flex: 1, minWidth: '180px'}}>
-                          <label>Valor 1 UEM ($)</label>
-                          <input type="number" placeholder="Ej: 850" value={calcUemValor} onChange={e => setCalcUemValor(e.target.value)} />
-                        </div>
-                        <div className="field" style={{flex: 1, minWidth: '180px'}}>
-                          <label>Cantidad de UEM</label>
-                          <input type="number" placeholder="Ej: 150" value={calcUemCantidad} onChange={e => setCalcUemCantidad(e.target.value)} />
-                        </div>
-                      </div>
-
-                      {calcTotal > 0 && (
-                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px'}}>
-                          <div style={{background: 'rgba(11, 74, 130, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(11, 74, 130, 0.2)'}}>
-                            <span style={{fontSize: '12px', fontWeight: 700, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Pago Voluntario (50%)</span>
-                            <p style={{fontSize: '32px', fontWeight: 800, color: 'var(--azul-loreto)', margin: '12px 0 0 0', fontFamily: 'Montserrat, sans-serif'}}>${calcVoluntario.toLocaleString('es-AR')}</p>
-                          </div>
-                          <div style={{background: 'rgba(245, 158, 11, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)'}}>
-                            <span style={{fontSize: '12px', fontWeight: 700, color: '#B45309', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Pago Notificación</span>
-                            <p style={{fontSize: '32px', fontWeight: 800, color: '#B45309', margin: '12px 0 4px 0', fontFamily: 'Montserrat, sans-serif'}}>${calcNotificacion.toLocaleString('es-AR')}</p>
-                            <span style={{fontSize: '11px', color: '#B45309', opacity: 0.8, fontWeight: 600}}>Incluye $5.000 de gastos admin.</span>
-                          </div>
-                          <div style={{background: 'rgba(239, 68, 68, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)'}}>
-                            <span style={{fontSize: '12px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Con Sentencia (100%)</span>
-                            <p style={{fontSize: '32px', fontWeight: 800, color: '#DC2626', margin: '12px 0 0 0', fontFamily: 'Montserrat, sans-serif'}}>${calcTotal.toLocaleString('es-AR')}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* VISTA NOTICIAS RESTAURADA */}
-                  {vista === 'admin_noticias' && (
-                    <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
-                      <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Emitir Nuevo Comunicado</h3>
-                      <form onSubmit={manejarCrearNoticia}>
-                        <div className="field"><label>Titular Principal</label><input type="text" name="titulo" required /></div>
-                        <div className="field"><label>Cuerpo del Comunicado</label><textarea name="contenido" rows={5} required></textarea></div>
-                        <div className="field">
-                          <label>Material Fotográfico (JPG/PNG — Máx. recomendado: 4 MB)</label>
-                          <input type="file" name="archivo" accept=".jpg, .jpeg, .png" required style={{padding: '10px'}} />
-                        </div>
-                        <button type="submit" disabled={procesando} className="btn btn--primary">{procesando ? 'Procesando...' : 'Publicar Comunicado'}</button>
-                      </form>
-                    </div>
-                  )}
-
-                  {/* VISTA USUARIOS RESTAURADA */}
-                  {vista === 'admin_usuarios' && (
-                    <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
-                      <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Alta de Nuevo Funcionario / Empleado</h3>
-                      <form onSubmit={manejarCrearUsuario} style={{display: 'flex', gap: '20px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}><label>Nombre y Apellido</label><input type="text" value={nuevoUsuarioNombre} onChange={(e) => setNuevoUsuarioNombre(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}><label>Casilla de Correo</label><input type="email" value={nuevoUsuarioEmail} onChange={(e) => setNuevoUsuarioEmail(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}>
-                          <label>Jerarquía / Rol en el Sistema</label>
-                          <select value={nuevoUsuarioRol} onChange={(e) => setNuevoUsuarioRol(e.target.value)}>
-                            <option value="JUEZ">Juez de Faltas</option>
-                            <option value="LETRADO">Secretario Letrado</option>
-                            <option value="CONTABLE">Contadora</option>
-                            <option value="ADMINISTRATIVO">Mesa de Entradas</option>
-                          </select>
-                        </div>
-                        <button type="submit" disabled={guardandoUsuario} className="btn btn--primary">{guardandoUsuario ? 'Registrando...' : 'Generar Credenciales'}</button>
-                      </form>
                     </div>
                   )}
 
@@ -906,7 +866,6 @@ export default function JuzgadoFaltasUnificado() {
                                         setModalEditarActa({...item, fechaInfraccion_input: !isNaN(d.getTime()) ? d.toISOString().split('T')[0] : ''});
                                       }} className="btn btn--ghost btn--sm">Editar</button>
                                       
-                                      {/* BOTÓN ANULAR RESTAURADO */}
                                       <button onClick={() => manejarEliminarDato(item.id, 'acta')} className="btn btn--danger btn--sm">Anular</button>
                                     </div>
                                   </td>
@@ -917,7 +876,6 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* TABLA USUARIOS */}
                         {vista === 'admin_usuarios' && (
                           <table className="admin-table">
                             <thead><tr><th>Funcionario / Contacto</th><th>Jerarquía</th><th>Estado de Cuenta</th><th>Acciones Administrativas</th></tr></thead>
@@ -943,7 +901,6 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* TABLA NOTICIAS */}
                         {vista === 'admin_noticias' && (
                           <table className="admin-table">
                             <thead><tr><th>Previsualización</th><th>Titular Emitido</th><th>Fecha de Publicación</th><th>Acción</th></tr></thead>
@@ -961,7 +918,6 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* TABLA DESCARGOS / PAGOS */}
                         {(vista === 'admin_descargos' || vista === 'admin_pagos') && (
                           <table className="admin-table">
                             <thead><tr><th>Identificador Expediente</th><th>Fase Procesal</th><th>Fecha de Ingreso</th><th>Acción de Auditoría</th></tr></thead>

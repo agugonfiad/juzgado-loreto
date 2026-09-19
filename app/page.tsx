@@ -684,10 +684,9 @@ export default function JuzgadoFaltasUnificado() {
                     )}
                   </div>
                   
-                  {/* MODULO BALANCE NUEVO */}
+                  {/* MODULO BALANCE */}
                   {vista === 'admin_balance' && (
                     <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
-                      
                       <div className="tabs">
                         <button className={tabBalance === 'pendientes' ? 'active' : ''} onClick={() => setTabBalance('pendientes')}>Actas Pendientes</button>
                         <button className={tabBalance === 'recaudacion' ? 'active' : ''} onClick={() => { setTabBalance('recaudacion'); manejarConsultaDiaria(); }}>Recaudación Diaria</button>
@@ -747,57 +746,135 @@ export default function JuzgadoFaltasUnificado() {
                     </div>
                   )}
 
-                  {/* VISTA ACTAS - Carga y buscador restaurados */}
-                  {vista === 'admin_actas' && (
+                  {/* MODULO CALCULADORA */}
+                  {vista === 'admin_calculadora' && (
+                    <div style={{background: 'var(--papel)', padding: '40px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', maxWidth: '900px', margin: '0 auto', marginBottom: '32px'}}>
+                      <h3 style={{fontSize: '18px', marginBottom: '8px'}}>Simulador Rápido de Infracciones</h3>
+                      <p style={{fontSize: '14px', color: 'var(--tinta-suave)', marginBottom: '32px'}}>Ingrese el valor actual de la Unidad Económica Municipal y la cantidad de UEM correspondientes a la falta para obtener los montos finales.</p>
+                      
+                      <div style={{display: 'flex', gap: '20px', flexWrap: 'wrap', marginBottom: '32px'}}>
+                        <div className="field" style={{flex: 1, minWidth: '150px'}}>
+                          <label>Artículo (Referencia)</label>
+                          <input type="text" placeholder="Ej: Art. 45" value={calcArticulo} onChange={e => setCalcArticulo(e.target.value)} />
+                        </div>
+                        <div className="field" style={{flex: 1, minWidth: '180px'}}>
+                          <label>Valor 1 UEM ($)</label>
+                          <input type="number" placeholder="Ej: 850" value={calcUemValor} onChange={e => setCalcUemValor(e.target.value)} />
+                        </div>
+                        <div className="field" style={{flex: 1, minWidth: '180px'}}>
+                          <label>Cantidad de UEM</label>
+                          <input type="number" placeholder="Ej: 150" value={calcUemCantidad} onChange={e => setCalcUemCantidad(e.target.value)} />
+                        </div>
+                      </div>
+
+                      {calcTotal > 0 && (
+                        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px'}}>
+                          <div style={{background: 'rgba(11, 74, 130, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(11, 74, 130, 0.2)'}}>
+                            <span style={{fontSize: '12px', fontWeight: 700, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Pago Voluntario (50%)</span>
+                            <p style={{fontSize: '32px', fontWeight: 800, color: 'var(--azul-loreto)', margin: '12px 0 0 0', fontFamily: 'Montserrat, sans-serif'}}>${calcVoluntario.toLocaleString('es-AR')}</p>
+                          </div>
+                          <div style={{background: 'rgba(245, 158, 11, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)'}}>
+                            <span style={{fontSize: '12px', fontWeight: 700, color: '#B45309', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Pago Notificación</span>
+                            <p style={{fontSize: '32px', fontWeight: 800, color: '#B45309', margin: '12px 0 4px 0', fontFamily: 'Montserrat, sans-serif'}}>${calcNotificacion.toLocaleString('es-AR')}</p>
+                            <span style={{fontSize: '11px', color: '#B45309', opacity: 0.8, fontWeight: 600}}>Incluye $5.000 de gastos admin.</span>
+                          </div>
+                          <div style={{background: 'rgba(239, 68, 68, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)'}}>
+                            <span style={{fontSize: '12px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Con Sentencia (100%)</span>
+                            <p style={{fontSize: '32px', fontWeight: 800, color: '#DC2626', margin: '12px 0 0 0', fontFamily: 'Montserrat, sans-serif'}}>${calcTotal.toLocaleString('es-AR')}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* MODULO NOTICIAS */}
+                  {vista === 'admin_noticias' && (
                     <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
-                      <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Carga de Nueva Acta de Infracción</h3>
-                      <form onSubmit={manejarCrearActa} style={{display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '180px'}}><label>Repartición</label><select value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value)}><option value="TRANSITO">Tránsito</option><option value="BROMATOLOGIA">Bromatología</option></select></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '110px'}}><label>N° Acta</label><input type="text" value={nuevoNroActa} onChange={(e) => setNuevoNroActa(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Fecha</label><input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '160px'}}><label>Infractor</label><input type="text" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>DNI</label><input type="text" value={nuevoDni} onChange={(e) => setNuevoDni(e.target.value)} required /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '130px'}}><label>Domicilio</label><input type="text" value={nuevoLugar} onChange={(e) => setNuevoLugar(e.target.value)} placeholder="Opcional..." /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '90px'}}><label>Art. Infringido</label><input type="text" value={nuevoArticulo} onChange={(e) => setNuevoArticulo(e.target.value)} placeholder="Opcional..." /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Inspector</label><input type="text" value={nuevoInspector} onChange={(e) => setNuevoInspector(e.target.value)} placeholder="Opcional..." /></div>
-                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>Monto ($)</label><input type="number" value={nuevoMonto} onChange={(e) => setNuevoMonto(e.target.value)} required /></div>
-                        <button type="submit" disabled={guardandoActa} className="btn btn--primary" style={{width: '100%'}}>{guardandoActa ? 'Procesando...' : 'Asentar Acta'}</button>
+                      <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Emitir Nuevo Comunicado</h3>
+                      <form onSubmit={manejarCrearNoticia}>
+                        <div className="field"><label>Titular Principal</label><input type="text" name="titulo" required /></div>
+                        <div className="field"><label>Cuerpo del Comunicado</label><textarea name="contenido" rows={5} required></textarea></div>
+                        <div className="field">
+                          <label>Material Fotográfico (JPG/PNG — Máx. recomendado: 4 MB)</label>
+                          <input type="file" name="archivo" accept=".jpg, .jpeg, .png" required style={{padding: '10px'}} />
+                        </div>
+                        <button type="submit" disabled={procesando} className="btn btn--primary">{procesando ? 'Procesando...' : 'Publicar Comunicado'}</button>
                       </form>
                     </div>
                   )}
 
-                  {vista === 'admin_actas' && (
-                    <div className="filter-grid">
-                      <div className="field" style={{marginBottom: 0}}>
-                        <label>Buscar (N° Acta o Nombre)</label>
-                        <input type="text" value={filtroActaNombre} onChange={e => setFiltroActaNombre(e.target.value)} placeholder="Ej: 0001 o Pérez..." />
-                      </div>
-                      <div className="field" style={{marginBottom: 0}}>
-                        <label>DNI del Titular</label>
-                        <input type="text" placeholder="Buscar DNI..." value={filtroDniAdmin} onChange={e => setFiltroDniAdmin(e.target.value)} />
-                      </div>
-                      <div className="field" style={{marginBottom: 0}}>
-                        <label>Repartición (Búsqueda)</label>
-                        <select value={filtroDireccion} onChange={e => setFiltroDireccion(e.target.value)}>
-                          <option value="">Consolidado Histórico</option>
-                          <option value="TRANSITO">Exclusivo Tránsito</option>
-                          <option value="BROMATOLOGIA">Exclusivo Bromatología</option>
-                        </select>
-                      </div>
-                      <div className="field" style={{marginBottom: 0}}>
-                        <label>Estado Procesal</label>
-                        <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
-                          <option value="">Todos</option>
-                          <option value="PENDIENTE">Pendientes</option>
-                          <option value="PRESENTADO">Con descargo</option>
-                          <option value="PAGADO">Pagadas</option>
-                          <option value="DESISTIDO">Desistidas</option>
-                        </select>
-                      </div>
+                  {/* MODULO USUARIOS */}
+                  {vista === 'admin_usuarios' && (
+                    <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
+                      <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Alta de Nuevo Funcionario / Empleado</h3>
+                      <form onSubmit={manejarCrearUsuario} style={{display: 'flex', gap: '20px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}><label>Nombre y Apellido</label><input type="text" value={nuevoUsuarioNombre} onChange={(e) => setNuevoUsuarioNombre(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}><label>Casilla de Correo</label><input type="email" value={nuevoUsuarioEmail} onChange={(e) => setNuevoUsuarioEmail(e.target.value)} required /></div>
+                        <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '200px'}}>
+                          <label>Jerarquía / Rol en el Sistema</label>
+                          <select value={nuevoUsuarioRol} onChange={(e) => setNuevoUsuarioRol(e.target.value)}>
+                            <option value="JUEZ">Juez de Faltas</option>
+                            <option value="LETRADO">Secretario Letrado</option>
+                            <option value="CONTABLE">Contadora</option>
+                            <option value="ADMINISTRATIVO">Mesa de Entradas</option>
+                          </select>
+                        </div>
+                        <button type="submit" disabled={guardandoUsuario} className="btn btn--primary">{guardandoUsuario ? 'Registrando...' : 'Generar Credenciales'}</button>
+                      </form>
                     </div>
                   )}
 
-                  {/* TABLAS GENERALES */}
+                  {/* MODULO ACTAS - CARGA Y FILTROS */}
+                  {vista === 'admin_actas' && (
+                    <>
+                      <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
+                        <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Carga de Nueva Acta de Infracción</h3>
+                        <form onSubmit={manejarCrearActa} style={{display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
+                          <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '180px'}}><label>Repartición</label><select value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value)}><option value="TRANSITO">Tránsito</option><option value="BROMATOLOGIA">Bromatología</option></select></div>
+                          <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '110px'}}><label>N° Acta</label><input type="text" value={nuevoNroActa} onChange={(e) => setNuevoNroActa(e.target.value)} required /></div>
+                          <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Fecha</label><input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} /></div>
+                          <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '160px'}}><label>Infractor</label><input type="text" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} required /></div>
+                          <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>DNI</label><input type="text" value={nuevoDni} onChange={(e) => setNuevoDni(e.target.value)} required /></div>
+                          <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '130px'}}><label>Domicilio</label><input type="text" value={nuevoLugar} onChange={(e) => setNuevoLugar(e.target.value)} placeholder="Opcional..." /></div>
+                          <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '90px'}}><label>Art. Infringido</label><input type="text" value={nuevoArticulo} onChange={(e) => setNuevoArticulo(e.target.value)} placeholder="Opcional..." /></div>
+                          <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Inspector</label><input type="text" value={nuevoInspector} onChange={(e) => setNuevoInspector(e.target.value)} placeholder="Opcional..." /></div>
+                          <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>Monto ($)</label><input type="number" value={nuevoMonto} onChange={(e) => setNuevoMonto(e.target.value)} required /></div>
+                          <button type="submit" disabled={guardandoActa} className="btn btn--primary" style={{width: '100%'}}>{guardandoActa ? 'Procesando...' : 'Asentar Acta'}</button>
+                        </form>
+                      </div>
+
+                      <div className="filter-grid">
+                        <div className="field" style={{marginBottom: 0}}>
+                          <label>Buscar (N° Acta o Nombre)</label>
+                          <input type="text" value={filtroActaNombre} onChange={e => setFiltroActaNombre(e.target.value)} placeholder="Ej: 0001 o Pérez..." />
+                        </div>
+                        <div className="field" style={{marginBottom: 0}}>
+                          <label>DNI del Titular</label>
+                          <input type="text" placeholder="Buscar DNI..." value={filtroDniAdmin} onChange={e => setFiltroDniAdmin(e.target.value)} />
+                        </div>
+                        <div className="field" style={{marginBottom: 0}}>
+                          <label>Repartición (Búsqueda)</label>
+                          <select value={filtroDireccion} onChange={e => setFiltroDireccion(e.target.value)}>
+                            <option value="">Consolidado Histórico</option>
+                            <option value="TRANSITO">Exclusivo Tránsito</option>
+                            <option value="BROMATOLOGIA">Exclusivo Bromatología</option>
+                          </select>
+                        </div>
+                        <div className="field" style={{marginBottom: 0}}>
+                          <label>Estado Procesal</label>
+                          <select value={filtroEstado} onChange={e => setFiltroEstado(e.target.value)}>
+                            <option value="">Todos</option>
+                            <option value="PENDIENTE">Pendientes</option>
+                            <option value="PRESENTADO">Con descargo</option>
+                            <option value="PAGADO">Pagadas</option>
+                            <option value="DESISTIDO">Desistidas</option>
+                          </select>
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* TABLAS GENERALES GLOBALES */}
                   <div style={{overflowX: 'auto'}}>
                     {cargandoAdmin ? <p style={{textAlign: 'center', padding: '60px', color: 'var(--tinta-suave)'}}>Cargando información del servidor...</p> : (
                       <>
@@ -876,6 +953,7 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
+                        {/* TABLA USUARIOS */}
                         {vista === 'admin_usuarios' && (
                           <table className="admin-table">
                             <thead><tr><th>Funcionario / Contacto</th><th>Jerarquía</th><th>Estado de Cuenta</th><th>Acciones Administrativas</th></tr></thead>
@@ -901,6 +979,7 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
+                        {/* TABLA NOTICIAS */}
                         {vista === 'admin_noticias' && (
                           <table className="admin-table">
                             <thead><tr><th>Previsualización</th><th>Titular Emitido</th><th>Fecha de Publicación</th><th>Acción</th></tr></thead>
@@ -918,6 +997,7 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
+                        {/* TABLA DESCARGOS / PAGOS */}
                         {(vista === 'admin_descargos' || vista === 'admin_pagos') && (
                           <table className="admin-table">
                             <thead><tr><th>Identificador Expediente</th><th>Fase Procesal</th><th>Fecha de Ingreso</th><th>Acción de Auditoría</th></tr></thead>

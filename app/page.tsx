@@ -409,22 +409,22 @@ export default function JuzgadoFaltasUnificado() {
 
       <header className="site">
         <div className="wrap nav-row">
-          <a className="brand" href="#" onClick={(e) => { e.preventDefault(); setVista('publica'); setMenuAbierto(false); }}>
-            <img src="/logojdf.png" alt="Logo Juzgado" className="brand__logo" />
-            <span className="brand__text"><span className="eyebrow">Municipalidad de Loreto</span><strong>Juzgado de Faltas</strong></span>
-          </a>
+          <a className="brand flex items-center gap-3" href="#" onClick={(e) => { e.preventDefault(); setVista('publica'); setMenuAbierto(false); }}>
+  <img src="/logojdf.png" alt="Logo Juzgado" className="brand__logo flex-shrink-0" />
+  <span className="brand__text"><span className="eyebrow">Municipalidad de Loreto</span><strong>Juzgado de Faltas</strong></span>
+</a>
           <button className="menu-toggle" onClick={() => setMenuAbierto(!menuAbierto)}>{menuAbierto ? '✖' : '☰'}</button>
 
           {vista === 'publica' ? (
             <nav className={`primary ${menuAbierto ? 'abierto' : ''}`}>
-              <ul>
-                <li><a href="#inicio" onClick={() => setMenuAbierto(false)}>Inicio</a></li>
-                <li><a href="#consulta" onClick={() => setMenuAbierto(false)}>Trámites Online</a></li>
-                <li><a href="#autoridades" onClick={() => setMenuAbierto(false)}>Autoridades</a></li>
-                <li><a href="#normativa" onClick={() => setMenuAbierto(false)}>Normativa</a></li>
-                <li><a href="#noticias" onClick={() => setMenuAbierto(false)}>Noticias</a></li>
-              </ul>
-            </nav>
+  <ul className="pl-6 lg:pl-0">
+    <li><a href="#inicio" onClick={() => setMenuAbierto(false)}>Inicio</a></li>
+    <li><a href="#consulta" onClick={() => setMenuAbierto(false)}>Trámites Online</a></li>
+    <li><a href="#autoridades" onClick={() => setMenuAbierto(false)}>Autoridades</a></li>
+    <li><a href="#normativa" onClick={() => setMenuAbierto(false)}>Normativa</a></li>
+    <li><a href="#noticias" onClick={() => setMenuAbierto(false)}>Noticias</a></li>
+  </ul>
+</nav>
           ) : (
             <nav className={`primary ${menuAbierto ? 'abierto' : ''}`}>
               {autenticado && (

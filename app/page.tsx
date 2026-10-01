@@ -394,8 +394,8 @@ export default function JuzgadoFaltasUnificado() {
         .field input:focus, .field textarea:focus, .field select:focus { outline: none; border-color: var(--celeste-loreto); }
         .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; align-items: end; background: var(--papel); padding: 24px; border-radius: var(--radius-m); border: 1px solid var(--linea); margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
         .admin-table { width: 100%; text-align: left; border-collapse: collapse; background: #fff; border-radius: var(--radius-m); overflow: hidden; border: 1px solid var(--linea); box-shadow: 0 4px 12px rgba(0,0,0,0.03); } 
-        .admin-table th { background: var(--papel-alto); padding: 18px 20px; font-weight: 700; border-bottom: 2px solid var(--linea); font-size: 13px; color: var(--azul-loreto); font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 0.04em; } 
-        .admin-table td { padding: 18px 20px; border-bottom: 1px solid var(--linea); font-size: 14.5px; } 
+        .admin-table th { background: var(--papel-alto); padding: 12px 10px; font-weight: 700; border-bottom: 2px solid var(--linea); font-size: 12.5px; color: var(--azul-loreto); font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 0.04em; } 
+        .admin-table td { padding: 12px 10px; border-bottom: 1px solid var(--linea); font-size: 13.5px; } 
         .badge { padding: 6px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; font-family: 'Montserrat', sans-serif; text-transform: uppercase; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(11, 74, 130, 0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; } 
         .modal-content { background: var(--papel); padding: 40px; border-radius: var(--radius-m); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.15); border: 1px solid var(--linea); }
@@ -693,7 +693,7 @@ export default function JuzgadoFaltasUnificado() {
 
         {vista !== 'publica' && (
           <section style={{background: 'var(--papel-alto)', minHeight: '60vh'}}>
-            <div className="wrap">
+            <div className="wrap" style={{ maxWidth: '96%' }}>
               {!autenticado ? (
                 <div style={{maxWidth: '400px', margin: '0 auto', background: 'var(--papel)', padding: '48px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', boxShadow: '0 8px 24px rgba(0,0,0,0.04)'}}>
                   <div style={{textAlign: 'center', marginBottom: '32px'}}>
@@ -980,7 +980,7 @@ export default function JuzgadoFaltasUnificado() {
                                       {item.estado !== 'PAGADO' && item.estado !== 'SOBRESEIDO' && item.estado !== 'DESISTIDO' && (
                                         <>
                                           <button onClick={() => manejarCobroManual(item)} className="btn btn--success btn--sm" style={{background: '#10B981'}}>Cobrar</button>
-                                          <button onClick={() => manejarDesistimiento(item)} className="btn btn--primary btn--sm" style={{background: 'var(--azul-loreto)'}}>Desistimiento</button>
+                                          <button onClick={() => manejarDesistimiento(item)} className="btn btn--primary btn--sm" style={{background: 'var(--azul-loreto)'}}>Desistir</button>
                                         </>
                                       )}
                                       <button onClick={() => {

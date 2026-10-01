@@ -484,8 +484,24 @@ export default function JuzgadoFaltasUnificado() {
                   
                   <div className="consulta-form">
                     <form onSubmit={manejarBusqueda}>
-                      <div className="field"><label>Número de Documento (DNI / CUIT)</label><input type="text" value={dni} onChange={(e) => setDni(e.target.value)} placeholder="Ej: 35123456 (sin puntos)" required /></div>
-                      <button type="submit" disabled={buscando} className="btn btn--primary btn--block" style={{padding: '14px', fontSize: '15px'}}>{buscando ? 'Consultando base de datos...' : 'Consultar Infracciones y Trámites'}</button>
+                      <div className="mb-6">
+  <label className="block text-[13px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Número de Documento (DNI / CUIT)</label>
+  <input 
+    type="text" 
+    value={dni} 
+    onChange={(e) => setDni(e.target.value)} 
+    placeholder="Ej: 35123456 (sin puntos)" 
+    required 
+    className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 transition-all duration-300 outline-none focus:bg-white focus:border-[#00B2D6] focus:ring-4 focus:ring-[#00B2D6]/20 hover:border-gray-300 shadow-inner"
+  />
+</div>
+<button 
+  type="submit" 
+  disabled={buscando} 
+  className="w-full bg-[#0B4A82] hover:bg-[#083863] text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-[0_4px_14px_0_rgba(11,74,130,0.39)] hover:shadow-[0_6px_20px_rgba(11,74,130,0.23)] hover:-translate-y-0.5 disabled:opacity-70 disabled:transform-none"
+>
+  {buscando ? 'Consultando base de datos...' : 'Consultar Infracciones y Trámites'}
+</button>
                     </form>
                     {mensaje && <p style={{marginTop: '16px', fontSize: '14.5px', color: 'var(--rojo-loreto)', fontWeight: 500, textAlign: 'center'}}>{mensaje}</p>}
                     

@@ -503,6 +503,19 @@ export default function JuzgadoFaltasUnificado() {
   {buscando ? 'Consultando base de datos...' : 'Consultar Infracciones y Trámites'}
 </button>
                     </form>
+                    {/* Skeleton Loader: Efecto de carga profesional */}
+{buscando && (
+  <div className="mt-8 border-t-2 border-gray-100 pt-6 animate-pulse">
+    <div className="h-4 bg-gray-200 rounded w-48 mb-6"></div>
+    <div className="p-5 border-l-4 border-gray-300 bg-gray-50 mb-4 rounded-r-lg border-y border-r border-gray-100">
+      <div className="h-3 bg-gray-200 rounded w-32 mb-3"></div>
+      <div className="h-5 bg-gray-200 rounded w-48 mb-5"></div>
+      <div className="flex gap-3">
+        <div className="h-8 bg-gray-200 rounded w-28"></div>
+      </div>
+    </div>
+  </div>
+)}
                     {mensaje && <p style={{marginTop: '16px', fontSize: '14.5px', color: 'var(--rojo-loreto)', fontWeight: 500, textAlign: 'center'}}>{mensaje}</p>}
                     
                     {resultados.length > 0 && (

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano, procesarNoticia } from "./actions/subidas"
 import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearClave, registrarPagoManual, desistirActa, obtenerRecaudacionDiaria } from "./actions/admin"
@@ -32,6 +33,9 @@ export default function JuzgadoFaltasUnificado() {
   const [mensaje, setMensaje] = useState("")
   const [tramiteActivo, setTramiteActivo] = useState<{ id: string, tipo: 'pago' | 'descargo' } | null>(null)
   const [enviando, setEnviando] = useState(false)
+  
+  // Nuevo Estado para la Notificación Premium
+  const [alertaNotificacion, setAlertaNotificacion] = useState<{titulo: string, mensaje: string, tipo: 'exito' | 'error'} | null>(null)
 
   // Estados Reporte Diario
   const [fechaConsulta, setFechaConsulta] = useState(new Date().toISOString().split('T')[0])
@@ -92,6 +96,7 @@ export default function JuzgadoFaltasUnificado() {
     setBuscando(false)
   }
 
+  // Lógica actualizada para usar la Alerta Premium en lugar de alert() nativo
   const manejarEnvioTramite = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); 
     setEnviando(true);
@@ -99,10 +104,20 @@ export default function JuzgadoFaltasUnificado() {
       const formData = new FormData(e.currentTarget);
       const respuesta = await procesarTramiteCiudadano(formData);
       if (respuesta.success) {
-        if (respuesta.expedienteNro) { alert(respuesta.esExtemporaneo ? `Trámite EXTEMPORÁNEO.\nExpediente: ${respuesta.expedienteNro}` : `¡Descargo presentado!\nExpediente: ${respuesta.expedienteNro}`); } else { alert("¡Trámite de pago enviado con éxito!"); }
+        if (respuesta.expedienteNro) { 
+          setAlertaNotificacion({ titulo: respuesta.esExtemporaneo ? 'Trámite Extemporáneo' : '¡Descargo Presentado!', mensaje: `Su número de expediente es: ${respuesta.expedienteNro}`, tipo: 'exito' }); 
+        } else { 
+          setAlertaNotificacion({ titulo: '¡Pago Informado!', mensaje: 'El comprobante ha sido enviado con éxito y está pendiente de conciliación bancaria.', tipo: 'exito' }); 
+        }
         setTramiteActivo(null); manejarBusqueda(new Event('submit') as any);
-      } else { alert("Error del servidor: " + respuesta.error); }
-    } catch (error: any) { alert("Error de red."); } finally { setEnviando(false); }
+      } else { 
+        setAlertaNotificacion({ titulo: 'No se pudo procesar', mensaje: respuesta.error, tipo: 'error' }); 
+      }
+    } catch (error: any) { 
+      setAlertaNotificacion({ titulo: 'Error de conexión', mensaje: 'Revise su conexión a internet e intente nuevamente.', tipo: 'error' }); 
+    } finally { 
+      setEnviando(false); 
+    }
   }
 
   const procesarLogin = async (e: React.FormEvent) => {
@@ -212,7 +227,7 @@ export default function JuzgadoFaltasUnificado() {
   }
 
   const auditarDescargo = async (estado: string) => {
-    if (estado === 'RECHAZADO' && !textoResolucion) return alert("Debe justificar el rechazo.")
+    if (estado === 'RECHAZADO' && !textoResolucion) return alert("Debe justifyicar el rechazo.")
     setProcesando(true); const res = await resolverDescargo(itemModal.id, estado, textoResolucion);
     if(!res.success) alert(res.error);
     setItemModal(null); setTextoResolucion(""); setProcesando(false); cargarDatosPanel(vista);
@@ -412,21 +427,21 @@ export default function JuzgadoFaltasUnificado() {
       <header className="site">
         <div className="wrap nav-row">
           <a className="brand flex items-center gap-3" href="#" onClick={(e) => { e.preventDefault(); setVista('publica'); setMenuAbierto(false); }}>
-  <img src="/logojdf.png" alt="Logo Juzgado" className="brand__logo flex-shrink-0" />
-  <span className="brand__text"><span className="eyebrow">Municipalidad de Loreto</span><strong>Juzgado de Faltas</strong></span>
-</a>
+            <img src="/logojdf.png" alt="Logo Juzgado" className="brand__logo flex-shrink-0" />
+            <span className="brand__text"><span className="eyebrow">Municipalidad de Loreto</span><strong>Juzgado de Faltas</strong></span>
+          </a>
           <button className="menu-toggle" onClick={() => setMenuAbierto(!menuAbierto)}>{menuAbierto ? '✖' : '☰'}</button>
 
           {vista === 'publica' ? (
             <nav className={`primary ${menuAbierto ? 'abierto' : ''}`}>
-  <ul className="pl-6 lg:pl-0">
-    <li><a href="#inicio" onClick={() => setMenuAbierto(false)}>Inicio</a></li>
-    <li><a href="#consulta" onClick={() => setMenuAbierto(false)}>Trámites Online</a></li>
-    <li><a href="#autoridades" onClick={() => setMenuAbierto(false)}>Autoridades</a></li>
-    <li><a href="#normativa" onClick={() => setMenuAbierto(false)}>Normativa</a></li>
-    <li><a href="#noticias" onClick={() => setMenuAbierto(false)}>Noticias</a></li>
-  </ul>
-</nav>
+              <ul className="pl-6 lg:pl-0">
+                <li><a href="#inicio" onClick={() => setMenuAbierto(false)}>Inicio</a></li>
+                <li><a href="#consulta" onClick={() => setMenuAbierto(false)}>Trámites Online</a></li>
+                <li><a href="#autoridades" onClick={() => setMenuAbierto(false)}>Autoridades</a></li>
+                <li><a href="#normativa" onClick={() => setMenuAbierto(false)}>Normativa</a></li>
+                <li><a href="#noticias" onClick={() => setMenuAbierto(false)}>Noticias</a></li>
+              </ul>
+            </nav>
           ) : (
             <nav className={`primary ${menuAbierto ? 'abierto' : ''}`}>
               {autenticado && (
@@ -487,37 +502,39 @@ export default function JuzgadoFaltasUnificado() {
                   <div className="consulta-form">
                     <form onSubmit={manejarBusqueda}>
                       <div className="mb-6">
-  <label className="block text-[13px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Número de Documento (DNI / CUIT)</label>
-  <input 
-    type="text" 
-    value={dni} 
-    onChange={(e) => setDni(e.target.value)} 
-    placeholder="Ej: 35123456 (sin puntos)" 
-    required 
-    className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 transition-all duration-300 outline-none focus:bg-white focus:border-[#00B2D6] focus:ring-4 focus:ring-[#00B2D6]/20 hover:border-gray-300 shadow-inner"
-  />
-</div>
-<button 
-  type="submit" 
-  disabled={buscando} 
-  className="w-full bg-[#0B4A82] hover:bg-[#083863] text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-[0_4px_14px_0_rgba(11,74,130,0.39)] hover:shadow-[0_6px_20px_rgba(11,74,130,0.23)] hover:-translate-y-0.5 disabled:opacity-70 disabled:transform-none"
->
-  {buscando ? 'Consultando base de datos...' : 'Consultar Infracciones y Trámites'}
-</button>
+                        <label className="block text-[13px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Número de Documento (DNI / CUIT)</label>
+                        <input 
+                          type="text" 
+                          value={dni} 
+                          onChange={(e) => setDni(e.target.value)} 
+                          placeholder="Ej: 35123456 (sin puntos)" 
+                          required 
+                          className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 transition-all duration-300 outline-none focus:bg-white focus:border-[#00B2D6] focus:ring-4 focus:ring-[#00B2D6]/20 hover:border-gray-300 shadow-inner"
+                        />
+                      </div>
+                      <button 
+                        type="submit" 
+                        disabled={buscando} 
+                        className="w-full bg-[#0B4A82] hover:bg-[#083863] text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-[0_4px_14px_0_rgba(11,74,130,0.39)] hover:shadow-[0_6px_20px_rgba(11,74,130,0.23)] hover:-translate-y-0.5 disabled:opacity-70 disabled:transform-none"
+                      >
+                        {buscando ? 'Consultando base de datos...' : 'Consultar Infracciones y Trámites'}
+                      </button>
                     </form>
-                    {/* Skeleton Loader: Efecto de carga profesional */}
-{buscando && (
-  <div className="mt-8 border-t-2 border-gray-100 pt-6 animate-pulse">
-    <div className="h-4 bg-gray-200 rounded w-48 mb-6"></div>
-    <div className="p-5 border-l-4 border-gray-300 bg-gray-50 mb-4 rounded-r-lg border-y border-r border-gray-100">
-      <div className="h-3 bg-gray-200 rounded w-32 mb-3"></div>
-      <div className="h-5 bg-gray-200 rounded w-48 mb-5"></div>
-      <div className="flex gap-3">
-        <div className="h-8 bg-gray-200 rounded w-28"></div>
-      </div>
-    </div>
-  </div>
-)}
+
+                    {/* Skeleton Loader Premium */}
+                    {buscando && (
+                      <div className="mt-8 border-t-2 border-gray-100 pt-6 animate-pulse">
+                        <div className="h-4 bg-gray-200 rounded w-48 mb-6"></div>
+                        <div className="p-5 border-l-4 border-gray-300 bg-gray-50 mb-4 rounded-r-lg border-y border-r border-gray-100">
+                          <div className="h-3 bg-gray-200 rounded w-32 mb-3"></div>
+                          <div className="h-5 bg-gray-200 rounded w-48 mb-5"></div>
+                          <div className="flex gap-3">
+                            <div className="h-8 bg-gray-200 rounded w-28"></div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {mensaje && <p style={{marginTop: '16px', fontSize: '14.5px', color: 'var(--rojo-loreto)', fontWeight: 500, textAlign: 'center'}}>{mensaje}</p>}
                     
                     {resultados.length > 0 && (
@@ -646,7 +663,13 @@ export default function JuzgadoFaltasUnificado() {
                       </div>
                     ))}
                   </div>
-                  {noticiasPublicas.length > 3 && (<div style={{textAlign: 'center', marginTop: '56px'}}><button className="btn btn--ghost">Ver histórico de noticias</button></div>)}
+                  {noticiasPublicas.length > 3 && (
+                    <div style={{textAlign: 'center', marginTop: '56px'}}>
+                      <Link href="/noticias" className="btn btn--ghost">
+                        Ver histórico de noticias
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </section>
             )}
@@ -692,7 +715,6 @@ export default function JuzgadoFaltasUnificado() {
                       <h2>{vista === 'admin_actas' ? 'Carga y Edición de Actas' : vista === 'admin_balance' ? 'Balance General e Informes' : vista === 'admin_descargos' ? 'Auditoría Legal de Descargos' : vista === 'admin_usuarios' ? 'Gestión de Recursos Humanos' : vista === 'admin_noticias' ? 'Publicación Institucional' : vista === 'admin_calculadora' ? 'Calculadora de Multas' : 'Conciliación Bancaria y Pagos'}</h2>
                     </div>
 
-                    {/* VUELVEN LAS TARJETAS DE RESUMEN A LA VISTA DE ACTAS */}
                     {vista === 'admin_actas' && (
                       <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
                         <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
@@ -715,7 +737,6 @@ export default function JuzgadoFaltasUnificado() {
                     )}
                   </div>
                   
-                  {/* MODULO BALANCE */}
                   {vista === 'admin_balance' && (
                     <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
                       <div className="tabs">
@@ -777,7 +798,6 @@ export default function JuzgadoFaltasUnificado() {
                     </div>
                   )}
 
-                  {/* MODULO CALCULADORA */}
                   {vista === 'admin_calculadora' && (
                     <div style={{background: 'var(--papel)', padding: '40px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)', maxWidth: '900px', margin: '0 auto', marginBottom: '32px'}}>
                       <h3 style={{fontSize: '18px', marginBottom: '8px'}}>Simulador Rápido de Infracciones</h3>
@@ -818,7 +838,6 @@ export default function JuzgadoFaltasUnificado() {
                     </div>
                   )}
 
-                  {/* MODULO NOTICIAS */}
                   {vista === 'admin_noticias' && (
                     <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
                       <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Emitir Nuevo Comunicado</h3>
@@ -834,7 +853,6 @@ export default function JuzgadoFaltasUnificado() {
                     </div>
                   )}
 
-                  {/* MODULO USUARIOS */}
                   {vista === 'admin_usuarios' && (
                     <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
                       <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Alta de Nuevo Funcionario / Empleado</h3>
@@ -855,7 +873,6 @@ export default function JuzgadoFaltasUnificado() {
                     </div>
                   )}
 
-                  {/* MODULO ACTAS - CARGA Y FILTROS */}
                   {vista === 'admin_actas' && (
                     <>
                       <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
@@ -905,11 +922,9 @@ export default function JuzgadoFaltasUnificado() {
                     </>
                   )}
 
-                  {/* TABLAS GENERALES GLOBALES */}
                   <div style={{overflowX: 'auto'}}>
                     {cargandoAdmin ? <p style={{textAlign: 'center', padding: '60px', color: 'var(--tinta-suave)'}}>Cargando información del servidor...</p> : (
                       <>
-                        {/* TABLA: RECAUDACION DIARIA (Solo en módulo Balance) */}
                         {vista === 'admin_balance' && tabBalance === 'recaudacion' && (
                           <table className="admin-table">
                             <thead><tr><th>Hora Carga</th><th>N° Acta Vinculada</th><th>Infractor (DNI)</th><th>Monto</th><th>Medio de Ingreso</th></tr></thead>
@@ -928,7 +943,6 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* TABLA: ACTAS GENERALES, PENDIENTES Y REINCIDENTES */}
                         {(vista === 'admin_actas' || (vista === 'admin_balance' && tabBalance !== 'recaudacion')) && (
                           <table className="admin-table">
                             <thead>
@@ -984,7 +998,6 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* TABLA USUARIOS */}
                         {vista === 'admin_usuarios' && (
                           <table className="admin-table">
                             <thead><tr><th>Funcionario / Contacto</th><th>Jerarquía</th><th>Estado de Cuenta</th><th>Acciones Administrativas</th></tr></thead>
@@ -1010,7 +1023,6 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* TABLA NOTICIAS */}
                         {vista === 'admin_noticias' && (
                           <table className="admin-table">
                             <thead><tr><th>Previsualización</th><th>Titular Emitido</th><th>Fecha de Publicación</th><th>Acción</th></tr></thead>
@@ -1028,7 +1040,6 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* TABLA DESCARGOS / PAGOS */}
                         {(vista === 'admin_descargos' || vista === 'admin_pagos') && (
                           <table className="admin-table">
                             <thead><tr><th>Identificador Expediente</th><th>Fase Procesal</th><th>Fecha de Ingreso</th><th>Acción de Auditoría</th></tr></thead>
@@ -1048,7 +1059,6 @@ export default function JuzgadoFaltasUnificado() {
                           </table>
                         )}
 
-                        {/* PAGINACIÓN */}
                         {totalPaginas > 1 && vista !== 'admin_calculadora' && (
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'var(--papel-alto)', borderTop: '1px solid var(--linea)', borderBottomLeftRadius: 'var(--radius-m)', borderBottomRightRadius: 'var(--radius-m)', flexWrap: 'wrap', gap: '10px' }}>
                             <span style={{ fontSize: '13px', color: 'var(--tinta-suave)' }}>
@@ -1071,7 +1081,6 @@ export default function JuzgadoFaltasUnificado() {
         )}
       </main>
 
-      {/* MODAL EDITAR ACTA */}
       {modalEditarActa && (
         <div className="modal-overlay" onClick={() => setModalEditarActa(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '800px'}}>
@@ -1170,6 +1179,33 @@ export default function JuzgadoFaltasUnificado() {
               <p style={{textAlign: 'center', color: 'var(--tinta-suave)', fontWeight: 600, fontSize: '15px'}}>El presente expediente se encuentra con resolución firme.</p>
             )}
             <button onClick={() => setItemModal(null)} className="btn btn--ghost btn--block" style={{marginTop: '24px', border: 'none', background: 'var(--papel-alto)'}}>Volver a la bandeja</button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Notificación Premium */}
+      {alertaNotificacion && (
+        <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-[#0B4A82]/40 backdrop-blur-sm p-4 transition-opacity">
+          <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-[0_20px_50px_rgba(0,0,0,0.15)] transform transition-all translate-y-0 scale-100">
+            <div className={`mx-auto flex items-center justify-center h-16 w-16 rounded-full mb-5 ${alertaNotificacion.tipo === 'exito' ? 'bg-emerald-100' : 'bg-red-100'}`}>
+              {alertaNotificacion.tipo === 'exito' ? (
+                <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+              ) : (
+                <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+              )}
+            </div>
+            <h3 className="text-[20px] font-extrabold text-[#0B4A82] mb-2 font-['Montserrat'] leading-tight">
+              {alertaNotificacion.titulo}
+            </h3>
+            <p className="text-[14.5px] text-[#495057] mb-8 leading-relaxed">
+              {alertaNotificacion.mensaje}
+            </p>
+            <button 
+              onClick={() => setAlertaNotificacion(null)} 
+              className="w-full bg-[#0B4A82] hover:bg-[#083863] text-white font-bold py-3 px-4 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg"
+            >
+              Entendido
+            </button>
           </div>
         </div>
       )}

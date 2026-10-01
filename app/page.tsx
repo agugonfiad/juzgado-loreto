@@ -360,12 +360,14 @@ export default function JuzgadoFaltasUnificado() {
         .art-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--linea); border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; } 
         .art-card { background: var(--papel); padding: 32px 24px; } .art-card h3 { font-size: 16px; font-weight: 700; } .art-card p { font-size: 14.5px; color: var(--tinta-suave); margin: 0; }
         .autoridades-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-        .autoridad-card { background: var(--papel); padding: 32px; border-radius: var(--radius-m); border: 1px solid var(--linea); box-shadow: 0 2px 12px rgba(0,0,0,0.02); text-align: center; border-top: 4px solid var(--azul-loreto); }
+        .autoridad-card { background: var(--papel); padding: 32px; border-radius: var(--radius-m); border: 1px solid var(--linea); box-shadow: 0 2px 10px rgba(0,0,0,0.02); text-align: center; border-top: 4px solid var(--azul-loreto); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .autoridad-card:hover { transform: translateY(-6px); box-shadow: 0 20px 25px -5px rgba(11,74,130,0.08), 0 10px 10px -5px rgba(11,74,130,0.04); border-color: rgba(11,74,130,0.15); }
         .autoridad-card.principal { border-top-color: var(--celeste-loreto); background: radial-gradient(circle at top, rgba(0,178,214,0.04), transparent 70%), var(--papel); }
         .autoridad-card span { font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); display: block; margin-bottom: 10px; font-weight: 700; }
         .autoridad-card h3 { font-size: 18px; color: var(--azul-loreto); margin: 0; font-weight: 700; }
         .news-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; } 
-        .news-card { background: var(--papel); padding: 24px; border-radius: var(--radius-m); border: 1px solid var(--linea); box-shadow: 0 4px 16px rgba(0,0,0,0.03); }
+        .news-card { background: var(--papel); padding: 24px; border-radius: var(--radius-m); border: 1px solid var(--linea); box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: default; }
+        .news-card:hover { transform: translateY(-6px); box-shadow: 0 20px 25px -5px rgba(11,74,130,0.08); border-color: rgba(11,74,130,0.15); }
         .news-card img { width: 100%; aspect-ratio: 3/2; object-fit: cover; margin-bottom: 16px; border-radius: 6px; } 
         .news-card h3 { font-size: 16px; text-transform: uppercase; color: var(--azul-loreto); line-height: 1.4; font-weight: 800; letter-spacing: 0.02em; margin-bottom: 10px; }
         .news-card p { font-size: 14.5px; color: var(--tinta-suave); line-height: 1.6; white-space: pre-wrap; margin: 0; }

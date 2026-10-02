@@ -697,7 +697,7 @@ export default function JuzgadoFaltasUnificado() {
               {!autenticado ? (
                 <div style={{maxWidth: '400px', margin: '0 auto', background: 'var(--papel)', padding: '48px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', boxShadow: '0 8px 24px rgba(0,0,0,0.04)'}}>
                   <div style={{textAlign: 'center', marginBottom: '32px'}}>
-                    <img src="/logojdf.png" alt="Logo" style={{height: '60px', marginBottom: '16px'}} />
+                    <img src="/logojdf.png" alt="Logo" style={{height: '60px', display: 'block', margin: '0 auto 16px auto'}} />
                     <h2 style={{fontSize: '22px', margin: 0}}>Acceso Restringido</h2>
                     <p style={{fontSize: '14px', color: 'var(--tinta-suave)', margin: '8px 0 0 0'}}>Plataforma exclusiva para personal del Juzgado.</p>
                   </div>

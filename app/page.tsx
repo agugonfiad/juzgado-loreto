@@ -419,7 +419,7 @@ export default function JuzgadoFaltasUnificado() {
 
       <div className="topbar">
         <div className="wrap">
-          <div><span className="topbar__item">🕗 Lun. a Vie. 07:00 a 13:00 y 16:00 a 20:00 hs</span><span className="topbar__item">☎ <a href="tel:+5493854743310">385 474-3310</a></span></div>
+          <div><span className="topbar__item">🕗 Lun. a Vie. 07:00 a 13:00 y 16:00 a 20:00 hs</span><span className="topbar__item">💬 <a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310 (WhatsApp)</a></span>
           <div><span className="topbar__item"><a href="#contacto">Contacto</a></span></div>
         </div>
       </div>
@@ -680,7 +680,7 @@ export default function JuzgadoFaltasUnificado() {
                 <div className="contacto-grid">
                   <ul className="contacto-list">
                     <li><span className="ico">📍</span><div><strong>Dirección Física</strong><span>Isla Soledad S/N, Bº Islas Malvinas<br/>Loreto, Santiago del Estero</span></div></li>
-                    <li><span className="ico">☎</span><div><strong>Línea de Atención</strong><a href="tel:+5493854743310">385 474-3310</a></div></li>
+                    <li><span className="ico">💬</span><div><strong>Atención por WhatsApp</strong><a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310</a></div></li>
                     <li><span className="ico">📧</span><div><strong>Mesa de Entradas Virtual</strong><a href="mailto:juzgadodefaltasloreto@outlook.com">juzgadodefaltasloreto@outlook.com</a></div></li>
                     <li><span className="ico">🕗</span><div><strong>Horario de Recepción</strong><span>Lunes a Viernes<br/>07:00 a 13:00 hs y 16:00 a 20:00 hs</span></div></li>
                   </ul>

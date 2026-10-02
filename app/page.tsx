@@ -34,26 +34,21 @@ export default function JuzgadoFaltasUnificado() {
   const [tramiteActivo, setTramiteActivo] = useState<{ id: string, tipo: 'pago' | 'descargo' } | null>(null)
   const [enviando, setEnviando] = useState(false)
   
-  // Nuevo Estado para la Notificación Premium
   const [alertaNotificacion, setAlertaNotificacion] = useState<{titulo: string, mensaje: string, tipo: 'exito' | 'error'} | null>(null)
 
-  // Estados Reporte Diario
   const [fechaConsulta, setFechaConsulta] = useState(new Date().toISOString().split('T')[0])
   const [recaudacionDelDia, setRecaudacionDelDia] = useState<any[]>([])
   const [buscandoRecaudacion, setBuscandoRecaudacion] = useState(false)
 
-  // Estados Formularios Carga
   const [nuevoNroActa, setNuevoNroActa] = useState(""); const [nuevoNombre, setNuevoNombre] = useState(""); const [nuevoDni, setNuevoDni] = useState(""); const [nuevoLugar, setNuevoLugar] = useState(""); const [nuevoArticulo, setNuevoArticulo] = useState(""); const [nuevoInspector, setNuevoInspector] = useState(""); const [nuevoMonto, setNuevoMonto] = useState(""); const [nuevoTipo, setNuevoTipo] = useState("TRANSITO"); const [nuevaFecha, setNuevaFecha] = useState(""); const [guardandoActa, setGuardandoActa] = useState(false);
   const [nuevoUsuarioNombre, setNuevoUsuarioNombre] = useState(""); const [nuevoUsuarioEmail, setNuevoUsuarioEmail] = useState(""); const [nuevoUsuarioRol, setNuevoUsuarioRol] = useState("ADMINISTRATIVO"); const [guardandoUsuario, setGuardandoUsuario] = useState(false);
   const [modalPassword, setModalPassword] = useState(false); const [passActual, setPassActual] = useState(""); const [passNueva, setPassNueva] = useState(""); const [passConfirmar, setPassConfirmar] = useState(""); const [cambiandoPass, setCambiandoPass] = useState(false);
 
-  // Estados Buscador Avanzado
   const [filtroActaNombre, setFiltroActaNombre] = useState("")
   const [filtroDniAdmin, setFiltroDniAdmin] = useState("")
   const [filtroDireccion, setFiltroDireccion] = useState("")
   const [filtroEstado, setFiltroEstado] = useState("")
 
-  // Estados Calculadora
   const [calcArticulo, setCalcArticulo] = useState("")
   const [calcUemValor, setCalcUemValor] = useState("")
   const [calcUemCantidad, setCalcUemCantidad] = useState("")
@@ -61,7 +56,6 @@ export default function JuzgadoFaltasUnificado() {
   const calcVoluntario = calcTotal / 2;
   const calcNotificacion = calcTotal > 0 ? calcVoluntario + 5000 : 0;
 
-  // Paginación
   const [paginaActual, setPaginaActual] = useState(1);
   const filasPorPagina = 10; 
 
@@ -96,7 +90,6 @@ export default function JuzgadoFaltasUnificado() {
     setBuscando(false)
   }
 
-  // Lógica actualizada para usar la Alerta Premium en lugar de alert() nativo
   const manejarEnvioTramite = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); 
     setEnviando(true);
@@ -227,7 +220,7 @@ export default function JuzgadoFaltasUnificado() {
   }
 
   const auditarDescargo = async (estado: string) => {
-    if (estado === 'RECHAZADO' && !textoResolucion) return alert("Debe justifyicar el rechazo.")
+    if (estado === 'RECHAZADO' && !textoResolucion) return alert("Debe justificar el rechazo.")
     setProcesando(true); const res = await resolverDescargo(itemModal.id, estado, textoResolucion);
     if(!res.success) alert(res.error);
     setItemModal(null); setTextoResolucion(""); setProcesando(false); cargarDatosPanel(vista);
@@ -282,7 +275,6 @@ export default function JuzgadoFaltasUnificado() {
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   }
 
-  // === TOTALES GLOBALES (Para las tarjetas de resumen superior) ===
   const totalActasCount = datosAdmin.length;
   const actasPendientesCount = datosAdmin.filter(d => d.estado === 'PENDIENTE').length;
   const montoRecaudadoTotal = pagosAdmin
@@ -298,7 +290,6 @@ export default function JuzgadoFaltasUnificado() {
   });
   const reincidentesCount = dnisReincidentesGlobal.size;
 
-  // Lógica Balance: Reincidentes (Solo para la pestaña de Balance)
   const dnisReincidentes = new Set(); const actasReincidentes: any[] = [];
   if (vista === 'admin_balance' && tabBalance === 'reincidentes') {
     datosAdmin.forEach(item => {
@@ -312,7 +303,6 @@ export default function JuzgadoFaltasUnificado() {
     });
   }
 
-  // Filtrado General
   const actasFiltradas = datosAdmin.filter(item => {
     if (vista !== 'admin_actas' && vista !== 'admin_balance') return true;
     if (vista === 'admin_balance' && tabBalance === 'pendientes' && item.estado !== 'PENDIENTE') return false;
@@ -419,7 +409,7 @@ export default function JuzgadoFaltasUnificado() {
 
       <div className="topbar">
         <div className="wrap">
-          <div><span className="topbar__item">🕗 Lun. a Vie. 07:00 a 13:00 y 16:00 a 20:00 hs</span><span className="topbar__item">💬 <a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310 (WhatsApp)</a></span>
+          <div><span className="topbar__item">🕗 Lun. a Vie. 07:00 a 13:00 y 16:00 a 20:00 hs</span><span className="topbar__item">💬 <a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310 (WhatsApp)</a></span></div>
           <div><span className="topbar__item"><a href="#contacto">Contacto</a></span></div>
         </div>
       </div>
@@ -665,7 +655,7 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
                   {noticiasPublicas.length > 3 && (
                     <div style={{textAlign: 'center', marginTop: '56px'}}>
-                      <Link href="/noticias" className="btn btn--ghost">
+                      <Link className="btn btn--ghost" href="/noticias">
                         Ver histórico de noticias
                       </Link>
                     </div>
@@ -1183,7 +1173,6 @@ export default function JuzgadoFaltasUnificado() {
         </div>
       )}
 
-      {/* Modal de Notificación Premium */}
       {alertaNotificacion && (
         <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-[#0B4A82]/40 backdrop-blur-sm p-4 transition-opacity">
           <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-[0_20px_50px_rgba(0,0,0,0.15)] transform transition-all translate-y-0 scale-100">

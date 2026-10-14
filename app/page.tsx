@@ -94,7 +94,7 @@ export default function JuzgadoFaltasUnificado() {
 
   const manejarBusqueda = async (e: React.FormEvent) => {
     e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null);
-    setResultados([]); setResultadosImpuestos([]); // Reiniciamos ambas listas
+    setResultados([]); setResultadosImpuestos([]);
 
     const resInfracciones = await buscarInfraccionPorDni(dni);
     const resImpuestos = await buscarImpuestosPorDni(dni);
@@ -242,7 +242,6 @@ export default function JuzgadoFaltasUnificado() {
     const txt = filtroRec.toLowerCase();
     return i.dniTitular.includes(txt) || i.nombreTitular.toLowerCase().includes(txt) || i.concepto.toLowerCase().includes(txt);
   });
-  
   // === FIN FUNCIONES RECAUDACIÓN ===
 
   const manejarCrearActa = async (e: React.FormEvent) => {
@@ -591,6 +590,7 @@ export default function JuzgadoFaltasUnificado() {
               </div>
             </div>
           )}
+        </div>
 
       ) : (
 

@@ -25,7 +25,7 @@ export default function JuzgadoFaltasUnificado() {
   const [modalEditarActa, setModalEditarActa] = useState<any>(null)
   const [editandoActa, setEditandoActa] = useState(false)
   const [textoResolucion, setTextoResolucion] = useState("")
-  const [procesando, setPro processing] = useState(false)
+  const [procesando, setProcesando] = useState(false)
 
   const [dni, setDni] = useState("")
   const [resultados, setResultados] = useState<any[]>([])

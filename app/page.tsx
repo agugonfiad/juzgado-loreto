@@ -541,48 +541,56 @@ export default function JuzgadoFaltasUnificado() {
              </div>
           </main>
 
-          {/* MODAL DE CARGA DE IMPUESTO BORDÓ */}
+          {/* MODAL DE CARGA DE IMPUESTO BORDÓ (REDISEÑADO CON ALTO CONTRASTE) */}
           {modalRecaudacion && (
-            <div className="fixed inset-0 bg-[#5E151F]/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
-              <div className="bg-white rounded-2xl p-8 max-w-2xl w-full shadow-2xl">
-                <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
-                  <h3 className="text-xl font-black text-[#7A1B28]">Emitir Nueva Orden de Cobro</h3>
-                  <button onClick={() => setModalRecaudacion(false)} className="text-gray-400 hover:text-gray-700 text-xl font-bold">✕</button>
+            <div className="fixed inset-0 bg-[#3a0a13]/80 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 transition-all">
+              <div className="bg-[#f8f9fa] rounded-2xl p-8 max-w-2xl w-full shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border border-[#7A1B28]/20">
+                <div className="flex justify-between items-center mb-8 border-b-2 border-[#7A1B28]/10 pb-5">
+                  <div>
+                    <span className="block text-[11px] font-black tracking-widest text-[#7A1B28]/60 uppercase mb-1">Módulo de Facturación</span>
+                    <h3 className="text-2xl font-black text-[#7A1B28] tracking-tight">Emitir Nueva Orden de Cobro</h3>
+                  </div>
+                  <button onClick={() => setModalRecaudacion(false)} className="bg-white hover:bg-gray-100 text-gray-500 hover:text-[#7A1B28] h-10 w-10 rounded-full flex items-center justify-center shadow-sm border border-gray-200 transition-all font-bold">✕</button>
                 </div>
-                <form onSubmit={manejarCrearImpuesto} className="space-y-5">
-                  <div className="grid grid-cols-2 gap-5">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-600 uppercase mb-2">DNI / CUIT del Vecino</label>
-                      <input type="text" value={recDni} onChange={e => setRecDni(e.target.value)} required className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-[#7A1B28] focus:ring-2 focus:ring-[#7A1B28]/20 outline-none transition-all" placeholder="Sin puntos..." />
+                
+                <form onSubmit={manejarCrearImpuesto} className="space-y-6">
+                  <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-5">
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-[11px] font-black text-gray-700 uppercase tracking-widest mb-2">DNI / CUIT del Vecino</label>
+                        <input type="text" value={recDni} onChange={e => setRecDni(e.target.value)} required className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:border-[#7A1B28] focus:ring-4 focus:ring-[#7A1B28]/10 outline-none transition-all text-gray-800 font-medium placeholder-gray-400" placeholder="Ej: 35123456" />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-black text-gray-700 uppercase tracking-widest mb-2">Nombre o Razón Social</label>
+                        <input type="text" value={recNombre} onChange={e => setRecNombre(e.target.value)} required className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:border-[#7A1B28] focus:ring-4 focus:ring-[#7A1B28]/10 outline-none transition-all text-gray-800 font-medium placeholder-gray-400" placeholder="Ej: Juan Pérez" />
+                      </div>
                     </div>
+                    
                     <div>
-                      <label className="block text-xs font-bold text-gray-600 uppercase mb-2">Nombre o Razón Social</label>
-                      <input type="text" value={recNombre} onChange={e => setRecNombre(e.target.value)} required className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-[#7A1B28] focus:ring-2 focus:ring-[#7A1B28]/20 outline-none transition-all" placeholder="Juan Pérez..." />
+                      <label className="block text-[11px] font-black text-gray-700 uppercase tracking-widest mb-2">Concepto Tarifario Oficial</label>
+                      <select value={recConcepto} onChange={manejarConceptoChange} required className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:border-[#7A1B28] focus:ring-4 focus:ring-[#7A1B28]/10 outline-none transition-all text-gray-800 font-bold cursor-pointer">
+                        <option value="" className="text-gray-400 font-normal">Seleccione el trámite o impuesto a cobrar...</option>
+                        {tarifas.map(t => (
+                          <option key={t.id} value={t.concepto}>{t.concepto} — ${t.monto.toLocaleString('es-AR')}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-[11px] font-black text-gray-700 uppercase tracking-widest mb-2">Monto a Abonar ($)</label>
+                      <input type="number" value={recMonto} onChange={e => setRecMonto(e.target.value)} required readOnly={!!tarifas.find(t => t.concepto === recConcepto)} className={`w-full px-4 py-4 border-2 rounded-lg text-2xl font-black outline-none transition-all ${!!tarifas.find(t => t.concepto === recConcepto) ? 'bg-gray-100 border-gray-200 text-[#7A1B28] cursor-not-allowed shadow-inner' : 'bg-white border-gray-300 text-[#7A1B28] focus:border-[#7A1B28] focus:ring-4 focus:ring-[#7A1B28]/10'}`} placeholder="0" />
+                      {!!tarifas.find(t => t.concepto === recConcepto) && <span className="text-[11px] font-semibold text-[#7A1B28]/70 mt-2 block bg-[#7A1B28]/5 px-3 py-1.5 rounded inline-block">🔒 El monto está fijado por sistema según ordenanza y no puede ser alterado.</span>}
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase mb-2">Concepto Tarifario (Ordenanza 2026)</label>
-                    <select value={recConcepto} onChange={manejarConceptoChange} required className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-[#7A1B28] focus:ring-2 focus:ring-[#7A1B28]/20 outline-none transition-all bg-white font-medium text-gray-700">
-                      <option value="">Seleccione el trámite o impuesto a cobrar...</option>
-                      {tarifas.map(t => (
-                        <option key={t.id} value={t.concepto}>{t.concepto} — ${t.monto.toLocaleString('es-AR')}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase mb-2">Monto a Abonar ($)</label>
-                    <input type="number" value={recMonto} onChange={e => setRecMonto(e.target.value)} required readOnly={!!tarifas.find(t => t.concepto === recConcepto)} className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-xl font-bold text-[#7A1B28] outline-none transition-all ${!!tarifas.find(t => t.concepto === recConcepto) ? 'bg-gray-100 cursor-not-allowed' : 'bg-white focus:border-[#7A1B28] focus:ring-2 focus:ring-[#7A1B28]/20'}`} placeholder="0" />
-                    {!!tarifas.find(t => t.concepto === recConcepto) && <span className="text-xs text-gray-500 mt-1 block">El monto está fijado por la tabla tarifaria y no puede ser alterado manualmente.</span>}
-                  </div>
-                  <div className="flex gap-3 pt-4 border-t border-gray-100">
-                    <button type="button" onClick={() => setModalRecaudacion(false)} className="flex-1 py-3 text-gray-600 font-bold border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
-                    <button type="submit" disabled={recGuardando} className="flex-1 py-3 bg-[#7A1B28] hover:bg-[#5E151F] text-white font-bold rounded-lg shadow-md transition-colors disabled:opacity-70">{recGuardando ? 'Asentando en sistema...' : 'Generar Comprobante de Deuda'}</button>
+
+                  <div className="flex gap-4 pt-2">
+                    <button type="button" onClick={() => setModalRecaudacion(false)} className="flex-1 py-4 text-gray-600 font-bold bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all">Cancelar Operación</button>
+                    <button type="submit" disabled={recGuardando} className="flex-[2] py-4 bg-[#7A1B28] hover:bg-[#5E151F] text-white font-black rounded-xl shadow-[0_4px_14px_0_rgba(122,27,40,0.39)] hover:shadow-[0_6px_20px_rgba(122,27,40,0.23)] hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:transform-none text-[15px]">{recGuardando ? 'Procesando registro...' : '✓ Asentar Deuda en Sistema'}</button>
                   </div>
                 </form>
               </div>
             </div>
           )}
-        </div>
 
       ) : (
 

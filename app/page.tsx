@@ -4,11 +4,11 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano, procesarNoticia } from "./actions/subidas"
-import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearClave, registrarPagoManual, desistirActa, obtenerRecaudacionDiaria } from "./actions/admin"
+import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearClave, registrarPagoManual, desistirActa, obtenerRecaudacionDiaria, obtenerTarifas, obtenerImpuestos, crearImpuesto, cobrarImpuesto, anularImpuesto } from "./actions/admin"
 
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
-  const [vista, setVista] = useState<'publica' | 'admin_actas' | 'admin_descargos' | 'admin_pagos' | 'admin_usuarios' | 'admin_noticias' | 'admin_calculadora' | 'admin_balance'>('publica')
+  const [vista, setVista] = useState<'publica' | 'admin_actas' | 'admin_descargos' | 'admin_pagos' | 'admin_usuarios' | 'admin_noticias' | 'admin_calculadora' | 'admin_balance' | 'admin_recaudacion'>('publica')
   const [tabBalance, setTabBalance] = useState<'pendientes' | 'recaudacion' | 'reincidentes'>('pendientes')
 
   const [autenticado, setAutenticado] = useState(false)
@@ -21,6 +21,17 @@ export default function JuzgadoFaltasUnificado() {
   const [noticiasPublicas, setNoticiasPublicas] = useState<any[]>([])
   const [cargandoAdmin, setCargandoAdmin] = useState(false)
   
+  // Estados para Recaudación
+  const [tarifas, setTarifas] = useState<any[]>([])
+  const [impuestos, setImpuestos] = useState<any[]>([])
+  const [modalRecaudacion, setModalRecaudacion] = useState(false)
+  const [recDni, setRecDni] = useState("")
+  const [recNombre, setRecNombre] = useState("")
+  const [recConcepto, setRecConcepto] = useState("")
+  const [recMonto, setRecMonto] = useState("")
+  const [recGuardando, setRecGuardando] = useState(false)
+  const [filtroRec, setFiltroRec] = useState("")
+
   const [itemModal, setItemModal] = useState<any>(null)
   const [modalEditarActa, setModalEditarActa] = useState<any>(null)
   const [editandoActa, setEditandoActa] = useState(false)
@@ -70,10 +81,7 @@ export default function JuzgadoFaltasUnificado() {
           setUsuario({ nombre: data.usuario.nombre, rol: data.usuario.rol });
           setAutenticado(true);
           setVista(data.vista);
-          // EVITAMOS CARGAR LAS ACTAS DEL JUZGADO SI ES DE RECAUDACIÓN
-          if (data.usuario.rol !== 'RECAUDADOR') {
-            cargarDatosPanel(data.vista);
-          }
+          cargarDatosPanel(data.vista, data.usuario.rol);
         }
       } catch (e) {}
     }
@@ -81,7 +89,7 @@ export default function JuzgadoFaltasUnificado() {
 
   useEffect(() => {
     setPaginaActual(1);
-  }, [filtroActaNombre, filtroDniAdmin, filtroDireccion, filtroEstado, vista, tabBalance]);
+  }, [filtroActaNombre, filtroDniAdmin, filtroDireccion, filtroEstado, vista, tabBalance, filtroRec]);
 
   const manejarBusqueda = async (e: React.FormEvent) => {
     e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null);
@@ -123,35 +131,37 @@ export default function JuzgadoFaltasUnificado() {
     setUsuario({ nombre: auth.usuario.nombre, rol: auth.usuario.rol }); 
     setAutenticado(true); setMenuAbierto(false);
     
-    // BIFURCACIÓN DE RUTAS SEGÚN EL ROL
     let vistaInicial = 'admin_actas'
     if (auth.usuario.rol === 'LETRADO') vistaInicial = 'admin_descargos'
     if (auth.usuario.rol === 'CONTABLE') vistaInicial = 'admin_pagos'
-    if (auth.usuario.rol === 'RECAUDADOR') vistaInicial = 'admin_recaudacion' // RUTA NUEVA
+    if (auth.usuario.rol === 'RECAUDADOR') vistaInicial = 'admin_recaudacion'
 
     setVista(vistaInicial as any); localStorage.setItem('juzgado_sesion', JSON.stringify({ usuario: auth.usuario, vista: vistaInicial }));
-    
-    // EVITAMOS CARGAR LAS ACTAS SI ES EL RECAUDADOR
-    if (auth.usuario.rol !== 'RECAUDADOR') {
-      cargarDatosPanel(vistaInicial);
-    }
+    cargarDatosPanel(vistaInicial, auth.usuario.rol);
   }
 
-  const cargarDatosPanel = async (vistaDestino: string) => {
+  const cargarDatosPanel = async (vistaDestino: string, rolActual?: string) => {
     setCargandoAdmin(true)
     try {
-      let datos: any = [];
-      if (vistaDestino === 'admin_actas' || vistaDestino === 'admin_balance') {
-        datos = await obtenerActasAdmin();
-        const pagosGeneral = await obtenerPagosAdmin();
-        setPagosAdmin(pagosGeneral);
-        if (vistaDestino === 'admin_balance' && tabBalance === 'recaudacion') manejarConsultaDiaria();
+      if (vistaDestino === 'admin_recaudacion' || rolActual === 'RECAUDADOR') {
+        const t = await obtenerTarifas();
+        const i = await obtenerImpuestos();
+        setTarifas(t);
+        setImpuestos(i);
+      } else {
+        let datos: any = [];
+        if (vistaDestino === 'admin_actas' || vistaDestino === 'admin_balance') {
+          datos = await obtenerActasAdmin();
+          const pagosGeneral = await obtenerPagosAdmin();
+          setPagosAdmin(pagosGeneral);
+          if (vistaDestino === 'admin_balance' && tabBalance === 'recaudacion') manejarConsultaDiaria();
+        }
+        if (vistaDestino === 'admin_descargos') datos = await obtenerDescargosAdmin();
+        if (vistaDestino === 'admin_pagos') datos = await obtenerPagosAdmin();
+        if (vistaDestino === 'admin_usuarios') datos = await obtenerUsuariosAdmin();
+        if (vistaDestino === 'admin_noticias') datos = await obtenerNoticiasAdmin();
+        if (Array.isArray(datos)) setDatosAdmin(datos); else setDatosAdmin([]);
       }
-      if (vistaDestino === 'admin_descargos') datos = await obtenerDescargosAdmin();
-      if (vistaDestino === 'admin_pagos') datos = await obtenerPagosAdmin();
-      if (vistaDestino === 'admin_usuarios') datos = await obtenerUsuariosAdmin();
-      if (vistaDestino === 'admin_noticias') datos = await obtenerNoticiasAdmin();
-      if (Array.isArray(datos)) setDatosAdmin(datos); else setDatosAdmin([]);
     } catch (error) { setDatosAdmin([]); }
     setCargandoAdmin(false)
   }
@@ -161,6 +171,62 @@ export default function JuzgadoFaltasUnificado() {
     const sesionActual = localStorage.getItem('juzgado_sesion');
     if (sesionActual) { const data = JSON.parse(sesionActual); localStorage.setItem('juzgado_sesion', JSON.stringify({ ...data, vista: nuevaVista })); }
   }
+
+  // === FUNCIONES EXCLUSIVAS DE RECAUDACIÓN ===
+  const manejarConceptoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setRecConcepto(val);
+    const tarifa = tarifas.find(t => t.concepto === val);
+    if (tarifa) {
+      setRecMonto(tarifa.monto.toString());
+    } else {
+      setRecMonto("");
+    }
+  }
+
+  const manejarCrearImpuesto = async (e: React.FormEvent) => {
+    e.preventDefault(); setRecGuardando(true);
+    const data = {
+      dniTitular: recDni,
+      nombreTitular: recNombre,
+      concepto: recConcepto,
+      monto: Number(recMonto),
+      estado: 'PENDIENTE'
+    };
+    const res = await crearImpuesto(data);
+    if (res.success) {
+      setModalRecaudacion(false); setRecDni(""); setRecNombre(""); setRecConcepto(""); setRecMonto("");
+      cargarDatosPanel('admin_recaudacion');
+    } else {
+      alert("Error al cargar impuesto: " + res.error);
+    }
+    setRecGuardando(false);
+  }
+
+  const manejarCobroImpuesto = async (id: string, nombre: string, concepto: string, monto: number) => {
+    if (!confirm(`¿Confirma el COBRO por ventanilla?\n\nContribuyente: ${nombre}\nConcepto: ${concepto}\nMonto a cobrar: $${monto}`)) return;
+    setCargandoAdmin(true);
+    const res = await cobrarImpuesto(id);
+    if (res.success) { cargarDatosPanel('admin_recaudacion'); } else { alert(res.error); setCargandoAdmin(false); }
+  }
+
+  const manejarAnularImpuesto = async (id: string) => {
+    if (!confirm(`¿Seguro que desea anular esta deuda generada por error?`)) return;
+    setCargandoAdmin(true);
+    const res = await anularImpuesto(id);
+    if (res.success) { cargarDatosPanel('admin_recaudacion'); } else { alert(res.error); setCargandoAdmin(false); }
+  }
+
+  const deudaExigibleTotal = impuestos.filter(i => i.estado === 'PENDIENTE').reduce((acc, i) => acc + Number(i.monto), 0);
+  const recaudacionTotalBordo = impuestos.filter(i => i.estado === 'PAGADO').reduce((acc, i) => acc + Number(i.monto), 0);
+  const tramitesPendientesCount = impuestos.filter(i => i.estado === 'PENDIENTE').length;
+
+  const impuestosFiltrados = impuestos.filter(i => {
+    const txt = filtroRec.toLowerCase();
+    return i.dniTitular.includes(txt) || i.nombreTitular.toLowerCase().includes(txt) || i.concepto.toLowerCase().includes(txt);
+  });
+  
+  // === FIN FUNCIONES RECAUDACIÓN ===
 
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
@@ -325,7 +391,7 @@ export default function JuzgadoFaltasUnificado() {
     return coincideTexto && coincideDni && coincideDireccion && coincideEstado;
   });
 
-  const listaBase = (vista === 'admin_balance' && tabBalance === 'reincidentes') ? actasReincidentes : ((vista === 'admin_balance' && tabBalance === 'recaudacion') ? recaudacionDelDia : ((vista === 'admin_actas' || (vista === 'admin_balance' && tabBalance === 'pendientes')) ? actasFiltradas : datosAdmin));
+  const listaBase = (vista === 'admin_recaudacion') ? impuestosFiltrados : ((vista === 'admin_balance' && tabBalance === 'reincidentes') ? actasReincidentes : ((vista === 'admin_balance' && tabBalance === 'recaudacion') ? recaudacionDelDia : ((vista === 'admin_actas' || (vista === 'admin_balance' && tabBalance === 'pendientes')) ? actasFiltradas : datosAdmin)));
   const totalItems = listaBase.length; const totalPaginas = Math.max(1, Math.ceil(totalItems / filasPorPagina));
   const indicePrimerItem = (paginaActual - 1) * filasPorPagina; const indiceUltimoItem = paginaActual * filasPorPagina;
   const listaPaginada = listaBase.slice(indicePrimerItem, indiceUltimoItem);
@@ -348,7 +414,7 @@ export default function JuzgadoFaltasUnificado() {
            MUNDO RECAUDACIÓN (INTERFAZ BORDÓ TOTALMENTE AISLADA) 
            ======================================================== */
         <div className="min-h-screen bg-gray-100 flex flex-col font-sans">
-          <header className="bg-[#7A1B28] text-white shadow-md border-b-4 border-[#5E151F]">
+          <header className="bg-[#7A1B28] text-white shadow-md border-b-4 border-[#5E151F] sticky top-0 z-50">
             <div className="max-w-[1200px] mx-auto px-6 py-4 flex justify-between items-center">
               <div className="flex items-center gap-4">
                 <img src="/logo-municipalidad.png" alt="Municipalidad de Loreto" className="h-12 drop-shadow-md bg-white rounded-lg p-1" />
@@ -376,34 +442,129 @@ export default function JuzgadoFaltasUnificado() {
              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-[#7A1B28]">
                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Deuda Exigible Global</span>
-                   <p className="text-2xl font-black text-[#7A1B28] mt-1">$0,00</p>
+                   <p className="text-3xl font-black text-[#7A1B28] mt-1">${deudaExigibleTotal.toLocaleString('es-AR')}</p>
                 </div>
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-[#10B981]">
-                   <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Recaudación del Día</span>
-                   <p className="text-2xl font-black text-[#10B981] mt-1">$0,00</p>
+                   <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Recaudación Histórica</span>
+                   <p className="text-3xl font-black text-[#10B981] mt-1">${recaudacionTotalBordo.toLocaleString('es-AR')}</p>
                 </div>
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-[#F59E0B]">
                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Trámites Pendientes</span>
-                   <p className="text-2xl font-black text-[#B45309] mt-1">0</p>
+                   <p className="text-3xl font-black text-[#B45309] mt-1">{tramitesPendientesCount}</p>
                 </div>
              </div>
 
-             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-8">
                 <div className="p-6 border-b border-gray-200 bg-gray-50 flex justify-between items-center flex-wrap gap-4">
                    <h2 className="text-lg font-bold text-gray-800">Padrón de Contribuyentes y Tasas</h2>
-                   <button className="bg-[#7A1B28] hover:bg-[#5E151F] text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm">
-                     + Cargar Nuevo Impuesto / Deuda
-                   </button>
+                   <div className="flex gap-4">
+                     <input 
+                       type="text" 
+                       placeholder="Buscar por DNI o Nombre..." 
+                       value={filtroRec}
+                       onChange={e => setFiltroRec(e.target.value)}
+                       className="px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-[#7A1B28]"
+                     />
+                     <button onClick={() => setModalRecaudacion(true)} className="bg-[#7A1B28] hover:bg-[#5E151F] text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm">
+                       + Cargar Nuevo Impuesto / Deuda
+                     </button>
+                   </div>
                 </div>
-                <div className="p-16 text-center">
-                   <span className="text-5xl mb-4 block opacity-80">🗂️</span>
-                   <h3 className="text-xl font-extrabold text-[#7A1B28] mb-2">Módulo en Preparación</h3>
-                   <p className="text-gray-500 max-w-md mx-auto leading-relaxed">
-                     Este espacio exclusivo para la Oficina de Recaudación está listo en su estructura visual. El próximo paso es conectarlo con la base de datos de impuestos, tasas y contribuciones comerciales.
-                   </p>
+                <div className="overflow-x-auto">
+                  {cargandoAdmin ? <p className="text-center py-10 text-gray-500">Sincronizando con base de datos...</p> : (
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase tracking-wider text-gray-500">
+                          <th className="p-4 font-bold">Fecha / Hora</th>
+                          <th className="p-4 font-bold">Contribuyente (DNI)</th>
+                          <th className="p-4 font-bold">Concepto Tarifario</th>
+                          <th className="p-4 font-bold">Monto</th>
+                          <th className="p-4 font-bold">Estado</th>
+                          <th className="p-4 font-bold text-right">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm divide-y divide-gray-100">
+                        {listaPaginada.map((imp: any) => (
+                          <tr key={imp.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="p-4 text-gray-500">{new Date(imp.creadoEn).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</td>
+                            <td className="p-4"><strong className="block text-gray-800">{imp.nombreTitular}</strong><span className="text-xs text-gray-500">{imp.dniTitular}</span></td>
+                            <td className="p-4 text-gray-700 font-medium">{imp.concepto}</td>
+                            <td className="p-4 font-bold text-[#7A1B28]">${imp.monto.toLocaleString('es-AR')}</td>
+                            <td className="p-4">
+                              <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${imp.estado === 'PENDIENTE' ? 'bg-amber-100 text-amber-700' : imp.estado === 'ANULADO' ? 'bg-gray-200 text-gray-600' : 'bg-emerald-100 text-emerald-700'}`}>
+                                {imp.estado}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right">
+                              {imp.estado === 'PENDIENTE' && (
+                                <div className="flex gap-2 justify-end">
+                                  <button onClick={() => manejarCobroImpuesto(imp.id, imp.nombreTitular, imp.concepto, imp.monto)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors">Cobrar</button>
+                                  <button onClick={() => manejarAnularImpuesto(imp.id)} className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded text-xs font-bold transition-colors">Anular</button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                        {listaPaginada.length === 0 && (
+                          <tr><td colSpan={6} className="text-center py-10 text-gray-500">No hay registros generados.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  )}
                 </div>
+                {totalPaginas > 1 && (
+                  <div className="bg-gray-50 border-t border-gray-200 p-4 flex justify-between items-center text-sm text-gray-600">
+                    <span>Mostrando pág {paginaActual} de {totalPaginas}</span>
+                    <div className="flex gap-2">
+                      <button onClick={() => setPaginaActual(p => Math.max(1, p - 1))} disabled={paginaActual === 1} className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50">Anterior</button>
+                      <button onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))} disabled={paginaActual === totalPaginas} className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50">Siguiente</button>
+                    </div>
+                  </div>
+                )}
              </div>
           </main>
+
+          {/* MODAL DE CARGA DE IMPUESTO BORDÓ */}
+          {modalRecaudacion && (
+            <div className="fixed inset-0 bg-[#5E151F]/60 backdrop-blur-sm flex items-center justify-center z-[1000] p-4">
+              <div className="bg-white rounded-2xl p-8 max-w-2xl w-full shadow-2xl">
+                <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4">
+                  <h3 className="text-xl font-black text-[#7A1B28]">Emitir Nueva Orden de Cobro</h3>
+                  <button onClick={() => setModalRecaudacion(false)} className="text-gray-400 hover:text-gray-700 text-xl font-bold">✕</button>
+                </div>
+                <form onSubmit={manejarCrearImpuesto} className="space-y-5">
+                  <div className="grid grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 uppercase mb-2">DNI / CUIT del Vecino</label>
+                      <input type="text" value={recDni} onChange={e => setRecDni(e.target.value)} required className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-[#7A1B28] focus:ring-2 focus:ring-[#7A1B28]/20 outline-none transition-all" placeholder="Sin puntos..." />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-600 uppercase mb-2">Nombre o Razón Social</label>
+                      <input type="text" value={recNombre} onChange={e => setRecNombre(e.target.value)} required className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-[#7A1B28] focus:ring-2 focus:ring-[#7A1B28]/20 outline-none transition-all" placeholder="Juan Pérez..." />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 uppercase mb-2">Concepto Tarifario (Ordenanza 2026)</label>
+                    <select value={recConcepto} onChange={manejarConceptoChange} required className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:border-[#7A1B28] focus:ring-2 focus:ring-[#7A1B28]/20 outline-none transition-all bg-white font-medium text-gray-700">
+                      <option value="">Seleccione el trámite o impuesto a cobrar...</option>
+                      {tarifas.map(t => (
+                        <option key={t.id} value={t.concepto}>{t.concepto} — ${t.monto.toLocaleString('es-AR')}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-600 uppercase mb-2">Monto a Abonar ($)</label>
+                    <input type="number" value={recMonto} onChange={e => setRecMonto(e.target.value)} required readOnly={!!tarifas.find(t => t.concepto === recConcepto)} className={`w-full px-4 py-3 border border-gray-300 rounded-lg text-xl font-bold text-[#7A1B28] outline-none transition-all ${!!tarifas.find(t => t.concepto === recConcepto) ? 'bg-gray-100 cursor-not-allowed' : 'bg-white focus:border-[#7A1B28] focus:ring-2 focus:ring-[#7A1B28]/20'}`} placeholder="0" />
+                    {!!tarifas.find(t => t.concepto === recConcepto) && <span className="text-xs text-gray-500 mt-1 block">El monto está fijado por la tabla tarifaria y no puede ser alterado manualmente.</span>}
+                  </div>
+                  <div className="flex gap-3 pt-4 border-t border-gray-100">
+                    <button type="button" onClick={() => setModalRecaudacion(false)} className="flex-1 py-3 text-gray-600 font-bold border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancelar</button>
+                    <button type="submit" disabled={recGuardando} className="flex-1 py-3 bg-[#7A1B28] hover:bg-[#5E151F] text-white font-bold rounded-lg shadow-md transition-colors disabled:opacity-70">{recGuardando ? 'Asentando en sistema...' : 'Generar Comprobante de Deuda'}</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
 
       ) : (

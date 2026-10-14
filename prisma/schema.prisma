@@ -150,3 +150,27 @@ enum Rol {
   ADMINISTRATIVO
   RECAUDADOR
 }
+model TarifariaRecaudacion {
+  id          String   @id @default(uuid())
+  concepto    String
+  categoria   String
+  monto       Float
+  frecuencia  String   @default("UNICO")
+  activo      Boolean  @default(true)
+  creadoEn    DateTime @default(now()) @map("creado_en")
+
+  @@map("tarifaria_recaudacion")
+}
+
+model ImpuestosRecaudacion {
+  id             String   @id @default(uuid())
+  dniTitular     String
+  nombreTitular  String
+  concepto       String
+  monto          Float
+  estado         String   @default("PENDIENTE")
+  observaciones  String?
+  creadoEn       DateTime @default(now()) @map("creado_en")
+
+  @@map("impuestos_recaudacion")
+}

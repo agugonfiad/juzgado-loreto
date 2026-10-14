@@ -362,3 +362,54 @@ export async function obtenerRecaudacionDiaria(fechaLocalString: string) {
     return { success: false, error: error.message };
   }
 }
+// === MÓDULO DE RECAUDACIÓN (ENTORNO BORDÓ) ===
+
+export async function obtenerTarifas() {
+  try {
+    return await prisma.tarifariaRecaudacion.findMany({
+      where: { activo: true },
+      orderBy: { concepto: 'asc' }
+    });
+  } catch (error) { return []; }
+}
+
+export async function obtenerImpuestos() {
+  try {
+    return await prisma.impuestosRecaudacion.findMany({
+      orderBy: { creadoEn: 'desc' }
+    });
+  } catch (error) { return []; }
+}
+
+export async function crearImpuesto(data: any) {
+  try {
+    await prisma.impuestosRecaudacion.create({ data });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function cobrarImpuesto(id: string) {
+  try {
+    await prisma.impuestosRecaudacion.update({
+      where: { id },
+      data: { estado: 'PAGADO' }
+    });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function anularImpuesto(id: string) {
+  try {
+    await prisma.impuestosRecaudacion.update({
+      where: { id },
+      data: { estado: 'ANULADO' }
+    });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

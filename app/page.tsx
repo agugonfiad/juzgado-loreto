@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano, procesarNoticia } from "./actions/subidas"
-import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearClave, registrarPagoManual, desistirActa, obtenerRecaudacionDiaria, obtenerTarifas, obtenerImpuestos, crearImpuesto, cobrarImpuesto, anularImpuesto } from "./actions/admin"
+import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearClave, registrarPagoManual, desistirActa, obtenerRecaudacionDiaria, obtenerTarifas, obtenerImpuestos, crearImpuesto, cobrarImpuesto, anularImpuesto, buscarImpuestosPorDni } from "./actions/admin"
 
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
@@ -40,6 +40,7 @@ export default function JuzgadoFaltasUnificado() {
 
   const [dni, setDni] = useState("")
   const [resultados, setResultados] = useState<any[]>([])
+  const [resultadosImpuestos, setResultadosImpuestos] = useState<any[]>([])
   const [buscando, setBuscando] = useState(false)
   const [mensaje, setMensaje] = useState("")
   const [tramiteActivo, setTramiteActivo] = useState<{ id: string, tipo: 'pago' | 'descargo' } | null>(null)
@@ -93,12 +94,28 @@ export default function JuzgadoFaltasUnificado() {
 
   const manejarBusqueda = async (e: React.FormEvent) => {
     e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null);
-    const respuesta = await buscarInfraccionPorDni(dni)
-    if (respuesta.success && respuesta.data) {
-      setResultados(respuesta.data)
-      if (respuesta.data.length === 0) setMensaje("No se registran infracciones para el DNI ingresado.")
-    } else { setMensaje("Ocurrió un error al buscar los registros.") }
-    setBuscando(false)
+    setResultados([]); setResultadosImpuestos([]); // Reiniciamos ambas listas
+
+    const resInfracciones = await buscarInfraccionPorDni(dni);
+    const resImpuestos = await buscarImpuestosPorDni(dni);
+
+    let encontrados = 0;
+
+    if (resInfracciones.success && resInfracciones.data) {
+      setResultados(resInfracciones.data);
+      encontrados += resInfracciones.data.length;
+    }
+
+    if (resImpuestos.success && resImpuestos.data) {
+      setResultadosImpuestos(resImpuestos.data);
+      encontrados += resImpuestos.data.length;
+    }
+
+    if (encontrados === 0) {
+      setMensaje("No se registran infracciones ni deudas impositivas para el DNI ingresado.");
+    }
+    
+    setBuscando(false);
   }
 
   const manejarEnvioTramite = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -769,6 +786,7 @@ export default function JuzgadoFaltasUnificado() {
 
                         {mensaje && <p style={{marginTop: '16px', fontSize: '14.5px', color: 'var(--rojo-loreto)', fontWeight: 500, textAlign: 'center'}}>{mensaje}</p>}
                         
+                        {/* RESULTADOS DE INFRACCIONES DE TRÁNSITO Y BROMATOLOGÍA */}
                         {resultados.length > 0 && (
                           <div style={{marginTop: '28px', borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>
                             <h4 style={{fontSize: '16px', color: 'var(--azul-loreto)', marginBottom: '16px'}}>Expedientes Registrados en el Sistema:</h4>
@@ -828,6 +846,39 @@ export default function JuzgadoFaltasUnificado() {
                                       )}
                                       <button type="submit" disabled={enviando} className="btn btn--primary btn--block">{enviando ? 'Procesando envío...' : 'Ingresar Documentación al Juzgado'}</button>
                                     </form>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+
+                        {/* RESULTADOS DE IMPUESTOS Y RECAUDACIÓN (MUNDO BORDÓ) */}
+                        {resultadosImpuestos.length > 0 && (
+                          <div style={{marginTop: '28px', borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>
+                            <h4 style={{fontSize: '16px', color: '#7A1B28', marginBottom: '16px'}}>Deudas y Tasas Impositivas Registradas:</h4>
+                            {resultadosImpuestos.map((impuesto) => {
+                              const colorBorde = '#7A1B28'; // Bordó
+                              const nombreOrigen = 'OFICINA DE RECAUDACIÓN Y TASAS';
+
+                              return (
+                                <div key={impuesto.id} style={{padding: '20px', borderLeft: `4px solid ${colorBorde}`, background: 'var(--papel-alto)', marginBottom: '16px', borderRadius: '0 8px 8px 0', borderTop: '1px solid var(--linea)', borderRight: '1px solid var(--linea)', borderBottom: '1px solid var(--linea)'}}>
+                                  <span style={{fontSize: '11px', fontWeight: 700, color: colorBorde, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em'}}>{nombreOrigen}</span><br/>
+                                  <strong style={{fontSize: '16px', display: 'inline-block', marginTop: '4px'}}>{impuesto.concepto}</strong> <span style={{fontSize: '16px', color: 'var(--tinta-suave)'}}>— ${impuesto.monto.toLocaleString('es-AR')}</span> <br/>
+                                  <div style={{marginTop: '8px'}}>
+                                    <span className="badge" style={{background: impuesto.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : (impuesto.estado === 'ANULADO' ? 'rgba(11, 74, 130, 0.15)' : 'rgba(16, 185, 129, 0.15)'), color: impuesto.estado === 'PENDIENTE' ? '#B45309' : (impuesto.estado === 'ANULADO' ? 'var(--azul-loreto)' : '#047857')}}>
+                                      {impuesto.estado === 'PENDIENTE' ? 'DEUDA EXIGIBLE' : impuesto.estado === 'PAGADO' ? 'PAGADO' : 'ANULADO'}
+                                    </span>
+                                  </div>
+                                  
+                                  {impuesto.estado === 'PENDIENTE' && (
+                                    <div style={{background: 'rgba(122, 27, 40, 0.05)', border: '1px solid rgba(122, 27, 40, 0.15)', padding: '16px', borderRadius: '6px', marginTop: '16px', fontSize: '13.5px'}}>
+                                      <strong style={{color: '#7A1B28', display: 'block', marginBottom: '8px', fontSize: '13px', textTransform: 'uppercase'}}>ℹ️ Información de Pago</strong>
+                                      <p style={{margin: '0 0 4px 0'}}>Puede regularizar esta deuda mediante transferencia a la cuenta oficial de Recaudación:</p>
+                                      <p style={{margin: '0 0 4px 0'}}><strong>CBU:</strong> 32101205300000012431389</p>
+                                      <p style={{margin: 0}}><strong>ALIAS:</strong> LoretoRecaudacion</p>
+                                      <p style={{margin: '8px 0 0 0', fontStyle: 'italic', color: 'var(--tinta-suave)'}}>Envíe su comprobante por WhatsApp al <a href="https://wa.me/5493854743310" target="_blank" rel="noopener noreferrer" style={{color: 'var(--azul-loreto)', fontWeight: 600}}>385 474-3310</a> para su acreditación inmediata por el sector contable.</p>
+                                    </div>
                                   )}
                                 </div>
                               )

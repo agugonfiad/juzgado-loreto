@@ -413,3 +413,14 @@ export async function anularImpuesto(id: string) {
     return { success: false, error: error.message };
   }
 }
+export async function buscarImpuestosPorDni(dni: string) {
+  try {
+    const impuestos = await prisma.impuestosRecaudacion.findMany({
+      where: { dniTitular: dni },
+      orderBy: { creadoEn: 'desc' }
+    });
+    return { success: true, data: impuestos };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

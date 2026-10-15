@@ -864,7 +864,7 @@ export default function JuzgadoFaltasUnificado() {
                         {/* RESULTADOS DE IMPUESTOS Y RECAUDACIÓN (MUNDO BORDÓ) */}
                         {resultadosImpuestos.length > 0 && (
                           <div style={{marginTop: '28px', borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>
-                            <h4 style={{fontSize: '16px', color: '#7A1B28', marginBottom: '16px'}}>Deudas y Tasas Impositivas Registradas:</h4>
+                            <h4 style={{fontSize: '16px', color: '#7A1B28', marginBottom: '16px'}}>Tasas e Impuestos Municipales Pendientes:</h4>
                             {resultadosImpuestos.map((impuesto) => {
                               const colorBorde = '#7A1B28'; // Bordó
                               const nombreOrigen = 'OFICINA DE RECAUDACIÓN Y TASAS';
@@ -874,20 +874,18 @@ export default function JuzgadoFaltasUnificado() {
                                   <span style={{fontSize: '11px', fontWeight: 700, color: colorBorde, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em'}}>{nombreOrigen}</span><br/>
                                   <strong style={{fontSize: '16px', display: 'inline-block', marginTop: '4px'}}>{impuesto.concepto}</strong> <span style={{fontSize: '16px', color: 'var(--tinta-suave)'}}>— ${impuesto.monto.toLocaleString('es-AR')}</span> <br/>
                                   <div style={{marginTop: '8px'}}>
-                                    <span className="badge" style={{background: impuesto.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : (impuesto.estado === 'ANULADO' ? 'rgba(11, 74, 130, 0.15)' : 'rgba(16, 185, 129, 0.15)'), color: impuesto.estado === 'PENDIENTE' ? '#B45309' : (impuesto.estado === 'ANULADO' ? 'var(--azul-loreto)' : '#047857')}}>
-                                      {impuesto.estado === 'PENDIENTE' ? 'DEUDA EXIGIBLE' : impuesto.estado === 'PAGADO' ? 'PAGADO' : 'ANULADO'}
+                                    <span className="badge" style={{background: 'rgba(122, 27, 40, 0.1)', color: '#7A1B28'}}>
+                                      DEUDA EXIGIBLE
                                     </span>
                                   </div>
                                   
-                                  {impuesto.estado === 'PENDIENTE' && (
-                                    <div style={{background: 'rgba(122, 27, 40, 0.05)', border: '1px solid rgba(122, 27, 40, 0.15)', padding: '16px', borderRadius: '6px', marginTop: '16px', fontSize: '13.5px'}}>
-                                      <strong style={{color: '#7A1B28', display: 'block', marginBottom: '8px', fontSize: '13px', textTransform: 'uppercase'}}>ℹ️ Información de Pago</strong>
-                                      <p style={{margin: '0 0 4px 0'}}>Puede regularizar esta deuda mediante transferencia a la cuenta oficial de Recaudación:</p>
-                                      <p style={{margin: '0 0 4px 0'}}><strong>CBU:</strong> 32101205300000012431389</p>
-                                      <p style={{margin: 0}}><strong>ALIAS:</strong> LoretoRecaudacion</p>
-                                      <p style={{margin: '8px 0 0 0', fontStyle: 'italic', color: 'var(--tinta-suave)'}}>Envíe su comprobante por WhatsApp al <a href="https://wa.me/5493854743310" target="_blank" rel="noopener noreferrer" style={{color: 'var(--azul-loreto)', fontWeight: 600}}>385 474-3310</a> para su acreditación inmediata por el sector contable.</p>
-                                    </div>
-                                  )}
+                                  <div style={{background: 'rgba(122, 27, 40, 0.05)', border: '1px solid rgba(122, 27, 40, 0.15)', padding: '16px', borderRadius: '6px', marginTop: '16px', fontSize: '13.5px'}}>
+                                    <strong style={{color: '#7A1B28', display: 'block', marginBottom: '8px', fontSize: '13px', textTransform: 'uppercase'}}>ℹ️ Información para Regularización</strong>
+                                    <p style={{margin: '0 0 4px 0'}}>Puede abonar mediante transferencia bancaria a la cuenta oficial de Recaudación:</p>
+                                    <p style={{margin: '0 0 4px 0'}}><strong>CBU:</strong> 32101205300000012431389</p>
+                                    <p style={{margin: 0}}><strong>ALIAS:</strong> LoretoRecaudacion</p>
+                                    <p style={{margin: '8px 0 0 0', fontStyle: 'italic', color: 'var(--tinta-suave)'}}>Una vez realizada, envíe su comprobante por WhatsApp al <a href="https://wa.me/5493854743310" target="_blank" rel="noopener noreferrer" style={{color: '#7A1B28', fontWeight: 600}}>385 474-3310</a> para impactar el pago en el sistema.</p>
+                                  </div>
                                 </div>
                               )
                             })}

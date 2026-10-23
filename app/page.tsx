@@ -1,40 +1,67 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano, procesarNoticia } from "./actions/subidas"
 import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearClave, registrarPagoManual, desistirActa, obtenerRecaudacionDiaria, obtenerTarifas, obtenerImpuestos, crearImpuesto, cobrarImpuesto, anularImpuesto, buscarImpuestosPorDni } from "./actions/admin"
 
-// === COMPONENTE DE ANIMACIÓN NUMÉRICA (COUNTUP) ===
+// === COMPONENTES DE ANIMACIÓN Y MICROINTERACCIONES ===
 const AnimatedNumber = ({ value, isCurrency = false }: { value: number, isCurrency?: boolean }) => {
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
     let startTime: number | null = null;
-    const duration = 1500; // Duración de la animación en milisegundos (1.5s)
-    
+    const duration = 1500; 
     const animate = (timestamp: number) => {
       if (!startTime) startTime = timestamp;
       const progress = Math.min((timestamp - startTime) / duration, 1);
-      
-      // Curva de aceleración (easeOutCubic) para que frene suavemente al llegar al final
       const easeOut = 1 - Math.pow(1 - progress, 3);
-      
       setDisplayValue(Math.floor(easeOut * value));
-
       if (progress < 1) {
         requestAnimationFrame(animate);
       } else {
         setDisplayValue(value);
       }
     };
-    
     requestAnimationFrame(animate);
   }, [value]);
 
   return <>{isCurrency ? '$' : ''}{displayValue.toLocaleString('es-AR')}</>;
 }
+
+const Reveal = ({ children }: { children: React.ReactNode }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(entry.target); }
+    }, { threshold: 0.1 });
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div ref={ref} style={{ opacity: isVisible ? 1 : 0, transform: isVisible ? 'translateY(0)' : 'translateY(40px)', transition: 'opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+      {children}
+    </div>
+  )
+}
+
+const Spinner = ({ dark = false }: { dark?: boolean }) => (
+  <span className={`inline-block w-4 h-4 border-2 rounded-full mr-2 align-middle animate-[spin_0.8s_ease-in-out_infinite] ${dark ? 'border-[#0B4A82]/20 border-t-[#0B4A82]' : 'border-white/30 border-t-white'}`}></span>
+);
+
+const SkeletonTable = ({ columnas = 6 }) => (
+  <div className="p-6">
+    {[1, 2, 3, 4, 5].map(row => (
+      <div key={row} className="flex gap-4 mb-5 pb-5 border-b border-gray-100 last:border-0 opacity-70">
+        {Array.from({length: columnas}).map((_, col) => (
+          <div key={col} className="h-4 rounded bg-gray-200 flex-1 animate-[pulse_1.5s_ease-in-out_infinite]" style={{ animationDelay: `${col * 0.1}s` }}></div>
+        ))}
+      </div>
+    ))}
+  </div>
+);
 // ===================================================
 
 export default function JuzgadoFaltasUnificado() {
@@ -52,7 +79,6 @@ export default function JuzgadoFaltasUnificado() {
   const [noticiasPublicas, setNoticiasPublicas] = useState<any[]>([])
   const [cargandoAdmin, setCargandoAdmin] = useState(false)
   
-  // Estados para Recaudación
   const [tarifas, setTarifas] = useState<any[]>([])
   const [impuestos, setImpuestos] = useState<any[]>([])
   const [modalRecaudacion, setModalRecaudacion] = useState(false)
@@ -104,7 +130,6 @@ export default function JuzgadoFaltasUnificado() {
 
   useEffect(() => { 
     obtenerNoticiasAdmin().then(setNoticiasPublicas);
-
     const sesion = localStorage.getItem('juzgado_sesion');
     if (sesion) {
       try {
@@ -119,9 +144,7 @@ export default function JuzgadoFaltasUnificado() {
     }
   }, [])
 
-  useEffect(() => {
-    setPaginaActual(1);
-  }, [filtroActaNombre, filtroDniAdmin, filtroDireccion, filtroEstado, vista, tabBalance, filtroRec]);
+  useEffect(() => { setPaginaActual(1); }, [filtroActaNombre, filtroDniAdmin, filtroDireccion, filtroEstado, vista, tabBalance, filtroRec]);
 
   const manejarBusqueda = async (e: React.FormEvent) => {
     e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null);
@@ -131,21 +154,9 @@ export default function JuzgadoFaltasUnificado() {
     const resImpuestos = await buscarImpuestosPorDni(dni);
 
     let encontrados = 0;
-
-    if (resInfracciones.success && resInfracciones.data) {
-      setResultados(resInfracciones.data);
-      encontrados += resInfracciones.data.length;
-    }
-
-    if (resImpuestos.success && resImpuestos.data) {
-      setResultadosImpuestos(resImpuestos.data);
-      encontrados += resImpuestos.data.length;
-    }
-
-    if (encontrados === 0) {
-      setMensaje("No se registran infracciones ni deudas impositivas para el DNI ingresado.");
-    }
-    
+    if (resInfracciones.success && resInfracciones.data) { setResultados(resInfracciones.data); encontrados += resInfracciones.data.length; }
+    if (resImpuestos.success && resImpuestos.data) { setResultadosImpuestos(resImpuestos.data); encontrados += resImpuestos.data.length; }
+    if (encontrados === 0) { setMensaje("No se registran infracciones ni deudas impositivas para el DNI ingresado."); }
     setBuscando(false);
   }
 
@@ -165,16 +176,14 @@ export default function JuzgadoFaltasUnificado() {
       } else { 
         setAlertaNotificacion({ titulo: 'No se pudo procesar', mensaje: respuesta.error, tipo: 'error' }); 
       }
-    } catch (error: any) { 
-      setAlertaNotificacion({ titulo: 'Error de conexión', mensaje: 'Revise su conexión a internet e intente nuevamente.', tipo: 'error' }); 
-    } finally { 
-      setEnviando(false); 
-    }
+    } catch (error: any) { setAlertaNotificacion({ titulo: 'Error de conexión', mensaje: 'Revise su conexión a internet e intente nuevamente.', tipo: 'error' }); 
+    } finally { setEnviando(false); }
   }
 
   const procesarLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault(); setProcesando(true);
     const auth = await iniciarSesion(email, password)
+    setProcesando(false);
     if (!auth.success || !auth.usuario) return alert(auth.error || "Error de inicio de sesión")
     setUsuario({ nombre: auth.usuario.nombre, rol: auth.usuario.rol }); 
     setAutenticado(true); setMenuAbierto(false);
@@ -194,8 +203,7 @@ export default function JuzgadoFaltasUnificado() {
       if (vistaDestino === 'admin_recaudacion' || rolActual === 'RECAUDADOR') {
         const t = await obtenerTarifas();
         const i = await obtenerImpuestos();
-        setTarifas(t);
-        setImpuestos(i);
+        setTarifas(t); setImpuestos(i);
       } else {
         let datos: any = [];
         if (vistaDestino === 'admin_actas' || vistaDestino === 'admin_balance') {
@@ -222,46 +230,28 @@ export default function JuzgadoFaltasUnificado() {
 
   // === FUNCIONES EXCLUSIVAS DE RECAUDACIÓN ===
   const manejarConceptoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
-    setRecConcepto(val);
+    const val = e.target.value; setRecConcepto(val);
     const tarifa = tarifas.find(t => t.concepto === val);
-    if (tarifa) {
-      setRecMonto(tarifa.monto.toString());
-    } else {
-      setRecMonto("");
-    }
+    if (tarifa) { setRecMonto(tarifa.monto.toString()); } else { setRecMonto(""); }
   }
 
   const manejarCrearImpuesto = async (e: React.FormEvent) => {
     e.preventDefault(); setRecGuardando(true);
-    const data = {
-      dniTitular: recDni,
-      nombreTitular: recNombre,
-      concepto: recConcepto,
-      monto: Number(recMonto),
-      estado: 'PENDIENTE'
-    };
+    const data = { dniTitular: recDni, nombreTitular: recNombre, concepto: recConcepto, monto: Number(recMonto), estado: 'PENDIENTE' };
     const res = await crearImpuesto(data);
-    if (res.success) {
-      setModalRecaudacion(false); setRecDni(""); setRecNombre(""); setRecConcepto(""); setRecMonto("");
-      cargarDatosPanel('admin_recaudacion');
-    } else {
-      alert("Error al cargar impuesto: " + res.error);
-    }
+    if (res.success) { setModalRecaudacion(false); setRecDni(""); setRecNombre(""); setRecConcepto(""); setRecMonto(""); cargarDatosPanel('admin_recaudacion'); } else { alert("Error al cargar impuesto: " + res.error); }
     setRecGuardando(false);
   }
 
   const manejarCobroImpuesto = async (id: string, nombre: string, concepto: string, monto: number) => {
     if (!confirm(`¿Confirma el COBRO por ventanilla?\n\nContribuyente: ${nombre}\nConcepto: ${concepto}\nMonto a cobrar: $${monto}`)) return;
-    setCargandoAdmin(true);
-    const res = await cobrarImpuesto(id);
+    setCargandoAdmin(true); const res = await cobrarImpuesto(id);
     if (res.success) { cargarDatosPanel('admin_recaudacion'); } else { alert(res.error); setCargandoAdmin(false); }
   }
 
   const manejarAnularImpuesto = async (id: string) => {
     if (!confirm(`¿Seguro que desea anular esta deuda generada por error?`)) return;
-    setCargandoAdmin(true);
-    const res = await anularImpuesto(id);
+    setCargandoAdmin(true); const res = await anularImpuesto(id);
     if (res.success) { cargarDatosPanel('admin_recaudacion'); } else { alert(res.error); setCargandoAdmin(false); }
   }
 
@@ -270,20 +260,14 @@ export default function JuzgadoFaltasUnificado() {
   const tramitesPendientesCount = impuestos.filter(i => i.estado === 'PENDIENTE').length;
 
   const impuestosFiltrados = impuestos.filter(i => {
-    const txt = filtroRec.toLowerCase();
-    return i.dniTitular.includes(txt) || i.nombreTitular.toLowerCase().includes(txt) || i.concepto.toLowerCase().includes(txt);
+    const txt = filtroRec.toLowerCase(); return i.dniTitular.includes(txt) || i.nombreTitular.toLowerCase().includes(txt) || i.concepto.toLowerCase().includes(txt);
   });
   // === FIN FUNCIONES RECAUDACIÓN ===
 
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
     let fechaSegura = new Date().toISOString(); 
-    if (nuevaFecha) {
-      try {
-         const partes = nuevaFecha.split('-'); 
-         if (partes.length === 3) { const d = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10), 12, 0, 0); if (!isNaN(d.getTime())) fechaSegura = d.toISOString(); }
-      } catch(error) {}
-    }
+    if (nuevaFecha) { try { const partes = nuevaFecha.split('-'); if (partes.length === 3) { const d = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10), 12, 0, 0); if (!isNaN(d.getTime())) fechaSegura = d.toISOString(); } } catch(error) {} }
     const datosActa = { nroActa: nuevoNroActa, nombreTitular: nuevoNombre, dniTitular: nuevoDni, monto: Number(nuevoMonto), lugar: nuevoLugar || "No informado", articulo: nuevoArticulo || "No informado", inspector: nuevoInspector || "No informado", tipoInfraccion: nuevoTipo as any, fechaInfraccion: fechaSegura };
     const res = await crearActa(datosActa);
     if (res.success) { setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto(""); setNuevoTipo("TRANSITO"); setNuevaFecha(""); cargarDatosPanel(vista); } else { alert(res.error); }
@@ -293,12 +277,7 @@ export default function JuzgadoFaltasUnificado() {
   const manejarEditarActa = async (e: React.FormEvent) => {
     e.preventDefault(); setEditandoActa(true);
     let fechaSegura = new Date().toISOString();
-    if (modalEditarActa.fechaInfraccion_input) {
-      try {
-        const partes = modalEditarActa.fechaInfraccion_input.split('-');
-        if (partes.length === 3) { const d = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10), 12, 0, 0); if (!isNaN(d.getTime())) fechaSegura = d.toISOString(); }
-      } catch(error) {}
-    }
+    if (modalEditarActa.fechaInfraccion_input) { try { const partes = modalEditarActa.fechaInfraccion_input.split('-'); if (partes.length === 3) { const d = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10), 12, 0, 0); if (!isNaN(d.getTime())) fechaSegura = d.toISOString(); } } catch(error) {} }
     const datosActualizados = { nroActa: modalEditarActa.nroActa, nombreTitular: modalEditarActa.nombreTitular, dniTitular: modalEditarActa.dniTitular, monto: Number(modalEditarActa.monto), lugar: modalEditarActa.lugar || "No informado", articulo: modalEditarActa.articulo || "No informado", inspector: modalEditarActa.inspector || "No informado", tipoInfraccion: modalEditarActa.tipoInfraccion, fechaInfraccion: fechaSegura };
     const res = await editarActa(modalEditarActa.id, datosActualizados);
     if (res.success) { setModalEditarActa(null); cargarDatosPanel(vista); } else { alert(res.error); }
@@ -312,7 +291,6 @@ export default function JuzgadoFaltasUnificado() {
     const montoFinal = Number(respuestaMonto);
     if (isNaN(montoFinal) || montoFinal <= 0) return alert("Error: Debe ingresar un monto numérico válido mayor a cero.");
     if (!confirm(`¿Confirma que se ha efectuado el cobro de $${montoFinal} y desea cerrar el acta como PAGADA?`)) return;
-
     setCargandoAdmin(true); const res = await registrarPagoManual(item.id, montoFinal, usuario?.nombre || "Empleado");
     if (res.success) { cargarDatosPanel('admin_actas'); } else { alert("Error al registrar cobro: " + res.error); setCargandoAdmin(false); }
   }
@@ -378,8 +356,7 @@ export default function JuzgadoFaltasUnificado() {
   }
 
   const manejarConsultaDiaria = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setBuscandoRecaudacion(true);
+    if (e) e.preventDefault(); setBuscandoRecaudacion(true);
     const res = await obtenerRecaudacionDiaria(fechaConsulta);
     if (res.success && res.data) { setRecaudacionDelDia(res.data); } else { setRecaudacionDelDia([]); if (e) alert("Error al consultar recaudación: " + res.error); }
     setBuscandoRecaudacion(false);
@@ -401,30 +378,16 @@ export default function JuzgadoFaltasUnificado() {
 
   const totalActasCount = datosAdmin.length;
   const actasPendientesCount = datosAdmin.filter(d => d.estado === 'PENDIENTE').length;
-  const montoRecaudadoTotal = pagosAdmin
-    .filter(p => p.estado === 'CONCILIADO')
-    .reduce((acc, p) => acc + (Number(p.montoInformado) || 0), 0);
+  const montoRecaudadoTotal = pagosAdmin.filter(p => p.estado === 'CONCILIADO').reduce((acc, p) => acc + (Number(p.montoInformado) || 0), 0);
   
   const dnisReincidentesGlobal = new Set();
-  datosAdmin.forEach(item => {
-    const mismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion);
-    if (mismo.length > 1) {
-      dnisReincidentesGlobal.add(item.dniTitular);
-    }
-  });
+  datosAdmin.forEach(item => { const mismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion); if (mismo.length > 1) { dnisReincidentesGlobal.add(item.dniTitular); } });
   const reincidentesCount = dnisReincidentesGlobal.size;
 
   const dnisReincidentes = new Set(); const actasReincidentes: any[] = [];
   if (vista === 'admin_balance' && tabBalance === 'reincidentes') {
-    datosAdmin.forEach(item => {
-      const mismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion);
-      if (mismo.length > 1) dnisReincidentes.add(item.dniTitular);
-    });
-    datosAdmin.forEach(item => {
-      if (dnisReincidentes.has(item.dniTitular) && !actasReincidentes.some(a => a.dniTitular === item.dniTitular)) {
-        actasReincidentes.push({...item, totalActas: datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion).length});
-      }
-    });
+    datosAdmin.forEach(item => { const mismo = datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion); if (mismo.length > 1) dnisReincidentes.add(item.dniTitular); });
+    datosAdmin.forEach(item => { if (dnisReincidentes.has(item.dniTitular) && !actasReincidentes.some(a => a.dniTitular === item.dniTitular)) { actasReincidentes.push({...item, totalActas: datosAdmin.filter(d => d.dniTitular === item.dniTitular && d.tipoInfraccion === item.tipoInfraccion).length}); } });
   }
 
   const actasFiltradas = datosAdmin.filter(item => {
@@ -517,8 +480,8 @@ export default function JuzgadoFaltasUnificado() {
                      </button>
                    </div>
                 </div>
-                <div className="overflow-x-auto">
-                  {cargandoAdmin ? <p className="text-center py-10 text-gray-500">Sincronizando con base de datos...</p> : (
+                <div className="overflow-x-auto min-h-[300px]">
+                  {cargandoAdmin ? <SkeletonTable columnas={6} /> : (
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase tracking-wider text-gray-500">
@@ -571,10 +534,10 @@ export default function JuzgadoFaltasUnificado() {
              </div>
           </main>
 
-          {/* MODAL DE CARGA DE IMPUESTO BORDÓ (REDISEÑADO CON ALTO CONTRASTE) */}
+          {/* MODAL DE CARGA DE IMPUESTO BORDÓ */}
           {modalRecaudacion && (
-            <div className="fixed inset-0 bg-[#3a0a13]/80 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 transition-all">
-              <div className="bg-[#f8f9fa] rounded-2xl p-8 max-w-2xl w-full shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border border-[#7A1B28]/20">
+            <div className="fixed inset-0 bg-[#3a0a13]/80 backdrop-blur-sm flex items-center justify-center z-[1000] p-4 transition-all animate-[fadeIn_0.3s_ease-out]">
+              <div className="bg-[#f8f9fa] rounded-2xl p-8 max-w-2xl w-full shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] border border-[#7A1B28]/20 animate-[zoomIn_0.3s_cubic-bezier(0.16,1,0.3,1)]">
                 <div className="flex justify-between items-center mb-8 border-b-2 border-[#7A1B28]/10 pb-5">
                   <div>
                     <span className="block text-[11px] font-black tracking-widest text-[#7A1B28]/60 uppercase mb-1">Módulo de Facturación</span>
@@ -614,11 +577,12 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
 
                   <div className="flex gap-4 pt-2">
-                    <button type="button" onClick={() => setModalRecaudacion(false)} className="flex-1 py-4 text-gray-600 font-bold bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all">Cancelar Operación</button>
-                    <button type="submit" disabled={recGuardando} className="flex-[2] py-4 bg-[#7A1B28] hover:bg-[#5E151F] text-white font-black rounded-xl shadow-[0_4px_14px_0_rgba(122,27,40,0.39)] hover:shadow-[0_6px_20px_rgba(122,27,40,0.23)] hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:transform-none text-[15px]">{recGuardando ? 'Procesando registro...' : '✓ Asentar Deuda en Sistema'}</button>
+                    <button type="button" onClick={() => setModalRecaudacion(false)} className="flex-1 py-4 text-gray-600 font-bold bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all">Cancelar</button>
+                    <button type="submit" disabled={recGuardando} className="flex-[2] py-4 bg-[#7A1B28] hover:bg-[#5E151F] text-white font-black rounded-xl shadow-[0_4px_14px_0_rgba(122,27,40,0.39)] hover:shadow-[0_6px_20px_rgba(122,27,40,0.23)] hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:transform-none text-[15px]">{recGuardando ? <><Spinner/> Registrando...</> : '✓ Asentar Deuda en Sistema'}</button>
                   </div>
                 </form>
               </div>
+              <style dangerouslySetInnerHTML={{ __html: `@keyframes zoomIn { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}} />
             </div>
           )}
         </div>
@@ -685,14 +649,15 @@ export default function JuzgadoFaltasUnificado() {
             .admin-table th { background: var(--papel-alto); padding: 12px 10px; font-weight: 700; border-bottom: 2px solid var(--linea); font-size: 12.5px; color: var(--azul-loreto); font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 0.04em; } 
             .admin-table td { padding: 12px 10px; border-bottom: 1px solid var(--linea); font-size: 13.5px; } 
             .badge { padding: 6px 10px; border-radius: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; font-family: 'Montserrat', sans-serif; text-transform: uppercase; }
-            .modal-overlay { position: fixed; inset: 0; background: rgba(11, 74, 130, 0.4); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; } 
-            .modal-content { background: var(--papel); padding: 40px; border-radius: var(--radius-m); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 40px rgba(0,0,0,0.15); border: 1px solid var(--linea); }
+            .modal-overlay { position: fixed; inset: 0; background: rgba(11, 74, 130, 0.5); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; animation: modalFadeIn 0.3s ease-out forwards; } 
+            .modal-content { background: var(--papel); padding: 40px; border-radius: var(--radius-m); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.3); border: 1px solid var(--linea); animation: modalZoom 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
             .contacto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; } .contacto-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 24px; } .contacto-list li { display: flex; gap: 16px; align-items: flex-start; } .contacto-list .ico { width: 40px; height: 40px; border-radius: 50%; background: rgba(235, 33, 40, 0.1); color: var(--rojo-loreto); display: flex; align-items: center; justify-content: center; flex: none; font-size: 18px; } .contacto-list strong { display: block; font-size: 15px; color: var(--azul-loreto); font-weight: 600; margin-bottom: 4px; } .contacto-list span, .contacto-list a { font-size: 14.5px; color: var(--tinta-suave); text-decoration: none; } .contacto-list a:hover { color: var(--rojo-loreto); text-decoration: underline; } .map-frame { border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; height: 380px; } .map-frame iframe { width: 100%; height: 100%; border: 0; }
-            /* TABS BALANCE */
             .tabs { display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 1px solid var(--linea); padding-bottom: 12px; overflow-x: auto; }
             .tabs button { background: none; border: none; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 700; color: var(--tinta-suave); cursor: pointer; padding: 8px 16px; border-radius: 6px; transition: all 0.2s; white-space: nowrap; }
             .tabs button:hover { background: var(--papel); color: var(--azul-loreto); }
             .tabs button.active { background: var(--azul-loreto); color: #fff; }
+            @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes modalZoom { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
             @media (max-width: 980px) { 
               .contacto-grid, .hero .wrap, .news-grid, .autoridades-grid, .art-grid { grid-template-columns: 1fr; } 
               .hero { padding: 30px 0; } .consulta-panel { padding: 24px 16px; } .menu-toggle { display: block; }
@@ -768,244 +733,253 @@ export default function JuzgadoFaltasUnificado() {
               <>
                 <section className="hero" id="inicio">
                   <div className="wrap">
-                    <div>
+                    <Reveal>
                       <p className="eyebrow">Municipalidad de Loreto · Santiago del Estero</p>
                       <h1>Juzgado de Faltas Municipal</h1>
                       <p className="lead">Plataforma digital oficial para la consulta de actas, presentación de descargos y gestión de pagos sin necesidad de trámites presenciales.</p>
-                    </div>
+                    </Reveal>
                   </div>
                 </section>
 
                 <section id="consulta" style={{background: '#fff', padding: '60px 0'}}>
                   <div className="wrap">
-                    <div className="consulta-panel">
-                      <div style={{textAlign: 'center', marginBottom: '24px'}}>
-                        <span style={{fontSize: '36px', display: 'inline-block', marginBottom: '10px'}}>🔍</span>
-                        <h3 style={{fontSize: '28px', color: '#fff', marginBottom: '10px'}}>Portal de Autogestión Ciudadana</h3>
-                        <p style={{fontSize: '15px', color: 'rgba(255,255,255,0.9)', maxWidth: '55ch', margin: '0 auto'}}>
-                          Ingrese su número de documento para acceder al sistema. Podrá <strong>verificar el estado de sus infracciones</strong>, <strong>informar transferencias bancarias</strong> o <strong>presentar descargos formales</strong> adjuntando su documentación digital.
-                        </p>
-                      </div>
-                      
-                      <div className="consulta-form">
-                        <form onSubmit={manejarBusqueda}>
-                          <div className="mb-6">
-                            <label className="block text-[13px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Número de Documento (DNI / CUIT)</label>
-                            <input 
-                              type="text" 
-                              value={dni} 
-                              onChange={(e) => setDni(e.target.value)} 
-                              placeholder="Ej: 35123456 (sin puntos)" 
-                              required 
-                              className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 transition-all duration-300 outline-none focus:bg-white focus:border-[#00B2D6] focus:ring-4 focus:ring-[#00B2D6]/20 hover:border-gray-300 shadow-inner"
-                            />
-                          </div>
-                          <button 
-                            type="submit" 
-                            disabled={buscando} 
-                            className="w-full bg-[#0B4A82] hover:bg-[#083863] text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-[0_4px_14px_0_rgba(11,74,130,0.39)] hover:shadow-[0_6px_20px_rgba(11,74,130,0.23)] hover:-translate-y-0.5 disabled:opacity-70 disabled:transform-none"
-                          >
-                            {buscando ? 'Consultando base de datos...' : 'Consultar Infracciones y Trámites'}
-                          </button>
-                        </form>
+                    <Reveal>
+                      <div className="consulta-panel">
+                        <div style={{textAlign: 'center', marginBottom: '24px'}}>
+                          <span style={{fontSize: '36px', display: 'inline-block', marginBottom: '10px'}}>🔍</span>
+                          <h3 style={{fontSize: '28px', color: '#fff', marginBottom: '10px'}}>Portal de Autogestión Ciudadana</h3>
+                          <p style={{fontSize: '15px', color: 'rgba(255,255,255,0.9)', maxWidth: '55ch', margin: '0 auto'}}>
+                            Ingrese su número de documento para acceder al sistema. Podrá <strong>verificar el estado de sus infracciones</strong>, <strong>informar transferencias bancarias</strong> o <strong>presentar descargos formales</strong> adjuntando su documentación digital.
+                          </p>
+                        </div>
+                        
+                        <div className="consulta-form">
+                          <form onSubmit={manejarBusqueda}>
+                            <div className="mb-6">
+                              <label className="block text-[13px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Número de Documento (DNI / CUIT)</label>
+                              <input 
+                                type="text" 
+                                value={dni} 
+                                onChange={(e) => setDni(e.target.value)} 
+                                placeholder="Ej: 35123456 (sin puntos)" 
+                                required 
+                                className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 transition-all duration-300 outline-none focus:bg-white focus:border-[#00B2D6] focus:ring-4 focus:ring-[#00B2D6]/20 hover:border-gray-300 shadow-inner"
+                              />
+                            </div>
+                            <button 
+                              type="submit" 
+                              disabled={buscando} 
+                              className="w-full bg-[#0B4A82] hover:bg-[#083863] text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-[0_4px_14px_0_rgba(11,74,130,0.39)] hover:shadow-[0_6px_20px_rgba(11,74,130,0.23)] hover:-translate-y-0.5 disabled:opacity-70 disabled:transform-none"
+                            >
+                              {buscando ? <><Spinner/> Consultando base de datos...</> : 'Consultar Infracciones y Trámites'}
+                            </button>
+                          </form>
 
-                        {/* Skeleton Loader Premium */}
-                        {buscando && (
-                          <div className="mt-8 border-t-2 border-gray-100 pt-6 animate-pulse">
-                            <div className="h-4 bg-gray-200 rounded w-48 mb-6"></div>
-                            <div className="p-5 border-l-4 border-gray-300 bg-gray-50 mb-4 rounded-r-lg border-y border-r border-gray-100">
-                              <div className="h-3 bg-gray-200 rounded w-32 mb-3"></div>
-                              <div className="h-5 bg-gray-200 rounded w-48 mb-5"></div>
-                              <div className="flex gap-3">
-                                <div className="h-8 bg-gray-200 rounded w-28"></div>
+                          {buscando && (
+                            <div className="mt-8 border-t-2 border-gray-100 pt-6">
+                              <div className="h-4 bg-gray-200 rounded w-48 mb-6 animate-[pulse_1.5s_ease-in-out_infinite]"></div>
+                              <div className="p-5 border-l-4 border-gray-300 bg-gray-50 mb-4 rounded-r-lg border-y border-r border-gray-100">
+                                <div className="h-3 bg-gray-200 rounded w-32 mb-3 animate-[pulse_1.5s_ease-in-out_infinite]"></div>
+                                <div className="h-5 bg-gray-200 rounded w-48 mb-5 animate-[pulse_1.5s_ease-in-out_infinite]" style={{animationDelay: '0.1s'}}></div>
+                                <div className="flex gap-3">
+                                  <div className="h-8 bg-gray-200 rounded w-28 animate-[pulse_1.5s_ease-in-out_infinite]" style={{animationDelay: '0.2s'}}></div>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {mensaje && <p style={{marginTop: '16px', fontSize: '14.5px', color: 'var(--rojo-loreto)', fontWeight: 500, textAlign: 'center'}}>{mensaje}</p>}
-                        
-                        {/* RESULTADOS DE INFRACCIONES DE TRÁNSITO Y BROMATOLOGÍA */}
-                        {resultados.length > 0 && (
-                          <div style={{marginTop: '28px', borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>
-                            <h4 style={{fontSize: '16px', color: 'var(--azul-loreto)', marginBottom: '16px'}}>Expedientes Registrados en el Sistema:</h4>
-                            {resultados.map((acta) => {
-                              const esBroma = acta.tipoInfraccion === 'BROMATOLOGIA';
-                              const colorBorde = esBroma ? '#10B981' : 'var(--azul-loreto)';
-                              const nombreOrigen = esBroma ? 'BROMATOLOGÍA Y CALIDAD DE VIDA' : 'DIRECCIÓN DE TRÁNSITO';
+                          {mensaje && <p style={{marginTop: '16px', fontSize: '14.5px', color: 'var(--rojo-loreto)', fontWeight: 500, textAlign: 'center'}}>{mensaje}</p>}
+                          
+                          {resultados.length > 0 && (
+                            <div style={{marginTop: '28px', borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>
+                              <h4 style={{fontSize: '16px', color: 'var(--azul-loreto)', marginBottom: '16px'}}>Expedientes Registrados en el Sistema:</h4>
+                              {resultados.map((acta) => {
+                                const esBroma = acta.tipoInfraccion === 'BROMATOLOGIA';
+                                const colorBorde = esBroma ? '#10B981' : 'var(--azul-loreto)';
+                                const nombreOrigen = esBroma ? 'BROMATOLOGÍA Y CALIDAD DE VIDA' : 'DIRECCIÓN DE TRÁNSITO';
 
-                              return (
-                                <div key={acta.id} style={{padding: '20px', borderLeft: `4px solid ${colorBorde}`, background: 'var(--papel-alto)', marginBottom: '16px', borderRadius: '0 8px 8px 0', borderTop: '1px solid var(--linea)', borderRight: '1px solid var(--linea)', borderBottom: '1px solid var(--linea)'}}>
-                                  <span style={{fontSize: '11px', fontWeight: 700, color: colorBorde, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em'}}>{nombreOrigen}</span><br/>
-                                  <strong style={{fontSize: '16px', display: 'inline-block', marginTop: '4px'}}>Acta N° {acta.nroActa}</strong> <span style={{fontSize: '16px', color: 'var(--tinta-suave)'}}>— ${acta.monto.toString()}</span> <br/>
-                                  <div style={{marginTop: '8px'}}>
-                                    <span className="badge" style={{background: acta.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : (acta.estado === 'DESISTIDO' ? 'rgba(11, 74, 130, 0.15)' : 'rgba(16, 185, 129, 0.15)'), color: acta.estado === 'PENDIENTE' ? '#B45309' : (acta.estado === 'DESISTIDO' ? 'var(--azul-loreto)' : '#047857')}}>
-                                      {acta.estado === 'PRESENTADO' ? 'DESCARGO EN REVISIÓN' : acta.estado === 'PENDIENTE_CONCILIACION' ? 'PAGO EN REVISIÓN' : acta.estado}
-                                    </span>
+                                return (
+                                  <div key={acta.id} style={{padding: '20px', borderLeft: `4px solid ${colorBorde}`, background: 'var(--papel-alto)', marginBottom: '16px', borderRadius: '0 8px 8px 0', borderTop: '1px solid var(--linea)', borderRight: '1px solid var(--linea)', borderBottom: '1px solid var(--linea)'}}>
+                                    <span style={{fontSize: '11px', fontWeight: 700, color: colorBorde, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em'}}>{nombreOrigen}</span><br/>
+                                    <strong style={{fontSize: '16px', display: 'inline-block', marginTop: '4px'}}>Acta N° {acta.nroActa}</strong> <span style={{fontSize: '16px', color: 'var(--tinta-suave)'}}>— ${acta.monto.toString()}</span> <br/>
+                                    <div style={{marginTop: '8px'}}>
+                                      <span className="badge" style={{background: acta.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : (acta.estado === 'DESISTIDO' ? 'rgba(11, 74, 130, 0.15)' : 'rgba(16, 185, 129, 0.15)'), color: acta.estado === 'PENDIENTE' ? '#B45309' : (acta.estado === 'DESISTIDO' ? 'var(--azul-loreto)' : '#047857')}}>
+                                        {acta.estado === 'PRESENTADO' ? 'DESCARGO EN REVISIÓN' : acta.estado === 'PENDIENTE_CONCILIACION' ? 'PAGO EN REVISIÓN' : acta.estado}
+                                      </span>
+                                    </div>
+                                    
+                                    {acta.estado === 'PENDIENTE' && (
+                                      <div style={{display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap'}}><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'pago' })} className="btn btn--ghost btn--sm">Informar Pago</button><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'descargo' })} className="btn btn--primary btn--sm">Presentar Descargo</button></div>
+                                    )}
+                                    
+                                    {tramiteActivo?.id === acta.id && (
+                                      <form onSubmit={manejarEnvioTramite} style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--linea)'}}>
+                                        <input type="hidden" name="infraccionId" value={acta.id} />
+                                        <input type="hidden" name="tipo" value={tramiteActivo?.tipo || ''} />
+                                        
+                                        {tramiteActivo?.tipo === 'pago' ? (
+                                          <>
+                                            <div style={{background: 'rgba(0, 178, 214, 0.08)', border: '1px solid rgba(0, 178, 214, 0.2)', padding: '20px', borderRadius: '6px', marginBottom: '20px', fontSize: '14.5px'}}>
+                                              <h4 style={{fontSize: '14px', margin: '0 0 12px 0', color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.02em'}}>Datos Oficiales de Recaudación</h4>
+                                              <p style={{margin: '0 0 6px 0'}}><strong>Titular:</strong> Municipalidad de Loreto - Sgo. del Estero</p>
+                                              <p style={{margin: '0 0 6px 0'}}><strong>Entidad:</strong> Banco Santiago del Estero</p>
+                                              <p style={{margin: '0 0 6px 0'}}><strong>Cuenta N°:</strong> 12000000001243138</p>
+                                              <p style={{margin: '0 0 6px 0'}}><strong>CBU:</strong> 32101205300000012431389</p>
+                                              <p style={{margin: '0'}}><strong>ALIAS:</strong> LoretoRecaudacion</p>
+                                            </div>
+                                            <div className="field">
+                                              <label>Monto transferido exacto ($)</label>
+                                              <input type="number" name="monto" required />
+                                            </div>
+                                            <div className="field">
+                                              <label>Comprobante de Pago (PDF o Imagen — Máx. recomendado: 4 MB)</label>
+                                              <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required style={{padding: '8px'}} />
+                                            </div>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <div className="field"><label>Nombre y Apellido del Presentante</label><input type="text" name="nombre" required /></div>
+                                            <div className="field"><label>Correo Electrónico (Constitución de Domicilio Digital)</label><input type="email" name="email" required /></div>
+                                            <div className="field"><label>Fundamentos del Descargo</label><textarea name="motivo" rows={4} required></textarea></div>
+                                            <div className="field">
+                                              <label>Documentación / Prueba Adjunta (PDF o Imagen — Máx. recomendado: 4 MB)</label>
+                                              <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required style={{padding: '8px'}} />
+                                            </div>
+                                          </>
+                                        )}
+                                        <button type="submit" disabled={enviando} className="btn btn--primary btn--block">{enviando ? <><Spinner/> Procesando envío...</> : 'Ingresar Documentación al Juzgado'}</button>
+                                      </form>
+                                    )}
                                   </div>
-                                  
-                                  {acta.estado === 'PENDIENTE' && (
-                                    <div style={{display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap'}}><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'pago' })} className="btn btn--ghost btn--sm">Informar Pago</button><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'descargo' })} className="btn btn--primary btn--sm">Presentar Descargo</button></div>
-                                  )}
-                                  
-                                  {tramiteActivo?.id === acta.id && (
-                                    <form onSubmit={manejarEnvioTramite} style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--linea)'}}>
-                                      <input type="hidden" name="infraccionId" value={acta.id} />
-                                      <input type="hidden" name="tipo" value={tramiteActivo?.tipo || ''} />
-                                      
-                                      {tramiteActivo?.tipo === 'pago' ? (
-                                        <>
-                                          <div style={{background: 'rgba(0, 178, 214, 0.08)', border: '1px solid rgba(0, 178, 214, 0.2)', padding: '20px', borderRadius: '6px', marginBottom: '20px', fontSize: '14.5px'}}>
-                                            <h4 style={{fontSize: '14px', margin: '0 0 12px 0', color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.02em'}}>Datos Oficiales de Recaudación</h4>
-                                            <p style={{margin: '0 0 6px 0'}}><strong>Titular:</strong> Municipalidad de Loreto - Sgo. del Estero</p>
-                                            <p style={{margin: '0 0 6px 0'}}><strong>Entidad:</strong> Banco Santiago del Estero</p>
-                                            <p style={{margin: '0 0 6px 0'}}><strong>Cuenta N°:</strong> 12000000001243138</p>
-                                            <p style={{margin: '0 0 6px 0'}}><strong>CBU:</strong> 32101205300000012431389</p>
-                                            <p style={{margin: '0'}}><strong>ALIAS:</strong> LoretoRecaudacion</p>
-                                          </div>
-                                          <div className="field">
-                                            <label>Monto transferido exacto ($)</label>
-                                            <input type="number" name="monto" required />
-                                          </div>
-                                          <div className="field">
-                                            <label>Comprobante de Pago (PDF o Imagen — Máx. recomendado: 4 MB)</label>
-                                            <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required style={{padding: '8px'}} />
-                                          </div>
-                                        </>
-                                      ) : (
-                                        <>
-                                          <div className="field"><label>Nombre y Apellido del Presentante</label><input type="text" name="nombre" required /></div>
-                                          <div className="field"><label>Correo Electrónico (Constitución de Domicilio Digital)</label><input type="email" name="email" required /></div>
-                                          <div className="field"><label>Fundamentos del Descargo</label><textarea name="motivo" rows={4} required></textarea></div>
-                                          <div className="field">
-                                            <label>Documentación / Prueba Adjunta (PDF o Imagen — Máx. recomendado: 4 MB)</label>
-                                            <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required style={{padding: '8px'}} />
-                                          </div>
-                                        </>
-                                      )}
-                                      <button type="submit" disabled={enviando} className="btn btn--primary btn--block">{enviando ? 'Procesando envío...' : 'Ingresar Documentación al Juzgado'}</button>
-                                    </form>
-                                  )}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
+                                )
+                              })}
+                            </div>
+                          )}
 
-                        {/* RESULTADOS DE IMPUESTOS Y RECAUDACIÓN (MUNDO BORDÓ) */}
-                        {resultadosImpuestos.length > 0 && (
-                          <div style={{marginTop: '28px', borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>
-                            <h4 style={{fontSize: '16px', color: '#7A1B28', marginBottom: '16px'}}>Tasas e Impuestos Municipales Pendientes:</h4>
-                            {resultadosImpuestos.map((impuesto) => {
-                              const colorBorde = '#7A1B28'; // Bordó
-                              const nombreOrigen = 'OFICINA DE RECAUDACIÓN Y TASAS';
+                          {resultadosImpuestos.length > 0 && (
+                            <div style={{marginTop: '28px', borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>
+                              <h4 style={{fontSize: '16px', color: '#7A1B28', marginBottom: '16px'}}>Tasas e Impuestos Municipales Pendientes:</h4>
+                              {resultadosImpuestos.map((impuesto) => {
+                                const colorBorde = '#7A1B28'; 
+                                const nombreOrigen = 'OFICINA DE RECAUDACIÓN Y TASAS';
 
-                              return (
-                                <div key={impuesto.id} style={{padding: '20px', borderLeft: `4px solid ${colorBorde}`, background: 'var(--papel-alto)', marginBottom: '16px', borderRadius: '0 8px 8px 0', borderTop: '1px solid var(--linea)', borderRight: '1px solid var(--linea)', borderBottom: '1px solid var(--linea)'}}>
-                                  <span style={{fontSize: '11px', fontWeight: 700, color: colorBorde, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em'}}>{nombreOrigen}</span><br/>
-                                  <strong style={{fontSize: '16px', display: 'inline-block', marginTop: '4px'}}>{impuesto.concepto}</strong> <span style={{fontSize: '16px', color: 'var(--tinta-suave)'}}>— ${impuesto.monto.toLocaleString('es-AR')}</span> <br/>
-                                  <div style={{marginTop: '8px'}}>
-                                    <span className="badge" style={{background: 'rgba(122, 27, 40, 0.1)', color: '#7A1B28'}}>
-                                      DEUDA EXIGIBLE
-                                    </span>
+                                return (
+                                  <div key={impuesto.id} style={{padding: '20px', borderLeft: `4px solid ${colorBorde}`, background: 'var(--papel-alto)', marginBottom: '16px', borderRadius: '0 8px 8px 0', borderTop: '1px solid var(--linea)', borderRight: '1px solid var(--linea)', borderBottom: '1px solid var(--linea)'}}>
+                                    <span style={{fontSize: '11px', fontWeight: 700, color: colorBorde, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em'}}>{nombreOrigen}</span><br/>
+                                    <strong style={{fontSize: '16px', display: 'inline-block', marginTop: '4px'}}>{impuesto.concepto}</strong> <span style={{fontSize: '16px', color: 'var(--tinta-suave)'}}>— ${impuesto.monto.toLocaleString('es-AR')}</span> <br/>
+                                    <div style={{marginTop: '8px'}}>
+                                      <span className="badge" style={{background: 'rgba(122, 27, 40, 0.1)', color: '#7A1B28'}}>
+                                        DEUDA EXIGIBLE
+                                      </span>
+                                    </div>
+                                    
+                                    <div style={{background: 'rgba(122, 27, 40, 0.05)', border: '1px solid rgba(122, 27, 40, 0.15)', padding: '16px', borderRadius: '6px', marginTop: '16px', fontSize: '13.5px'}}>
+                                      <strong style={{color: '#7A1B28', display: 'block', marginBottom: '8px', fontSize: '13px', textTransform: 'uppercase'}}>ℹ️ Información para Regularización</strong>
+                                      <p style={{margin: '0 0 4px 0'}}>Puede abonar mediante transferencia bancaria a la cuenta oficial de Recaudación:</p>
+                                      <p style={{margin: '0 0 4px 0'}}><strong>CBU:</strong> 32101205300000012431389</p>
+                                      <p style={{margin: 0}}><strong>ALIAS:</strong> LoretoRecaudacion</p>
+                                      <p style={{margin: '8px 0 0 0', fontStyle: 'italic', color: 'var(--tinta-suave)'}}>Una vez realizada, envíe su comprobante por WhatsApp al <a href="https://wa.me/5493854743310" target="_blank" rel="noopener noreferrer" style={{color: '#7A1B28', fontWeight: 600}}>385 474-3310</a> para impactar el pago en el sistema.</p>
+                                    </div>
                                   </div>
-                                  
-                                  <div style={{background: 'rgba(122, 27, 40, 0.05)', border: '1px solid rgba(122, 27, 40, 0.15)', padding: '16px', borderRadius: '6px', marginTop: '16px', fontSize: '13.5px'}}>
-                                    <strong style={{color: '#7A1B28', display: 'block', marginBottom: '8px', fontSize: '13px', textTransform: 'uppercase'}}>ℹ️ Información para Regularización</strong>
-                                    <p style={{margin: '0 0 4px 0'}}>Puede abonar mediante transferencia bancaria a la cuenta oficial de Recaudación:</p>
-                                    <p style={{margin: '0 0 4px 0'}}><strong>CBU:</strong> 32101205300000012431389</p>
-                                    <p style={{margin: 0}}><strong>ALIAS:</strong> LoretoRecaudacion</p>
-                                    <p style={{margin: '8px 0 0 0', fontStyle: 'italic', color: 'var(--tinta-suave)'}}>Una vez realizada, envíe su comprobante por WhatsApp al <a href="https://wa.me/5493854743310" target="_blank" rel="noopener noreferrer" style={{color: '#7A1B28', fontWeight: 600}}>385 474-3310</a> para impactar el pago en el sistema.</p>
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    </Reveal>
                   </div>
                 </section>
 
                 <section id="autoridades" style={{background: 'var(--papel-alto)', borderBottom: '1px solid var(--linea)'}}>
                   <div className="wrap">
-                    <div className="section-head"><p className="kicker">Estructura Institucional</p><h2>Autoridades del Juzgado</h2><p>Conozca al equipo de magistrados y profesionales que integran la administración del Juzgado de Faltas Municipal.</p></div>
-                    <div className="autoridades-grid">
-                      <div className="autoridad-card principal"><span>Juez de Faltas</span><h3>Dr. Facundo Mansilla</h3></div>
-                      <div className="autoridad-card"><span>Secretaria Letrada</span><h3>Dra. Romina Casaubon</h3></div>
-                      <div className="autoridad-card"><span>Secretario Letrado</span><h3>Dr. Agustín González Fiad</h3></div>
-                      <div className="autoridad-card"><span>Secretario Letrado</span><h3>Dr. Leandro Ledesma</h3></div>
-                      <div className="autoridad-card"><span>Contadora</span><h3>CPN Nur Salomón</h3></div>
-                    </div>
+                    <Reveal>
+                      <div className="section-head"><p className="kicker">Estructura Institucional</p><h2>Autoridades del Juzgado</h2><p>Conozca al equipo de magistrados y profesionales que integran la administración del Juzgado de Faltas Municipal.</p></div>
+                      <div className="autoridades-grid">
+                        <div className="autoridad-card principal"><span>Juez de Faltas</span><h3>Dr. Facundo Mansilla</h3></div>
+                        <div className="autoridad-card"><span>Secretaria Letrada</span><h3>Dra. Romina Casaubon</h3></div>
+                        <div className="autoridad-card"><span>Secretario Letrado</span><h3>Dr. Agustín González Fiad</h3></div>
+                        <div className="autoridad-card"><span>Secretario Letrado</span><h3>Dr. Leandro Ledesma</h3></div>
+                        <div className="autoridad-card"><span>Contadora</span><h3>CPN Nur Salomón</h3></div>
+                      </div>
+                    </Reveal>
                   </div>
                 </section>
                 
                 <section id="institucion">
                   <div className="wrap">
-                    <div className="section-head"><p className="kicker">Competencia y Funciones</p><h2>Sobre el Juzgado de Faltas</h2><p>El Juzgado interviene como órgano de juzgamiento una vez agotada la instancia administrativa preventiva, garantizando el derecho de defensa del ciudadano.</p></div>
-                    <div className="art-grid">
-                      <div className="art-card"><h3>Jurisdicción</h3><p>Entiende en las faltas cometidas dentro del ejido municipal de Loreto, conforme a la normativa vigente.</p></div>
-                      <div className="art-card"><h3>Imparcialidad</h3><p>Actúa como órgano autónomo, garantizando al presunto infractor el derecho a ser oído antes de cualquier sanción.</p></div>
-                      <div className="art-card"><h3>Debido Proceso</h3><p>Toda acta de infracción admite la presentación de descargo, ofrecimiento de prueba y etapa de apelación.</p></div>
-                      <div className="art-card"><h3>Educación Vial</h3><p>Promueve la concientización sobre las normas de tránsito como herramienta central para la seguridad comunitaria.</p></div>
-                    </div>
+                    <Reveal>
+                      <div className="section-head"><p className="kicker">Competencia y Funciones</p><h2>Sobre el Juzgado de Faltas</h2><p>El Juzgado interviene como órgano de juzgamiento una vez agotada la instancia administrativa preventiva, garantizando el derecho de defensa del ciudadano.</p></div>
+                      <div className="art-grid">
+                        <div className="art-card"><h3>Jurisdicción</h3><p>Entiende en las faltas cometidas dentro del ejido municipal de Loreto, conforme a la normativa vigente.</p></div>
+                        <div className="art-card"><h3>Imparcialidad</h3><p>Actúa como órgano autónomo, garantizando al presunto infractor el derecho a ser oído antes de cualquier sanción.</p></div>
+                        <div className="art-card"><h3>Debido Proceso</h3><p>Toda acta de infracción admite la presentación de descargo, ofrecimiento de prueba y etapa de apelación.</p></div>
+                        <div className="art-card"><h3>Educación Vial</h3><p>Promueve la concientización sobre las normas de tránsito como herramienta central para la seguridad comunitaria.</p></div>
+                      </div>
+                    </Reveal>
                   </div>
                 </section>
 
                 <section id="normativa" style={{ background: '#FFFFFF', padding: '80px 0', borderBottom: '1px solid var(--linea)' }}>
                   <div className="wrap">
-                    <div style={{ background: 'var(--papel-alto)', borderRadius: 'var(--radius-m)', padding: '48px', display: 'flex', alignItems: 'center', gap: '48px', flexWrap: 'wrap', border: '1px solid var(--linea)' }}>
-                      <div style={{ flex: 1, minWidth: '250px' }}>
-                        <p className="kicker" style={{ color: 'var(--rojo-loreto)', fontFamily: 'Montserrat, sans-serif', fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '12px' }}>Transparencia Municipal</p>
-                        <h2 style={{ fontSize: '32px', marginBottom: '16px', color: 'var(--azul-loreto)' }}>Código de Convivencia y Faltas de Tránsito</h2>
-                        <p style={{ fontSize: '16px', color: 'var(--tinta-suave)', lineHeight: '1.6' }}>Acceda de forma directa a la normativa oficial de la Ciudad de Loreto. Conozca sus derechos, obligaciones ciudadanas y las reglamentaciones de tránsito vigentes escaneando el código QR con la cámara de su dispositivo móvil.</p>
+                    <Reveal>
+                      <div style={{ background: 'var(--papel-alto)', borderRadius: 'var(--radius-m)', padding: '48px', display: 'flex', alignItems: 'center', gap: '48px', flexWrap: 'wrap', border: '1px solid var(--linea)' }}>
+                        <div style={{ flex: 1, minWidth: '250px' }}>
+                          <p className="kicker" style={{ color: 'var(--rojo-loreto)', fontFamily: 'Montserrat, sans-serif', fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '12px' }}>Transparencia Municipal</p>
+                          <h2 style={{ fontSize: '32px', marginBottom: '16px', color: 'var(--azul-loreto)' }}>Código de Convivencia y Faltas de Tránsito</h2>
+                          <p style={{ fontSize: '16px', color: 'var(--tinta-suave)', lineHeight: '1.6' }}>Acceda de forma directa a la normativa oficial de la Ciudad de Loreto. Conozca sus derechos, obligaciones ciudadanas y las reglamentaciones de tránsito vigentes escaneando el código QR con la cámara de su dispositivo móvil.</p>
+                        </div>
+                        <div style={{ flex: 'none', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 8px 32px rgba(11,74,130,0.08)', textAlign: 'center', border: '1px solid var(--linea)', margin: '0 auto', maxWidth: '100%' }}>
+                          <img src="/qrparacodigo.png" alt="QR Código de Convivencia" style={{ width: '100%', maxWidth: '180px', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
+                          <span style={{ display: 'block', marginTop: '16px', fontSize: '12px', fontWeight: 800, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>Escanear para acceder</span>
+                          <a href="/codigo-convivencia.pdf" download className="btn btn--ghost btn--block" style={{marginTop: '16px', fontSize: '12px', padding: '8px', borderStyle: 'dashed'}}>📥 Descargar PDF al celular</a>
+                        </div>
                       </div>
-                      <div style={{ flex: 'none', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 8px 32px rgba(11,74,130,0.08)', textAlign: 'center', border: '1px solid var(--linea)', margin: '0 auto', maxWidth: '100%' }}>
-                        <img src="/qrparacodigo.png" alt="QR Código de Convivencia" style={{ width: '100%', maxWidth: '180px', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
-                        <span style={{ display: 'block', marginTop: '16px', fontSize: '12px', fontWeight: 800, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>Escanear para acceder</span>
-                        <a href="/codigo-convivencia.pdf" download className="btn btn--ghost btn--block" style={{marginTop: '16px', fontSize: '12px', padding: '8px', borderStyle: 'dashed'}}>📥 Descargar PDF al celular</a>
-                      </div>
-                    </div>
+                    </Reveal>
                   </div>
                 </section>
 
                 {noticiasPublicas.length > 0 && (
                   <section id="noticias" style={{background: '#FFFFFF', paddingTop: '60px', paddingBottom: '80px'}}>
                     <div className="wrap">
-                      <div style={{textAlign: 'center', marginBottom: '56px'}}><h2 style={{fontSize: '36px', color: 'var(--tinta)'}}>Novedades Institucionales</h2></div>
-                      <div className="news-grid">
-                        {noticiasPublicas.slice(0, 3).map(n => (
-                          <div className="news-card" key={n.id}>
-                            <img src={n.imagenUrl} alt={n.titulo} />
-                            <span style={{display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--celeste-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px'}}>📅 {new Date(n.creadoEn).toLocaleDateString('es-AR')}</span>
-                            <h3>{n.titulo}</h3>
-                            {n.contenido && <p>{n.contenido}</p>}
-                          </div>
-                        ))}
-                      </div>
-                      {noticiasPublicas.length > 3 && (
-                        <div style={{textAlign: 'center', marginTop: '56px'}}>
-                          <Link className="btn btn--ghost" href="/noticias">
-                            Ver histórico de noticias
-                          </Link>
+                      <Reveal>
+                        <div style={{textAlign: 'center', marginBottom: '56px'}}><h2 style={{fontSize: '36px', color: 'var(--tinta)'}}>Novedades Institucionales</h2></div>
+                        <div className="news-grid">
+                          {noticiasPublicas.slice(0, 3).map(n => (
+                            <div className="news-card" key={n.id}>
+                              <img src={n.imagenUrl} alt={n.titulo} />
+                              <span style={{display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--celeste-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px'}}>📅 {new Date(n.creadoEn).toLocaleDateString('es-AR')}</span>
+                              <h3>{n.titulo}</h3>
+                              {n.contenido && <p>{n.contenido}</p>}
+                            </div>
+                          ))}
                         </div>
-                      )}
+                        {noticiasPublicas.length > 3 && (
+                          <div style={{textAlign: 'center', marginTop: '56px'}}>
+                            <Link className="btn btn--ghost" href="/noticias">
+                              Ver histórico de noticias
+                            </Link>
+                          </div>
+                        )}
+                      </Reveal>
                     </div>
                   </section>
                 )}
 
                 <section id="contacto" style={{background: 'var(--papel)', borderTop: '1px solid var(--linea)'}}>
                   <div className="wrap">
-                    <div className="section-head"><p className="kicker">Atención al Público</p><h2>Ubicación y Vías de Contacto</h2></div>
-                    <div className="contacto-grid">
-                      <ul className="contacto-list">
-                        <li><span className="ico">📍</span><div><strong>Dirección Física</strong><span>Isla Soledad S/N, Bº Islas Malvinas<br/>Loreto, Santiago del Estero</span></div></li>
-                        <li><span className="ico">💬</span><div><strong>Atención por WhatsApp</strong><a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310</a></div></li>
-                        <li><span className="ico">📧</span><div><strong>Mesa de Entradas Virtual</strong><a href="mailto:juzgadodefaltasloreto@outlook.com">juzgadodefaltasloreto@outlook.com</a></div></li>
-                        <li><span className="ico">🕗</span><div><strong>Horario de Recepción</strong><span>Lunes a Viernes<br/>07:00 a 13:00 hs y 16:00 a 20:00 hs</span></div></li>
-                      </ul>
-                      <div className="map-frame"><iframe src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3527.794711317769!2d-64.1893188!3d-28.3031456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMjjCsDE4JzExLjMiUyA2NMKwMTEnMjEuNSJX!5e0!3m2!1sen!2sar!4v1700000000000!5m2!1sen!2sar" title="Mapa de ubicación del Juzgado de Faltas de Loreto" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
-                    </div>
+                    <Reveal>
+                      <div className="section-head"><p className="kicker">Atención al Público</p><h2>Ubicación y Vías de Contacto</h2></div>
+                      <div className="contacto-grid">
+                        <ul className="contacto-list">
+                          <li><span className="ico">📍</span><div><strong>Dirección Física</strong><span>Isla Soledad S/N, Bº Islas Malvinas<br/>Loreto, Santiago del Estero</span></div></li>
+                          <li><span className="ico">💬</span><div><strong>Atención por WhatsApp</strong><a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310</a></div></li>
+                          <li><span className="ico">📧</span><div><strong>Mesa de Entradas Virtual</strong><a href="mailto:juzgadodefaltasloreto@outlook.com">juzgadodefaltasloreto@outlook.com</a></div></li>
+                          <li><span className="ico">🕗</span><div><strong>Horario de Recepción</strong><span>Lunes a Viernes<br/>07:00 a 13:00 hs y 16:00 a 20:00 hs</span></div></li>
+                        </ul>
+                        <div className="map-frame"><iframe src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3527.794711317769!2d-64.1893188!3d-28.3031456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMjjCsDE4JzExLjMiUyA2NMKwMTEnMjEuNSJX!5e0!3m2!1sen!2sar!4v1700000000000!5m2!1sen!2sar" title="Mapa de ubicación del Juzgado de Faltas de Loreto" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
+                      </div>
+                    </Reveal>
                   </div>
                 </section>
               </>
@@ -1024,7 +998,7 @@ export default function JuzgadoFaltasUnificado() {
                       <form onSubmit={procesarLogin}>
                         <div className="field"><label>Correo Electrónico Institucional</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></div>
                         <div className="field"><label>Clave de Seguridad</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></div>
-                        <button type="submit" className="btn btn--primary btn--block" style={{marginTop: '24px'}}>Verificar Identidad</button>
+                        <button type="submit" disabled={procesando} className="btn btn--primary btn--block" style={{marginTop: '24px'}}>{procesando ? <><Spinner/> Verificando...</> : 'Verificar Identidad'}</button>
                       </form>
                     </div>
                   ) : (
@@ -1047,7 +1021,7 @@ export default function JuzgadoFaltasUnificado() {
                             </div>
                             <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '140px'}}>
                               <span style={{fontSize: '11px', fontWeight: 700, color: '#10B981', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Recaudación</span>
-                              <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#10B981', fontFamily: 'Montserrat, sans-serif'}}><AnimatedNumber value={montoRecaudadoTotal} isCurrency={true} /></p>
+                              <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#10B981', fontFamily: 'Montserrat, sans-serif'}}><AnimatedNumber value={montoRecaudadoTotal} isCurrency={true}/></p>
                             </div>
                             <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
                               <span style={{fontSize: '11px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Reincidentes</span>
@@ -1072,7 +1046,7 @@ export default function JuzgadoFaltasUnificado() {
                                   <label>Seleccionar Fecha de Carga en Sistema</label>
                                   <input type="date" value={fechaConsulta} onChange={e => setFechaConsulta(e.target.value)} max={new Date().toISOString().split('T')[0]} />
                                 </div>
-                                <button onClick={manejarConsultaDiaria} disabled={buscandoRecaudacion} className="btn btn--primary">{buscandoRecaudacion ? 'Consultando...' : 'Ver Ingresos'}</button>
+                                <button onClick={manejarConsultaDiaria} disabled={buscandoRecaudacion} className="btn btn--primary">{buscandoRecaudacion ? <><Spinner/> Consultando...</> : 'Ver Ingresos'}</button>
                                 <button onClick={exportarCSV} className="btn btn--ghost">📥 Exportar Reporte CSV</button>
                               </div>
 
@@ -1142,16 +1116,16 @@ export default function JuzgadoFaltasUnificado() {
                             <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px'}}>
                               <div style={{background: 'rgba(11, 74, 130, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(11, 74, 130, 0.2)'}}>
                                 <span style={{fontSize: '12px', fontWeight: 700, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Pago Voluntario (50%)</span>
-                                <p style={{fontSize: '32px', fontWeight: 800, color: 'var(--azul-loreto)', margin: '12px 0 0 0', fontFamily: 'Montserrat, sans-serif'}}>${calcVoluntario.toLocaleString('es-AR')}</p>
+                                <p style={{fontSize: '32px', fontWeight: 800, color: 'var(--azul-loreto)', margin: '12px 0 0 0', fontFamily: 'Montserrat, sans-serif'}}><AnimatedNumber value={calcVoluntario} isCurrency={true}/></p>
                               </div>
                               <div style={{background: 'rgba(245, 158, 11, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)'}}>
                                 <span style={{fontSize: '12px', fontWeight: 700, color: '#B45309', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Pago Notificación</span>
-                                <p style={{fontSize: '32px', fontWeight: 800, color: '#B45309', margin: '12px 0 4px 0', fontFamily: 'Montserrat, sans-serif'}}>${calcNotificacion.toLocaleString('es-AR')}</p>
+                                <p style={{fontSize: '32px', fontWeight: 800, color: '#B45309', margin: '12px 0 4px 0', fontFamily: 'Montserrat, sans-serif'}}><AnimatedNumber value={calcNotificacion} isCurrency={true}/></p>
                                 <span style={{fontSize: '11px', color: '#B45309', opacity: 0.8, fontWeight: 600}}>Incluye $5.000 de gastos admin.</span>
                               </div>
                               <div style={{background: 'rgba(239, 68, 68, 0.05)', padding: '24px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.2)'}}>
                                 <span style={{fontSize: '12px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Con Sentencia (100%)</span>
-                                <p style={{fontSize: '32px', fontWeight: 800, color: '#DC2626', margin: '12px 0 0 0', fontFamily: 'Montserrat, sans-serif'}}>${calcTotal.toLocaleString('es-AR')}</p>
+                                <p style={{fontSize: '32px', fontWeight: 800, color: '#DC2626', margin: '12px 0 0 0', fontFamily: 'Montserrat, sans-serif'}}><AnimatedNumber value={calcTotal} isCurrency={true}/></p>
                               </div>
                             </div>
                           )}
@@ -1168,7 +1142,7 @@ export default function JuzgadoFaltasUnificado() {
                               <label>Material Fotográfico (JPG/PNG — Máx. recomendado: 4 MB)</label>
                               <input type="file" name="archivo" accept=".jpg, .jpeg, .png" required style={{padding: '10px'}} />
                             </div>
-                            <button type="submit" disabled={procesando} className="btn btn--primary">{procesando ? 'Procesando...' : 'Publicar Comunicado'}</button>
+                            <button type="submit" disabled={procesando} className="btn btn--primary">{procesando ? <><Spinner/> Publicando...</> : 'Publicar Comunicado'}</button>
                           </form>
                         </div>
                       )}
@@ -1189,7 +1163,7 @@ export default function JuzgadoFaltasUnificado() {
                                 <option value="RECAUDADOR">Oficina de Recaudación</option>
                               </select>
                             </div>
-                            <button type="submit" disabled={guardandoUsuario} className="btn btn--primary">{guardandoUsuario ? 'Registrando...' : 'Generar Credenciales'}</button>
+                            <button type="submit" disabled={guardandoUsuario} className="btn btn--primary">{guardandoUsuario ? <><Spinner/> Registrando...</> : 'Generar Credenciales'}</button>
                           </form>
                         </div>
                       )}
@@ -1208,7 +1182,7 @@ export default function JuzgadoFaltasUnificado() {
                               <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '90px'}}><label>Art. Infringido</label><input type="text" value={nuevoArticulo} onChange={(e) => setNuevoArticulo(e.target.value)} placeholder="Opcional..." /></div>
                               <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Inspector</label><input type="text" value={nuevoInspector} onChange={(e) => setNuevoInspector(e.target.value)} placeholder="Opcional..." /></div>
                               <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>Monto ($)</label><input type="number" value={nuevoMonto} onChange={(e) => setNuevoMonto(e.target.value)} required /></div>
-                              <button type="submit" disabled={guardandoActa} className="btn btn--primary" style={{width: '100%'}}>{guardandoActa ? 'Procesando...' : 'Asentar Acta'}</button>
+                              <button type="submit" disabled={guardandoActa} className="btn btn--primary" style={{width: '100%'}}>{guardandoActa ? <><Spinner/> Procesando...</> : 'Asentar Acta'}</button>
                             </form>
                           </div>
 
@@ -1244,7 +1218,7 @@ export default function JuzgadoFaltasUnificado() {
                       )}
 
                       <div style={{overflowX: 'auto'}}>
-                        {cargandoAdmin ? <p style={{textAlign: 'center', padding: '60px', color: 'var(--tinta-suave)'}}>Cargando información del servidor...</p> : (
+                        {cargandoAdmin ? <SkeletonTable columnas={vista === 'admin_actas' ? 9 : 5} /> : (
                           <>
                             {vista === 'admin_balance' && tabBalance === 'recaudacion' && (
                               <table className="admin-table">
@@ -1427,7 +1401,7 @@ export default function JuzgadoFaltasUnificado() {
                   
                   <div style={{display: 'flex', gap: '12px', width: '100%', marginTop: '16px'}}>
                     <button type="button" onClick={() => setModalEditarActa(null)} className="btn btn--ghost" style={{flex: 1}}>Cancelar</button>
-                    <button type="submit" disabled={editandoActa} className="btn btn--primary" style={{flex: 1}}>{editandoActa ? 'Guardando...' : 'Guardar Cambios'}</button>
+                    <button type="submit" disabled={editandoActa} className="btn btn--primary" style={{flex: 1}}>{editandoActa ? <><Spinner/> Guardando...</> : 'Guardar Cambios'}</button>
                   </div>
                 </form>
               </div>
@@ -1444,7 +1418,7 @@ export default function JuzgadoFaltasUnificado() {
                   <div className="field"><label>Reingrese la Nueva Clave</label><input type="password" value={passConfirmar} onChange={(e) => setPassConfirmar(e.target.value)} required /></div>
                   <div style={{display: 'flex', gap: '12px', marginTop: '32px'}}>
                     <button type="button" onClick={() => setModalPassword(false)} className="btn btn--ghost" style={{flex: 1}}>Cancelar</button>
-                    <button type="submit" disabled={cambiandoPass} className="btn btn--primary" style={{flex: 1}}>{cambiandoPass ? 'Registrando...' : 'Confirmar Cambio'}</button>
+                    <button type="submit" disabled={cambiandoPass} className="btn btn--primary" style={{flex: 1}}>{cambiandoPass ? <><Spinner/> Procesando...</> : 'Confirmar Cambio'}</button>
                   </div>
                 </form>
               </div>
@@ -1485,13 +1459,13 @@ export default function JuzgadoFaltasUnificado() {
                     <div style={{display: 'flex', gap: '12px', marginTop: '16px'}}>
                       {vista === 'admin_descargos' ? (
                         <>
-                          <button onClick={() => auditarDescargo('RESUELTO_A_FAVOR')} disabled={procesando} className="btn btn--success" style={{flex: 1}}>Dictar Sobreseimiento</button>
-                          <button onClick={() => auditarDescargo('RECHAZADO')} disabled={procesando} className="btn btn--danger" style={{flex: 1}}>Confirmar Sanción</button>
+                          <button onClick={() => auditarDescargo('RESUELTO_A_FAVOR')} disabled={procesando} className="btn btn--success" style={{flex: 1}}>{procesando ? <Spinner/> : ''} Dictar Sobreseimiento</button>
+                          <button onClick={() => auditarDescargo('RECHAZADO')} disabled={procesando} className="btn btn--danger" style={{flex: 1}}>{procesando ? <Spinner/> : ''} Confirmar Sanción</button>
                         </>
                       ) : (
                         <>
-                          <button onClick={() => auditarPago('CONCILIADO')} disabled={procesando} className="btn btn--success" style={{flex: 1}}>Acreditar Impacto Bancario</button>
-                          <button onClick={() => auditarPago('RECHAZADO')} disabled={procesando} className="btn btn--danger" style={{flex: 1}}>Rechazar Comprobante Apócrifo</button>
+                          <button onClick={() => auditarPago('CONCILIADO')} disabled={procesando} className="btn btn--success" style={{flex: 1}}>{procesando ? <Spinner/> : ''} Acreditar Impacto Bancario</button>
+                          <button onClick={() => auditarPago('RECHAZADO')} disabled={procesando} className="btn btn--danger" style={{flex: 1}}>{procesando ? <Spinner/> : ''} Rechazar Comprobante Apócrifo</button>
                         </>
                       )}
                     </div>
@@ -1506,7 +1480,7 @@ export default function JuzgadoFaltasUnificado() {
 
           {alertaNotificacion && (
             <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-[#0B4A82]/40 backdrop-blur-sm p-4 transition-opacity">
-              <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-[0_20px_50px_rgba(0,0,0,0.15)] transform transition-all translate-y-0 scale-100">
+              <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-[0_20px_50px_rgba(0,0,0,0.15)] animate-[zoomIn_0.35s_cubic-bezier(0.16,1,0.3,1)]">
                 <div className={`mx-auto flex items-center justify-center h-16 w-16 rounded-full mb-5 ${alertaNotificacion.tipo === 'exito' ? 'bg-emerald-100' : 'bg-red-100'}`}>
                   {alertaNotificacion.tipo === 'exito' ? (
                     <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>

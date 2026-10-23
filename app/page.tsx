@@ -6,6 +6,37 @@ import { buscarInfraccionPorDni } from "./actions/actas"
 import { procesarTramiteCiudadano, procesarNoticia } from "./actions/subidas"
 import { inicializarSistema, iniciarSesion, obtenerActasAdmin, obtenerDescargosAdmin, obtenerPagosAdmin, resolverDescargo, conciliarPago, crearActa, eliminarActa, editarActa, obtenerUsuariosAdmin, crearUsuarioAdmin, toggleEstadoUsuario, cambiarContrasena, obtenerNoticiasAdmin, eliminarNoticia, eliminarUsuario, blanquearClave, registrarPagoManual, desistirActa, obtenerRecaudacionDiaria, obtenerTarifas, obtenerImpuestos, crearImpuesto, cobrarImpuesto, anularImpuesto, buscarImpuestosPorDni } from "./actions/admin"
 
+// === COMPONENTE DE ANIMACIÓN NUMÉRICA (COUNTUP) ===
+const AnimatedNumber = ({ value, isCurrency = false }: { value: number, isCurrency?: boolean }) => {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    let startTime: number | null = null;
+    const duration = 1500; // Duración de la animación en milisegundos (1.5s)
+    
+    const animate = (timestamp: number) => {
+      if (!startTime) startTime = timestamp;
+      const progress = Math.min((timestamp - startTime) / duration, 1);
+      
+      // Curva de aceleración (easeOutCubic) para que frene suavemente al llegar al final
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      
+      setDisplayValue(Math.floor(easeOut * value));
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setDisplayValue(value);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [value]);
+
+  return <>{isCurrency ? '$' : ''}{displayValue.toLocaleString('es-AR')}</>;
+}
+// ===================================================
+
 export default function JuzgadoFaltasUnificado() {
   const [menuAbierto, setMenuAbierto] = useState(false)
   const [vista, setVista] = useState<'publica' | 'admin_actas' | 'admin_descargos' | 'admin_pagos' | 'admin_usuarios' | 'admin_noticias' | 'admin_calculadora' | 'admin_balance' | 'admin_recaudacion'>('publica')
@@ -458,15 +489,15 @@ export default function JuzgadoFaltasUnificado() {
              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-[#7A1B28]">
                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Deuda Exigible Global</span>
-                   <p className="text-3xl font-black text-[#7A1B28] mt-1">${deudaExigibleTotal.toLocaleString('es-AR')}</p>
+                   <p className="text-3xl font-black text-[#7A1B28] mt-1"><AnimatedNumber value={deudaExigibleTotal} isCurrency={true} /></p>
                 </div>
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-[#10B981]">
                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Recaudación Histórica</span>
-                   <p className="text-3xl font-black text-[#10B981] mt-1">${recaudacionTotalBordo.toLocaleString('es-AR')}</p>
+                   <p className="text-3xl font-black text-[#10B981] mt-1"><AnimatedNumber value={recaudacionTotalBordo} isCurrency={true} /></p>
                 </div>
                 <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-[#F59E0B]">
                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Trámites Pendientes</span>
-                   <p className="text-3xl font-black text-[#B45309] mt-1">{tramitesPendientesCount}</p>
+                   <p className="text-3xl font-black text-[#B45309] mt-1"><AnimatedNumber value={tramitesPendientesCount} /></p>
                 </div>
              </div>
 
@@ -1008,19 +1039,19 @@ export default function JuzgadoFaltasUnificado() {
                           <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
                             <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
                               <span style={{fontSize: '11px', fontWeight: 700, color: 'var(--azul-loreto)', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Total Actas</span>
-                              <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: 'var(--tinta)', fontFamily: 'Montserrat, sans-serif'}}>{totalActasCount}</p>
+                              <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: 'var(--tinta)', fontFamily: 'Montserrat, sans-serif'}}><AnimatedNumber value={totalActasCount} /></p>
                             </div>
                             <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
                               <span style={{fontSize: '11px', fontWeight: 700, color: '#B45309', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Pendientes</span>
-                              <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#B45309', fontFamily: 'Montserrat, sans-serif'}}>{actasPendientesCount}</p>
+                              <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#B45309', fontFamily: 'Montserrat, sans-serif'}}><AnimatedNumber value={actasPendientesCount} /></p>
                             </div>
                             <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '140px'}}>
                               <span style={{fontSize: '11px', fontWeight: 700, color: '#10B981', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Recaudación</span>
-                              <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#10B981', fontFamily: 'Montserrat, sans-serif'}}>${montoRecaudadoTotal.toLocaleString('es-AR')}</p>
+                              <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#10B981', fontFamily: 'Montserrat, sans-serif'}}><AnimatedNumber value={montoRecaudadoTotal} isCurrency={true} /></p>
                             </div>
                             <div style={{background: '#fff', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--linea)', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', minWidth: '130px'}}>
                               <span style={{fontSize: '11px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', fontFamily: 'Montserrat, sans-serif'}}>Reincidentes</span>
-                              <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#DC2626', fontFamily: 'Montserrat, sans-serif'}}>{reincidentesCount}</p>
+                              <p style={{fontSize: '20px', fontWeight: 800, margin: '4px 0 0 0', color: '#DC2626', fontFamily: 'Montserrat, sans-serif'}}><AnimatedNumber value={reincidentesCount} /></p>
                             </div>
                           </div>
                         )}

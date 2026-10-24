@@ -715,9 +715,9 @@ export default function JuzgadoFaltasUnificado() {
 
           <header className="site">
             <div className="wrap nav-row">
-              {/* === NUEVA CABECERA CON LOGO MUNICIPALIDAD (PUNTO 6.4) === */}
+              {/* === NUEVA CABECERA CON LOGO MUNICIPALIDAD CON LINK A FACEBOOK === */}
               <div className="flex items-center gap-5">
-                <a href="https://loreto.gob.ar" target="_blank" rel="noopener noreferrer" className="hidden md:flex items-center pr-5 border-r border-gray-200 hover:opacity-80 transition-opacity" title="Sitio Oficial de la Municipalidad">
+                <a href="https://www.facebook.com/profile.php?id=100087230738968" target="_blank" rel="noopener noreferrer" className="hidden md:flex items-center pr-5 border-r border-gray-200 hover:opacity-80 transition-opacity" title="Página Oficial de la Municipalidad">
                   <img src="/logo-municipalidad.png" alt="Municipalidad de Loreto" className="h-11 w-auto drop-shadow-sm" />
                 </a>
                 <a className="brand flex items-center gap-3" href="#" onClick={(e) => { e.preventDefault(); setVista('publica'); setMenuAbierto(false); }}>
@@ -1591,7 +1591,7 @@ export default function JuzgadoFaltasUnificado() {
                   <button onClick={() => setModalPrivacidad(false)} style={{background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--tinta-suave)'}}>✕</button>
                 </div>
                 <div style={{fontSize: '14.5px', color: 'var(--tinta)'}}>
-                  <p><strong>1. Responsabilidad:</strong> De conformidad con la Ley Nacional N° 25.326 de Protección de Datos Personales, la Municipalidad de Loreto (en adelante "El Municipio") garantiza la seguridad y confidencialidad de los datos suministrados por los ciudadanos en este portal.</p>
+                  <p><strong>1. Responsabilidad:</strong> De conformidad con la Ley Nacional N° 25.326 de Protección de Datos Personales, la Municipalidad de Loreto (en adelante "El Municipio") garantiza la seguridad y confidencialidad de los datos suministrados por citizens en este portal.</p>
                   <p><strong>2. Finalidad de la Recopilación:</strong> Los datos personales solicitados (DNI, Género, Nombre, Correo Electrónico) y los documentos adjuntados serán utilizados de manera exclusiva para la consulta, gestión, procesamiento y resolución de expedientes de faltas e infracciones de tránsito o comerciales.</p>
                   <p><strong>3. Protección y Confidencialidad:</strong> El Municipio ha adoptado las medidas técnicas y organizativas necesarias para evitar la pérdida, mal uso, alteración, acceso no autorizado y robo de los Datos Personales. Los archivos adjuntos son procesados mediante identificadores encriptados para garantizar el anonimato de sus rutas de acceso público.</p>
                   <p><strong>4. Derechos ARCO:</strong> El titular de los datos personales tiene la facultad de ejercer el derecho de acceso a los mismos en forma gratuita. Asimismo, puede solicitar la rectificación, actualización o supresión de sus datos personales, dirigiéndose presencialmente a la Mesa de Entradas del Juzgado de Faltas.</p>

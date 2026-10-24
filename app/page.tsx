@@ -208,12 +208,10 @@ export default function JuzgadoFaltasUnificado() {
     if (resInfracciones.success && resInfracciones.data) { setResultados(resInfracciones.data); encontrados += resInfracciones.data.length; }
     if (resImpuestos.success && resImpuestos.data) { setResultadosImpuestos(resImpuestos.data); encontrados += resImpuestos.data.length; }
     
-    // === LÓGICA PARA HABILITAR LIBRE DEUDA ===
     if (encontrados === 0) { 
       setMensaje("No se registran infracciones ni deudas impositivas exigibles con los datos ingresados."); 
       setEsLibreDeuda(true);
     } else {
-      // Si encontró cosas, verificamos si AL MENOS UNA está pendiente
       const tieneDeudasActivas = (resInfracciones.data || []).some((a: any) => ['PENDIENTE', 'PRESENTADO', 'PENDIENTE_CONCILIACION'].includes(a.estado)) || 
                                  (resImpuestos.data || []).some((i: any) => i.estado === 'PENDIENTE');
       if (!tieneDeudasActivas) {
@@ -664,6 +662,7 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
                 </form>
               </div>
+              <style dangerouslySetInnerHTML={{ __html: `@keyframes zoomIn { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}} />
             </div>
           )}
         </div>
@@ -1005,15 +1004,18 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
                 </section>
 
-                {/* === CERTIFICADO DE LIBRE DEUDA OCULTO (SOLO SE VE AL IMPRIMIR) === */}
+                {/* === CERTIFICADO DE LIBRE DEUDA OCULTO CON DOBLE LOGO === */}
                 {esLibreDeuda && (
                   <div className="print-only">
                     <div style={{ padding: '40px', border: '2px solid #000', borderRadius: '10px', maxWidth: '800px', margin: '0 auto', fontFamily: 'serif' }}>
-                      <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '30px' }}>
-                        <img src="/logo-municipalidad.png" alt="Municipalidad de Loreto" style={{ height: '80px', display: 'block', margin: '0 auto 15px auto' }} />
-                        <h1 style={{ fontSize: '24px', margin: '0 0 5px 0', textTransform: 'uppercase' }}>Municipalidad de la Ciudad de Loreto</h1>
-                        <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 'normal' }}>Provincia de Santiago del Estero</h2>
-                        <h3 style={{ fontSize: '20px', margin: '15px 0 0 0', fontWeight: 'bold' }}>JUZGADO DE FALTAS MUNICIPAL</h3>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '30px' }}>
+                        <img src="/logojdf.png" alt="Juzgado de Faltas" style={{ height: '75px', width: 'auto', flexShrink: 0 }} />
+                        <div style={{ textAlign: 'center', flexGrow: 1, padding: '0 15px' }}>
+                          <h1 style={{ fontSize: '22px', margin: '0 0 5px 0', textTransform: 'uppercase', fontWeight: 'bold' }}>Municipalidad de la Ciudad de Loreto</h1>
+                          <h2 style={{ fontSize: '16px', margin: 0, fontWeight: 'normal' }}>Provincia de Santiago del Estero</h2>
+                          <h3 style={{ fontSize: '18px', margin: '10px 0 0 0', fontWeight: 'bold' }}>JUZGADO DE FALTAS MUNICIPAL</h3>
+                        </div>
+                        <img src="/logo-municipalidad.png" alt="Municipalidad de Loreto" style={{ height: '75px', width: 'auto', flexShrink: 0 }} />
                       </div>
                       
                       <h4 style={{ textAlign: 'center', fontSize: '26px', textDecoration: 'underline', marginBottom: '40px' }}>CERTIFICADO DE LIBRE DEUDA</h4>

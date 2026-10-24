@@ -27,6 +27,7 @@ model Infraccion {
   monto           Decimal          @db.Decimal(10, 2)
   patente         String?
   dniTitular      String
+  generoTitular String @default("MASCULINO")
   nombreTitular   String
   inspector       String
   tipoInfraccion  TipoInfraccion   @default(TRANSITO)
@@ -165,6 +166,7 @@ model TarifariaRecaudacion {
 model ImpuestosRecaudacion {
   id             String   @id @default(uuid())
   dniTitular     String
+  generoTitular String @default("MASCULINO")
   nombreTitular  String
   concepto       String
   monto          Float

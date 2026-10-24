@@ -82,7 +82,10 @@ export default function JuzgadoFaltasUnificado() {
   const [tarifas, setTarifas] = useState<any[]>([])
   const [impuestos, setImpuestos] = useState<any[]>([])
   const [modalRecaudacion, setModalRecaudacion] = useState(false)
+  
+  // Estados para Recaudación (CON GÉNERO)
   const [recDni, setRecDni] = useState("")
+  const [recGenero, setRecGenero] = useState("MASCULINO")
   const [recNombre, setRecNombre] = useState("")
   const [recConcepto, setRecConcepto] = useState("")
   const [recMonto, setRecMonto] = useState("")
@@ -95,7 +98,9 @@ export default function JuzgadoFaltasUnificado() {
   const [textoResolucion, setTextoResolucion] = useState("")
   const [procesando, setProcesando] = useState(false)
 
+  // Búsqueda Pública (CON GÉNERO)
   const [dni, setDni] = useState("")
+  const [generoConsulta, setGeneroConsulta] = useState("MASCULINO")
   const [resultados, setResultados] = useState<any[]>([])
   const [resultadosImpuestos, setResultadosImpuestos] = useState<any[]>([])
   const [buscando, setBuscando] = useState(false)
@@ -109,7 +114,9 @@ export default function JuzgadoFaltasUnificado() {
   const [recaudacionDelDia, setRecaudacionDelDia] = useState<any[]>([])
   const [buscandoRecaudacion, setBuscandoRecaudacion] = useState(false)
 
-  const [nuevoNroActa, setNuevoNroActa] = useState(""); const [nuevoNombre, setNuevoNombre] = useState(""); const [nuevoDni, setNuevoDni] = useState(""); const [nuevoLugar, setNuevoLugar] = useState(""); const [nuevoArticulo, setNuevoArticulo] = useState(""); const [nuevoInspector, setNuevoInspector] = useState(""); const [nuevoMonto, setNuevoMonto] = useState(""); const [nuevoTipo, setNuevoTipo] = useState("TRANSITO"); const [nuevaFecha, setNuevaFecha] = useState(""); const [guardandoActa, setGuardandoActa] = useState(false);
+  // Nueva Acta (CON GÉNERO)
+  const [nuevoNroActa, setNuevoNroActa] = useState(""); const [nuevoNombre, setNuevoNombre] = useState(""); const [nuevoDni, setNuevoDni] = useState(""); const [nuevoGenero, setNuevoGenero] = useState("MASCULINO"); const [nuevoLugar, setNuevoLugar] = useState(""); const [nuevoArticulo, setNuevoArticulo] = useState(""); const [nuevoInspector, setNuevoInspector] = useState(""); const [nuevoMonto, setNuevoMonto] = useState(""); const [nuevoTipo, setNuevoTipo] = useState("TRANSITO"); const [nuevaFecha, setNuevaFecha] = useState(""); const [guardandoActa, setGuardandoActa] = useState(false);
+  
   const [nuevoUsuarioNombre, setNuevoUsuarioNombre] = useState(""); const [nuevoUsuarioEmail, setNuevoUsuarioEmail] = useState(""); const [nuevoUsuarioRol, setNuevoUsuarioRol] = useState("ADMINISTRATIVO"); const [guardandoUsuario, setGuardandoUsuario] = useState(false);
   const [modalPassword, setModalPassword] = useState(false); const [passActual, setPassActual] = useState(""); const [passNueva, setPassNueva] = useState(""); const [passConfirmar, setPassConfirmar] = useState(""); const [cambiandoPass, setCambiandoPass] = useState(false);
 
@@ -150,13 +157,14 @@ export default function JuzgadoFaltasUnificado() {
     e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null);
     setResultados([]); setResultadosImpuestos([]);
 
-    const resInfracciones = await buscarInfraccionPorDni(dni);
-    const resImpuestos = await buscarImpuestosPorDni(dni);
+    // SEGUNDO FACTOR DE SEGURIDAD (DNI + GÉNERO)
+    const resInfracciones = await buscarInfraccionPorDni(dni, generoConsulta);
+    const resImpuestos = await buscarImpuestosPorDni(dni, generoConsulta);
 
     let encontrados = 0;
     if (resInfracciones.success && resInfracciones.data) { setResultados(resInfracciones.data); encontrados += resInfracciones.data.length; }
     if (resImpuestos.success && resImpuestos.data) { setResultadosImpuestos(resImpuestos.data); encontrados += resImpuestos.data.length; }
-    if (encontrados === 0) { setMensaje("No se registran infracciones ni deudas impositivas para el DNI ingresado."); }
+    if (encontrados === 0) { setMensaje("No se registran infracciones ni deudas impositivas con los datos ingresados."); }
     setBuscando(false);
   }
 
@@ -237,9 +245,9 @@ export default function JuzgadoFaltasUnificado() {
 
   const manejarCrearImpuesto = async (e: React.FormEvent) => {
     e.preventDefault(); setRecGuardando(true);
-    const data = { dniTitular: recDni, nombreTitular: recNombre, concepto: recConcepto, monto: Number(recMonto), estado: 'PENDIENTE' };
+    const data = { dniTitular: recDni, generoTitular: recGenero, nombreTitular: recNombre, concepto: recConcepto, monto: Number(recMonto), estado: 'PENDIENTE' };
     const res = await crearImpuesto(data);
-    if (res.success) { setModalRecaudacion(false); setRecDni(""); setRecNombre(""); setRecConcepto(""); setRecMonto(""); cargarDatosPanel('admin_recaudacion'); } else { alert("Error al cargar impuesto: " + res.error); }
+    if (res.success) { setModalRecaudacion(false); setRecDni(""); setRecNombre(""); setRecConcepto(""); setRecMonto(""); setRecGenero("MASCULINO"); cargarDatosPanel('admin_recaudacion'); } else { alert("Error al cargar impuesto: " + res.error); }
     setRecGuardando(false);
   }
 
@@ -268,9 +276,9 @@ export default function JuzgadoFaltasUnificado() {
     e.preventDefault(); setGuardandoActa(true);
     let fechaSegura = new Date().toISOString(); 
     if (nuevaFecha) { try { const partes = nuevaFecha.split('-'); if (partes.length === 3) { const d = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10), 12, 0, 0); if (!isNaN(d.getTime())) fechaSegura = d.toISOString(); } } catch(error) {} }
-    const datosActa = { nroActa: nuevoNroActa, nombreTitular: nuevoNombre, dniTitular: nuevoDni, monto: Number(nuevoMonto), lugar: nuevoLugar || "No informado", articulo: nuevoArticulo || "No informado", inspector: nuevoInspector || "No informado", tipoInfraccion: nuevoTipo as any, fechaInfraccion: fechaSegura };
+    const datosActa = { nroActa: nuevoNroActa, nombreTitular: nuevoNombre, dniTitular: nuevoDni, generoTitular: nuevoGenero, monto: Number(nuevoMonto), lugar: nuevoLugar || "No informado", articulo: nuevoArticulo || "No informado", inspector: nuevoInspector || "No informado", tipoInfraccion: nuevoTipo as any, fechaInfraccion: fechaSegura };
     const res = await crearActa(datosActa);
-    if (res.success) { setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoLugar(""); setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto(""); setNuevoTipo("TRANSITO"); setNuevaFecha(""); cargarDatosPanel(vista); } else { alert(res.error); }
+    if (res.success) { setNuevoNroActa(""); setNuevoNombre(""); setNuevoDni(""); setNuevoGenero("MASCULINO"); setNuevoLugar(""); setNuevoArticulo(""); setNuevoInspector(""); setNuevoMonto(""); setNuevoTipo("TRANSITO"); setNuevaFecha(""); cargarDatosPanel(vista); } else { alert(res.error); }
     setGuardandoActa(false);
   }
 
@@ -278,7 +286,7 @@ export default function JuzgadoFaltasUnificado() {
     e.preventDefault(); setEditandoActa(true);
     let fechaSegura = new Date().toISOString();
     if (modalEditarActa.fechaInfraccion_input) { try { const partes = modalEditarActa.fechaInfraccion_input.split('-'); if (partes.length === 3) { const d = new Date(parseInt(partes[0], 10), parseInt(partes[1], 10) - 1, parseInt(partes[2], 10), 12, 0, 0); if (!isNaN(d.getTime())) fechaSegura = d.toISOString(); } } catch(error) {} }
-    const datosActualizados = { nroActa: modalEditarActa.nroActa, nombreTitular: modalEditarActa.nombreTitular, dniTitular: modalEditarActa.dniTitular, monto: Number(modalEditarActa.monto), lugar: modalEditarActa.lugar || "No informado", articulo: modalEditarActa.articulo || "No informado", inspector: modalEditarActa.inspector || "No informado", tipoInfraccion: modalEditarActa.tipoInfraccion, fechaInfraccion: fechaSegura };
+    const datosActualizados = { nroActa: modalEditarActa.nroActa, nombreTitular: modalEditarActa.nombreTitular, dniTitular: modalEditarActa.dniTitular, generoTitular: modalEditarActa.generoTitular, monto: Number(modalEditarActa.monto), lugar: modalEditarActa.lugar || "No informado", articulo: modalEditarActa.articulo || "No informado", inspector: modalEditarActa.inspector || "No informado", tipoInfraccion: modalEditarActa.tipoInfraccion, fechaInfraccion: fechaSegura };
     const res = await editarActa(modalEditarActa.id, datosActualizados);
     if (res.success) { setModalEditarActa(null); cargarDatosPanel(vista); } else { alert(res.error); }
     setEditandoActa(false);
@@ -497,7 +505,7 @@ export default function JuzgadoFaltasUnificado() {
                         {listaPaginada.map((imp: any) => (
                           <tr key={imp.id} className="hover:bg-gray-50 transition-colors">
                             <td className="p-4 text-gray-500">{new Date(imp.creadoEn).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</td>
-                            <td className="p-4"><strong className="block text-gray-800">{imp.nombreTitular}</strong><span className="text-xs text-gray-500">{imp.dniTitular}</span></td>
+                            <td className="p-4"><strong className="block text-gray-800">{imp.nombreTitular}</strong><span className="text-xs text-gray-500">{imp.dniTitular} ({imp.generoTitular || 'MASCULINO'})</span></td>
                             <td className="p-4 text-gray-700 font-medium">{imp.concepto}</td>
                             <td className="p-4 font-bold text-[#7A1B28]">${imp.monto.toLocaleString('es-AR')}</td>
                             <td className="p-4">
@@ -548,13 +556,21 @@ export default function JuzgadoFaltasUnificado() {
                 
                 <form onSubmit={manejarCrearImpuesto} className="space-y-6">
                   <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-5">
-                    <div className="grid grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div>
-                        <label className="block text-[11px] font-black text-gray-700 uppercase tracking-widest mb-2">DNI / CUIT del Vecino</label>
-                        <input type="text" value={recDni} onChange={e => setRecDni(e.target.value)} required className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:border-[#7A1B28] focus:ring-4 focus:ring-[#7A1B28]/10 outline-none transition-all text-gray-800 font-medium placeholder-gray-400" placeholder="Ej: 35123456" />
+                        <label className="block text-[11px] font-black text-gray-700 uppercase tracking-widest mb-2">DNI / CUIT</label>
+                        <input type="text" value={recDni} onChange={e => setRecDni(e.target.value)} required className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:border-[#7A1B28] focus:ring-4 focus:ring-[#7A1B28]/10 outline-none transition-all text-gray-800 font-medium placeholder-gray-400" placeholder="Sin puntos" />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-black text-gray-700 uppercase tracking-widest mb-2">Nombre o Razón Social</label>
+                        <label className="block text-[11px] font-black text-gray-700 uppercase tracking-widest mb-2">Género Titular</label>
+                        <select value={recGenero} onChange={e => setRecGenero(e.target.value)} required className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:border-[#7A1B28] focus:ring-4 focus:ring-[#7A1B28]/10 outline-none transition-all text-gray-800 font-medium">
+                          <option value="MASCULINO">Masculino</option>
+                          <option value="FEMENINO">Femenino</option>
+                          <option value="X">No Binario / X</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-black text-gray-700 uppercase tracking-widest mb-2">Nombre / Razón Social</label>
                         <input type="text" value={recNombre} onChange={e => setRecNombre(e.target.value)} required className="w-full px-4 py-3 bg-white border-2 border-gray-300 rounded-lg focus:border-[#7A1B28] focus:ring-4 focus:ring-[#7A1B28]/10 outline-none transition-all text-gray-800 font-medium placeholder-gray-400" placeholder="Ej: Juan Pérez" />
                       </div>
                     </div>
@@ -577,7 +593,7 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
 
                   <div className="flex gap-4 pt-2">
-                    <button type="button" onClick={() => setModalRecaudacion(false)} className="flex-1 py-4 text-gray-600 font-bold bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all">Cancelar</button>
+                    <button type="button" onClick={() => setModalRecaudacion(false)} className="flex-1 py-4 text-gray-600 font-bold bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all">Cancelar Operación</button>
                     <button type="submit" disabled={recGuardando} className="flex-[2] py-4 bg-[#7A1B28] hover:bg-[#5E151F] text-white font-black rounded-xl shadow-[0_4px_14px_0_rgba(122,27,40,0.39)] hover:shadow-[0_6px_20px_rgba(122,27,40,0.23)] hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:transform-none text-[15px]">{recGuardando ? <><Spinner/> Registrando...</> : '✓ Asentar Deuda en Sistema'}</button>
                   </div>
                 </form>
@@ -749,29 +765,28 @@ export default function JuzgadoFaltasUnificado() {
                           <span style={{fontSize: '36px', display: 'inline-block', marginBottom: '10px'}}>🔍</span>
                           <h3 style={{fontSize: '28px', color: '#fff', marginBottom: '10px'}}>Portal de Autogestión Ciudadana</h3>
                           <p style={{fontSize: '15px', color: 'rgba(255,255,255,0.9)', maxWidth: '55ch', margin: '0 auto'}}>
-                            Ingrese su número de documento para acceder al sistema. Podrá <strong>verificar el estado de sus infracciones</strong>, <strong>informar transferencias bancarias</strong> o <strong>presentar descargos formales</strong> adjuntando su documentación digital.
+                            Ingrese su documento y género para acceder de forma segura. Podrá <strong>verificar el estado de sus infracciones</strong>, <strong>informar transferencias</strong> o <strong>presentar descargos formales</strong>.
                           </p>
                         </div>
                         
                         <div className="consulta-form">
                           <form onSubmit={manejarBusqueda}>
-                            <div className="mb-6">
-                              <label className="block text-[13px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Número de Documento (DNI / CUIT)</label>
-                              <input 
-                                type="text" 
-                                value={dni} 
-                                onChange={(e) => setDni(e.target.value)} 
-                                placeholder="Ej: 35123456 (sin puntos)" 
-                                required 
-                                className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 transition-all duration-300 outline-none focus:bg-white focus:border-[#00B2D6] focus:ring-4 focus:ring-[#00B2D6]/20 hover:border-gray-300 shadow-inner"
-                              />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                              <div>
+                                <label className="block text-[13px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Documento (DNI / CUIT)</label>
+                                <input type="text" value={dni} onChange={(e) => setDni(e.target.value)} placeholder="Sin puntos" required className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 transition-all outline-none focus:bg-white focus:border-[#00B2D6] focus:ring-4 focus:ring-[#00B2D6]/20 shadow-inner" />
+                              </div>
+                              <div>
+                                <label className="block text-[13px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Género (Identidad Validada)</label>
+                                <select value={generoConsulta} onChange={(e) => setGeneroConsulta(e.target.value)} required className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 transition-all outline-none focus:bg-white focus:border-[#00B2D6] focus:ring-4 focus:ring-[#00B2D6]/20 shadow-inner">
+                                  <option value="MASCULINO">Masculino</option>
+                                  <option value="FEMENINO">Femenino</option>
+                                  <option value="X">No Binario / X</option>
+                                </select>
+                              </div>
                             </div>
-                            <button 
-                              type="submit" 
-                              disabled={buscando} 
-                              className="w-full bg-[#0B4A82] hover:bg-[#083863] text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-[0_4px_14px_0_rgba(11,74,130,0.39)] hover:shadow-[0_6px_20px_rgba(11,74,130,0.23)] hover:-translate-y-0.5 disabled:opacity-70 disabled:transform-none"
-                            >
-                              {buscando ? <><Spinner/> Consultando base de datos...</> : 'Consultar Infracciones y Trámites'}
+                            <button type="submit" disabled={buscando} className="w-full bg-[#0B4A82] hover:bg-[#083863] text-white font-bold py-4 px-6 rounded-xl transition-all shadow-[0_4px_14px_0_rgba(11,74,130,0.39)] disabled:opacity-70">
+                              {buscando ? <><Spinner/> Consultando base de datos segura...</> : 'Consultar Infracciones y Trámites'}
                             </button>
                           </form>
 
@@ -1178,6 +1193,13 @@ export default function JuzgadoFaltasUnificado() {
                               <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Fecha</label><input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} /></div>
                               <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '160px'}}><label>Infractor</label><input type="text" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} required /></div>
                               <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>DNI</label><input type="text" value={nuevoDni} onChange={(e) => setNuevoDni(e.target.value)} required /></div>
+                              <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '120px'}}><label>Género</label>
+                                <select value={nuevoGenero} onChange={(e) => setNuevoGenero(e.target.value)}>
+                                  <option value="MASCULINO">Masc</option>
+                                  <option value="FEMENINO">Fem</option>
+                                  <option value="X">Otro</option>
+                                </select>
+                              </div>
                               <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '130px'}}><label>Domicilio</label><input type="text" value={nuevoLugar} onChange={(e) => setNuevoLugar(e.target.value)} placeholder="Opcional..." /></div>
                               <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '90px'}}><label>Art. Infringido</label><input type="text" value={nuevoArticulo} onChange={(e) => setNuevoArticulo(e.target.value)} placeholder="Opcional..." /></div>
                               <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Inspector</label><input type="text" value={nuevoInspector} onChange={(e) => setNuevoInspector(e.target.value)} placeholder="Opcional..." /></div>
@@ -1394,6 +1416,15 @@ export default function JuzgadoFaltasUnificado() {
                   
                   <div className="field" style={{flex: 1, minWidth: '160px'}}><label>Nombre del Imputado</label><input type="text" value={modalEditarActa.nombreTitular} onChange={(e) => setModalEditarActa({...modalEditarActa, nombreTitular: e.target.value})} required /></div>
                   <div className="field" style={{flex: 1, minWidth: '120px'}}><label>DNI / CUIT</label><input type="text" value={modalEditarActa.dniTitular} onChange={(e) => setModalEditarActa({...modalEditarActa, dniTitular: e.target.value})} required /></div>
+                  
+                  <div className="field" style={{flex: 1, minWidth: '120px'}}><label>Género Titular</label>
+                    <select value={modalEditarActa.generoTitular || 'MASCULINO'} onChange={(e) => setModalEditarActa({...modalEditarActa, generoTitular: e.target.value})}>
+                      <option value="MASCULINO">Masc</option>
+                      <option value="FEMENINO">Fem</option>
+                      <option value="X">Otro</option>
+                    </select>
+                  </div>
+
                   <div className="field" style={{flex: 1, minWidth: '130px'}}><label>Domicilio del Infractor</label><input type="text" value={modalEditarActa.lugar} onChange={(e) => setModalEditarActa({...modalEditarActa, lugar: e.target.value})} placeholder="Opcional..." /></div>
                   <div className="field" style={{flex: 1, minWidth: '90px'}}><label>Art. Infringido</label><input type="text" value={modalEditarActa.articulo} onChange={(e) => setModalEditarActa({...modalEditarActa, articulo: e.target.value})} placeholder="Opcional..." /></div>
                   <div className="field" style={{flex: 1, minWidth: '140px'}}><label>Agente Interviniente</label><input type="text" value={modalEditarActa.inspector} onChange={(e) => setModalEditarActa({...modalEditarActa, inspector: e.target.value})} placeholder="Opcional..." /></div>
@@ -1432,7 +1463,7 @@ export default function JuzgadoFaltasUnificado() {
                 
                 <div style={{background: 'var(--papel-alto)', padding: '24px', borderRadius: '8px', marginBottom: '24px', fontSize: '15px', border: '1px solid var(--linea)'}}>
                   <p style={{margin: '0 0 8px 0'}}><strong>Acta de Infracción Relacionada:</strong> N° {itemModal.infraccion?.nroActa || itemModal.nroActa || "No especificado"}</p>
-                  <p style={{margin: '0 0 16px 0'}}><strong>Identificación Imputado:</strong> DNI {itemModal.infraccion?.dniTitular || itemModal.dniTitular || "No especificado"}</p>
+                  <p style={{margin: '0 0 16px 0'}}><strong>Identificación Imputado:</strong> DNI {itemModal.infraccion?.dniTitular || itemModal.dniTitular || "No especificado"} ({itemModal.infraccion?.generoTitular || itemModal.generoTitular || "MASCULINO"})</p>
                   {vista === 'admin_descargos' && (
                     <div style={{background: '#fff', padding: '16px', borderRadius: '6px', border: '1px solid var(--linea)'}}>
                       <strong style={{color: 'var(--azul-loreto)', display: 'block', marginBottom: '8px'}}>Fundamentos Jurídicos Presentados:</strong>

@@ -413,12 +413,13 @@ export async function anularImpuesto(id: string) {
     return { success: false, error: error.message };
   }
 }
-export async function buscarImpuestosPorDni(dni: string) {
+export async function buscarImpuestosPorDni(dni: string, genero: string) {
   try {
     const impuestos = await prisma.impuestosRecaudacion.findMany({
       where: { 
         dniTitular: dni,
-        estado: 'PENDIENTE' // Solo mostramos deudas activas al ciudadano en el portal público
+        generoTitular: genero, // <-- DOBLE FACTOR DE SEGURIDAD
+        estado: 'PENDIENTE' 
       },
       orderBy: { creadoEn: 'desc' }
     });

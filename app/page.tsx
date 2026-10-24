@@ -63,10 +63,10 @@ const SkeletonTable = ({ columnas = 6 }) => (
   </div>
 );
 
-// === NUEVO: LÍNEA DE TIEMPO VISUAL PARA SEGUIMIENTO DEL CIUDADANO ===
+// LÍNEA DE TIEMPO VISUAL
 const TimelineExpediente = ({ estado }: { estado: string }) => {
   let progress = 0;
-  let step1 = true; // Acta labrada siempre es true si existe
+  let step1 = true; 
   let step2 = false;
   let step3 = false;
 
@@ -124,11 +124,9 @@ export default function JuzgadoFaltasUnificado() {
   const [impuestos, setImpuestos] = useState<any[]>([])
   const [modalRecaudacion, setModalRecaudacion] = useState(false)
   
-  // Estados Legales
   const [modalPrivacidad, setModalPrivacidad] = useState(false)
   const [modalTerminos, setModalTerminos] = useState(false)
 
-  // Estados para Recaudación (CON GÉNERO)
   const [recDni, setRecDni] = useState("")
   const [recGenero, setRecGenero] = useState("MASCULINO")
   const [recNombre, setRecNombre] = useState("")
@@ -143,7 +141,7 @@ export default function JuzgadoFaltasUnificado() {
   const [textoResolucion, setTextoResolucion] = useState("")
   const [procesando, setProcesando] = useState(false)
 
-  // Búsqueda Pública (CON GÉNERO)
+  // Búsqueda Pública
   const [dni, setDni] = useState("")
   const [generoConsulta, setGeneroConsulta] = useState("MASCULINO")
   const [resultados, setResultados] = useState<any[]>([])
@@ -153,13 +151,14 @@ export default function JuzgadoFaltasUnificado() {
   const [tramiteActivo, setTramiteActivo] = useState<{ id: string, tipo: 'pago' | 'descargo' } | null>(null)
   const [enviando, setEnviando] = useState(false)
   
+  // === ESTADO PARA LIBRE DEUDA ===
+  const [esLibreDeuda, setEsLibreDeuda] = useState(false)
   const [alertaNotificacion, setAlertaNotificacion] = useState<{titulo: string, mensaje: string, tipo: 'exito' | 'error'} | null>(null)
 
   const [fechaConsulta, setFechaConsulta] = useState(new Date().toISOString().split('T')[0])
   const [recaudacionDelDia, setRecaudacionDelDia] = useState<any[]>([])
   const [buscandoRecaudacion, setBuscandoRecaudacion] = useState(false)
 
-  // Nueva Acta (CON GÉNERO)
   const [nuevoNroActa, setNuevoNroActa] = useState(""); const [nuevoNombre, setNuevoNombre] = useState(""); const [nuevoDni, setNuevoDni] = useState(""); const [nuevoGenero, setNuevoGenero] = useState("MASCULINO"); const [nuevoLugar, setNuevoLugar] = useState(""); const [nuevoArticulo, setNuevoArticulo] = useState(""); const [nuevoInspector, setNuevoInspector] = useState(""); const [nuevoMonto, setNuevoMonto] = useState(""); const [nuevoTipo, setNuevoTipo] = useState("TRANSITO"); const [nuevaFecha, setNuevaFecha] = useState(""); const [guardandoActa, setGuardandoActa] = useState(false);
   
   const [nuevoUsuarioNombre, setNuevoUsuarioNombre] = useState(""); const [nuevoUsuarioEmail, setNuevoUsuarioEmail] = useState(""); const [nuevoUsuarioRol, setNuevoUsuarioRol] = useState("ADMINISTRATIVO"); const [guardandoUsuario, setGuardandoUsuario] = useState(false);
@@ -199,17 +198,28 @@ export default function JuzgadoFaltasUnificado() {
   useEffect(() => { setPaginaActual(1); }, [filtroActaNombre, filtroDniAdmin, filtroDireccion, filtroEstado, vista, tabBalance, filtroRec]);
 
   const manejarBusqueda = async (e: React.FormEvent) => {
-    e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null);
+    e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null); setEsLibreDeuda(false);
     setResultados([]); setResultadosImpuestos([]);
 
-    // SEGUNDO FACTOR DE SEGURIDAD (DNI + GÉNERO)
     const resInfracciones = await buscarInfraccionPorDni(dni, generoConsulta);
     const resImpuestos = await buscarImpuestosPorDni(dni, generoConsulta);
 
     let encontrados = 0;
     if (resInfracciones.success && resInfracciones.data) { setResultados(resInfracciones.data); encontrados += resInfracciones.data.length; }
     if (resImpuestos.success && resImpuestos.data) { setResultadosImpuestos(resImpuestos.data); encontrados += resImpuestos.data.length; }
-    if (encontrados === 0) { setMensaje("No se registran infracciones ni deudas impositivas con los datos ingresados."); }
+    
+    // === LÓGICA PARA HABILITAR LIBRE DEUDA ===
+    if (encontrados === 0) { 
+      setMensaje("No se registran infracciones ni deudas impositivas exigibles con los datos ingresados."); 
+      setEsLibreDeuda(true);
+    } else {
+      // Si encontró cosas, verificamos si AL MENOS UNA está pendiente
+      const tieneDeudasActivas = (resInfracciones.data || []).some((a: any) => ['PENDIENTE', 'PRESENTADO', 'PENDIENTE_CONCILIACION'].includes(a.estado)) || 
+                                 (resImpuestos.data || []).some((i: any) => i.estado === 'PENDIENTE');
+      if (!tieneDeudasActivas) {
+        setEsLibreDeuda(true);
+      }
+    }
     setBuscando(false);
   }
 
@@ -218,8 +228,6 @@ export default function JuzgadoFaltasUnificado() {
     setEnviando(true);
     try {
       const formData = new FormData(e.currentTarget);
-      
-      // === BARRERA DE SEGURIDAD 6.2 (TAMAÑO Y FORMATO) ===
       const archivo = formData.get('archivo') as File | null;
       if (archivo && archivo.size > 0) {
         if (archivo.size > 10485760) {
@@ -232,7 +240,6 @@ export default function JuzgadoFaltasUnificado() {
           setEnviando(false); return;
         }
       }
-      // ===================================================
 
       const respuesta = await procesarTramiteCiudadano(formData);
       if (respuesta.success) {
@@ -297,7 +304,6 @@ export default function JuzgadoFaltasUnificado() {
     if (sesionActual) { const data = JSON.parse(sesionActual); localStorage.setItem('juzgado_sesion', JSON.stringify({ ...data, vista: nuevaVista })); }
   }
 
-  // === FUNCIONES EXCLUSIVAS DE RECAUDACIÓN ===
   const manejarConceptoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value; setRecConcepto(val);
     const tarifa = tarifas.find(t => t.concepto === val);
@@ -331,7 +337,6 @@ export default function JuzgadoFaltasUnificado() {
   const impuestosFiltrados = impuestos.filter(i => {
     const txt = filtroRec.toLowerCase(); return i.dniTitular.includes(txt) || i.nombreTitular.toLowerCase().includes(txt) || i.concepto.toLowerCase().includes(txt);
   });
-  // === FIN FUNCIONES RECAUDACIÓN ===
 
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
@@ -492,7 +497,7 @@ export default function JuzgadoFaltasUnificado() {
         /* ========================================================
            MUNDO RECAUDACIÓN (INTERFAZ BORDÓ TOTALMENTE AISLADA) 
            ======================================================== */
-        <div className="min-h-screen bg-gray-100 flex flex-col font-sans">
+        <div className="min-h-screen bg-gray-100 flex flex-col font-sans no-print">
           <header className="bg-[#7A1B28] text-white shadow-md border-b-4 border-[#5E151F] sticky top-0 z-50">
             <div className="max-w-[1200px] mx-auto px-6 py-4 flex justify-between items-center">
               <div className="flex items-center gap-4">
@@ -659,7 +664,6 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
                 </form>
               </div>
-              <style dangerouslySetInnerHTML={{ __html: `@keyframes zoomIn { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}} />
             </div>
           )}
         </div>
@@ -670,6 +674,7 @@ export default function JuzgadoFaltasUnificado() {
            MUNDO JUZGADO DE FALTAS Y PÚBLICO (INTERFAZ AZUL) 
            ======================================================== */
         <>
+          {/* === CSS GLOBAL (INCLUYE REGLAS DE IMPRESIÓN PARA EL LIBRE DEUDA) === */}
           <style dangerouslySetInnerHTML={{ __html: `
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap');
             :root { --azul-loreto: #0B4A82; --celeste-loreto: #00B2D6; --rojo-loreto: #EB2128; --papel: #FFFFFF; --papel-alto: #F8F9FA; --tinta: #212529; --tinta-suave: #495057; --linea: #DEE2E6; --radius-s: 4px; --radius-m: 10px; --maxw: 1180px; }
@@ -733,6 +738,18 @@ export default function JuzgadoFaltasUnificado() {
             .tabs button { background: none; border: none; font-family: 'Montserrat', sans-serif; font-size: 14px; font-weight: 700; color: var(--tinta-suave); cursor: pointer; padding: 8px 16px; border-radius: 6px; transition: all 0.2s; white-space: nowrap; }
             .tabs button:hover { background: var(--papel); color: var(--azul-loreto); }
             .tabs button.active { background: var(--azul-loreto); color: #fff; }
+            
+            /* === REGLAS PARA GUARDAR COMO PDF (OCULTA LA WEB, MUESTRA EL CERTIFICADO) === */
+            .print-only { display: none; }
+            @media print {
+              body { background: white !important; margin: 0 !important; padding: 0 !important; color: black !important; }
+              .no-print, header, footer, section:not(#consulta) { display: none !important; }
+              .print-only { display: block !important; position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
+              .consulta-panel, .consulta-form { box-shadow: none !important; margin: 0 !important; padding: 0 !important; background: white !important; }
+              @page { margin: 1cm; size: A4 portrait; }
+            }
+            /* ============================================================================== */
+
             @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
             @keyframes modalZoom { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
             @media (max-width: 980px) { 
@@ -747,14 +764,14 @@ export default function JuzgadoFaltasUnificado() {
             }
           `}} />
 
-          <div className="topbar">
+          <div className="topbar no-print">
             <div className="wrap">
               <div><span className="topbar__item">🕗 Lun. a Vie. 07:00 a 13:00 y 16:00 a 20:00 hs</span><span className="topbar__item">💬 <a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310 (WhatsApp)</a></span></div>
               <div><span className="topbar__item"><a href="#contacto">Contacto</a></span></div>
             </div>
           </div>
 
-          <header className="site">
+          <header className="site no-print">
             <div className="wrap nav-row">
               <div className="flex items-center gap-5">
                 <a href="https://www.facebook.com/profile.php?id=100087230738968" target="_blank" rel="noopener noreferrer" className="hidden md:flex items-center pr-5 border-r border-gray-200 hover:opacity-80 transition-opacity" title="Página Oficial de la Municipalidad">
@@ -814,7 +831,7 @@ export default function JuzgadoFaltasUnificado() {
           <main id="contenido">
             {vista === 'publica' && (
               <>
-                <section className="hero" id="inicio">
+                <section className="hero no-print" id="inicio">
                   <div className="wrap">
                     <Reveal>
                       <p className="eyebrow">Municipalidad de Loreto · Santiago del Estero</p>
@@ -824,11 +841,11 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
                 </section>
 
-                <section id="consulta" style={{background: '#fff', padding: '60px 0'}}>
+                <section id="consulta" style={{background: '#fff', padding: '60px 0'}} className="no-print">
                   <div className="wrap">
                     <Reveal>
                       <div className="consulta-panel">
-                        <div style={{textAlign: 'center', marginBottom: '24px'}}>
+                        <div style={{textAlign: 'center', marginBottom: '24px'}} className="no-print">
                           <span style={{fontSize: '36px', display: 'inline-block', marginBottom: '10px'}}>🔍</span>
                           <h3 style={{fontSize: '28px', color: '#fff', marginBottom: '10px'}}>Portal de Autogestión Ciudadana</h3>
                           <p style={{fontSize: '15px', color: 'rgba(255,255,255,0.9)', maxWidth: '55ch', margin: '0 auto'}}>
@@ -836,7 +853,7 @@ export default function JuzgadoFaltasUnificado() {
                           </p>
                         </div>
                         
-                        <div className="consulta-form">
+                        <div className="consulta-form no-print">
                           <form onSubmit={manejarBusqueda}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                               <div>
@@ -870,8 +887,26 @@ export default function JuzgadoFaltasUnificado() {
                             </div>
                           )}
 
-                          {mensaje && <p style={{marginTop: '16px', fontSize: '14.5px', color: 'var(--rojo-loreto)', fontWeight: 500, textAlign: 'center'}}>{mensaje}</p>}
+                          {mensaje && <p style={{marginTop: '16px', fontSize: '14.5px', color: esLibreDeuda ? '#10B981' : 'var(--rojo-loreto)', fontWeight: 600, textAlign: 'center'}}>{mensaje}</p>}
                           
+                          {/* === PANEL DE LIBRE DEUDA PÚBLICO === */}
+                          {esLibreDeuda && (
+                            <div className="mt-8 border-t-2 border-gray-100 pt-8 animate-[fadeIn_0.5s_ease-out]">
+                              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center">
+                                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600">
+                                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                                </div>
+                                <h4 className="text-xl font-black text-emerald-800 mb-2 font-['Montserrat']">Libre de Infracciones y Deudas</h4>
+                                <p className="text-emerald-700 text-[14.5px] mb-6 max-w-md mx-auto">No posee actas de tránsito, bromatología ni deudas impositivas exigibles registradas bajo el documento <strong>{dni}</strong>.</p>
+                                <button onClick={() => window.print()} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 mx-auto">
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                                  Generar Certificado PDF
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          {/* ================================== */}
+
                           {resultados.length > 0 && (
                             <div style={{marginTop: '28px', borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>
                               <h4 style={{fontSize: '16px', color: 'var(--azul-loreto)', marginBottom: '16px'}}>Expedientes Registrados en el Sistema:</h4>
@@ -885,9 +920,7 @@ export default function JuzgadoFaltasUnificado() {
                                     <span style={{fontSize: '11px', fontWeight: 700, color: colorBorde, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em'}}>{nombreOrigen}</span><br/>
                                     <strong style={{fontSize: '16px', display: 'inline-block', marginTop: '4px'}}>Acta N° {acta.nroActa}</strong> <span style={{fontSize: '16px', color: 'var(--tinta-suave)'}}>— ${acta.monto.toString()}</span> <br/>
                                     
-                                    {/* === LÍNEA DE TIEMPO INCORPORADA === */}
                                     <TimelineExpediente estado={acta.estado} />
-                                    {/* ================================== */}
                                     
                                     {acta.estado === 'PENDIENTE' && (
                                       <div style={{display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap'}}><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'pago' })} className="btn btn--ghost btn--sm">Informar Pago</button><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'descargo' })} className="btn btn--primary btn--sm">Presentar Descargo</button></div>
@@ -972,7 +1005,45 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
                 </section>
 
-                <section id="autoridades" style={{background: 'var(--papel-alto)', borderBottom: '1px solid var(--linea)'}}>
+                {/* === CERTIFICADO DE LIBRE DEUDA OCULTO (SOLO SE VE AL IMPRIMIR) === */}
+                {esLibreDeuda && (
+                  <div className="print-only">
+                    <div style={{ padding: '40px', border: '2px solid #000', borderRadius: '10px', maxWidth: '800px', margin: '0 auto', fontFamily: 'serif' }}>
+                      <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '30px' }}>
+                        <img src="/logo-municipalidad.png" alt="Municipalidad de Loreto" style={{ height: '80px', display: 'block', margin: '0 auto 15px auto' }} />
+                        <h1 style={{ fontSize: '24px', margin: '0 0 5px 0', textTransform: 'uppercase' }}>Municipalidad de la Ciudad de Loreto</h1>
+                        <h2 style={{ fontSize: '18px', margin: 0, fontWeight: 'normal' }}>Provincia de Santiago del Estero</h2>
+                        <h3 style={{ fontSize: '20px', margin: '15px 0 0 0', fontWeight: 'bold' }}>JUZGADO DE FALTAS MUNICIPAL</h3>
+                      </div>
+                      
+                      <h4 style={{ textAlign: 'center', fontSize: '26px', textDecoration: 'underline', marginBottom: '40px' }}>CERTIFICADO DE LIBRE DEUDA</h4>
+                      
+                      <div style={{ fontSize: '16px', lineHeight: '2', textAlign: 'justify' }}>
+                        <p>Por medio del presente, el Juzgado de Faltas de la Municipalidad de Loreto, Provincia de Santiago del Estero, certifica y deja constancia que, habiendo compulsado los registros informáticos y bases de datos oficiales a la fecha de emisión del presente documento:</p>
+                        
+                        <p style={{ margin: '20px 0', padding: '15px', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '5px' }}>
+                          El/la titular del Documento Nacional de Identidad N° <strong>{dni}</strong> (Género: {generoConsulta}), <strong>NO REGISTRA</strong> actas de infracción pendientes de juzgamiento, ni resoluciones condenatorias con deudas exigibles por faltas de tránsito, bromatología o tasas de recaudación en la jurisdicción de este Municipio.
+                        </p>
+                        
+                        <p>Se expide el presente certificado de forma automática a través del Portal de Autogestión Ciudadana, a los fines que el/la interesado/a estime corresponder.</p>
+                      </div>
+
+                      <div style={{ marginTop: '60px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                        <div>
+                          <p style={{ margin: 0, fontStyle: 'italic' }}>Emitido electrónicamente el: {new Date().toLocaleDateString('es-AR')}</p>
+                          <p style={{ margin: 0, fontSize: '12px', color: '#555' }}>Cód. Validación: {Math.random().toString(36).substr(2, 9).toUpperCase()}-{dni}</p>
+                        </div>
+                        <div style={{ textAlign: 'center', borderTop: '1px dashed #000', width: '250px', paddingTop: '10px' }}>
+                          <p style={{ margin: 0, fontWeight: 'bold' }}>Juzgado de Faltas</p>
+                          <p style={{ margin: 0, fontSize: '14px' }}>Municipalidad de Loreto</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* ==================================================================== */}
+
+                <section id="autoridades" style={{background: 'var(--papel-alto)', borderBottom: '1px solid var(--linea)'}} className="no-print">
                   <div className="wrap">
                     <Reveal>
                       <div className="section-head"><p className="kicker">Estructura Institucional</p><h2>Autoridades del Juzgado</h2><p>Conozca al equipo de magistrados y profesionales que integran la administración del Juzgado de Faltas Municipal.</p></div>
@@ -987,7 +1058,7 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
                 </section>
                 
-                <section id="institucion">
+                <section id="institucion" className="no-print">
                   <div className="wrap">
                     <Reveal>
                       <div className="section-head"><p className="kicker">Competencia y Funciones</p><h2>Sobre el Juzgado de Faltas</h2><p>El Juzgado interviene como órgano de juzgamiento una vez agotada la instancia administrativa preventiva, garantizando el derecho de defensa del ciudadano.</p></div>
@@ -1001,7 +1072,7 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
                 </section>
 
-                <section id="normativa" style={{ background: '#FFFFFF', padding: '80px 0', borderBottom: '1px solid var(--linea)' }}>
+                <section id="normativa" style={{ background: '#FFFFFF', padding: '80px 0', borderBottom: '1px solid var(--linea)' }} className="no-print">
                   <div className="wrap">
                     <Reveal>
                       <div style={{ background: 'var(--papel-alto)', borderRadius: 'var(--radius-m)', padding: '48px', display: 'flex', alignItems: 'center', gap: '48px', flexWrap: 'wrap', border: '1px solid var(--linea)' }}>
@@ -1021,7 +1092,7 @@ export default function JuzgadoFaltasUnificado() {
                 </section>
 
                 {noticiasPublicas.length > 0 && (
-                  <section id="noticias" style={{background: '#FFFFFF', paddingTop: '60px', paddingBottom: '80px'}}>
+                  <section id="noticias" style={{background: '#FFFFFF', paddingTop: '60px', paddingBottom: '80px'}} className="no-print">
                     <div className="wrap">
                       <Reveal>
                         <div style={{textAlign: 'center', marginBottom: '56px'}}><h2 style={{fontSize: '36px', color: 'var(--tinta)'}}>Novedades Institucionales</h2></div>
@@ -1047,7 +1118,7 @@ export default function JuzgadoFaltasUnificado() {
                   </section>
                 )}
 
-                <section id="contacto" style={{background: 'var(--papel)', borderTop: '1px solid var(--linea)'}}>
+                <section id="contacto" style={{background: 'var(--papel)', borderTop: '1px solid var(--linea)'}} className="no-print">
                   <div className="wrap">
                     <Reveal>
                       <div className="section-head"><p className="kicker">Atención al Público</p><h2>Ubicación y Vías de Contacto</h2></div>
@@ -1640,7 +1711,7 @@ export default function JuzgadoFaltasUnificado() {
             </div>
           )}
 
-          <footer className="site" style={{background: 'var(--azul-loreto)', color: '#F8F9FA', padding: '48px 0 24px 0'}}>
+          <footer className="site no-print" style={{background: 'var(--azul-loreto)', color: '#F8F9FA', padding: '48px 0 24px 0'}}>
             <div className="wrap" style={{textAlign: 'center', fontSize: '13.5px', fontFamily: 'Montserrat, sans-serif', opacity: 0.9}}>
               <strong>Juzgado de Faltas Municipal de Loreto</strong><br/>
               Provincia de Santiago del Estero — República Argentina<br/><br/>

@@ -151,7 +151,6 @@ export default function JuzgadoFaltasUnificado() {
   const [tramiteActivo, setTramiteActivo] = useState<{ id: string, tipo: 'pago' | 'descargo' } | null>(null)
   const [enviando, setEnviando] = useState(false)
   
-  // === ESTADO PARA LIBRE DEUDA ===
   const [esLibreDeuda, setEsLibreDeuda] = useState(false)
   const [alertaNotificacion, setAlertaNotificacion] = useState<{titulo: string, mensaje: string, tipo: 'exito' | 'error'} | null>(null)
 
@@ -336,6 +335,20 @@ export default function JuzgadoFaltasUnificado() {
     const txt = filtroRec.toLowerCase(); return i.dniTitular.includes(txt) || i.nombreTitular.toLowerCase().includes(txt) || i.concepto.toLowerCase().includes(txt);
   });
 
+  // === EXPORTACIÓN DE PADRÓN RECAUDADOR A CSV ===
+  const exportarRecaudacionCSV = () => {
+    if (impuestosFiltrados.length === 0) return alert("No hay datos para exportar.");
+    let csvContent = "\uFEFFFecha,Contribuyente,DNI,Concepto,Monto,Estado\n";
+    impuestosFiltrados.forEach((imp: any) => {
+      csvContent += `"${new Date(imp.creadoEn).toLocaleDateString('es-AR')}","${imp.nombreTitular}","${imp.dniTitular}","${imp.concepto}","${imp.monto}","${imp.estado}"\n`;
+    });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.setAttribute("href", URL.createObjectURL(blob));
+    link.setAttribute("download", `Padron_Tasas_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  }
+
   const manejarCrearActa = async (e: React.FormEvent) => {
     e.preventDefault(); setGuardandoActa(true);
     let fechaSegura = new Date().toISOString(); 
@@ -478,6 +491,41 @@ export default function JuzgadoFaltasUnificado() {
   const indicePrimerItem = (paginaActual - 1) * filasPorPagina; const indiceUltimoItem = paginaActual * filasPorPagina;
   const listaPaginada = listaBase.slice(indicePrimerItem, indiceUltimoItem);
 
+  // === EXPORTACIÓN GENERAL A CSV PARA EL JUZGADO ===
+  const exportarDatosCSV = () => {
+    if (listaBase.length === 0) return alert("No hay datos para exportar con los filtros actuales.");
+    let csvContent = "\uFEFF"; // BOM para compatibilidad directa con Excel en Español
+    
+    if (vista === 'admin_actas' || (vista === 'admin_balance' && tabBalance === 'pendientes') || (vista === 'admin_balance' && tabBalance === 'reincidentes')) {
+      csvContent += "Nro Acta,Fecha Infraccion,Infractor,DNI,Genero,Domicilio,Articulo,Estado,Monto\n";
+      listaBase.forEach((item: any) => {
+        csvContent += `"${item.nroActa}","${new Date(item.fechaInfraccion).toLocaleDateString('es-AR')}","${item.nombreTitular}","${item.dniTitular}","${item.generoTitular || ''}","${item.lugar || ''}","${item.articulo || ''}","${item.estado}","${item.monto}"\n`;
+      });
+    } else if (vista === 'admin_descargos' || vista === 'admin_pagos') {
+      csvContent += "Expediente / Nro Acta,Estado,Fecha Ingreso,Monto / Referencia\n";
+      listaBase.forEach((item: any) => {
+        const exp = item.expedienteNro || item.infraccion?.nroActa || item.nroActa;
+        const fecha = new Date(item.creadoEn || item.fechaPago || item.fechaInfraccion || new Date()).toLocaleDateString('es-AR');
+        const extra = vista === 'admin_pagos' ? (item.montoInformado || item.monto || "0") : "Descargo";
+        csvContent += `"${exp}","${item.estado}","${fecha}","${extra}"\n`;
+      });
+    } else if (vista === 'admin_usuarios') {
+      csvContent += "Nombre,Email,Rol,Estado\n";
+      listaBase.forEach((item: any) => {
+        csvContent += `"${item.nombre}","${item.email}","${item.rol}","${item.activo ? 'Operativa' : 'Suspendida'}"\n`;
+      });
+    } else {
+       return alert("La exportación a Excel no está disponible para esta pantalla.");
+    }
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.setAttribute("href", URL.createObjectURL(blob));
+    link.setAttribute("download", `Exportacion_${vista}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+  }
+  // =================================================
+
   const rol = usuario?.rol || ''
   const puedeActas = ['SUPERADMIN', 'JUEZ', 'ADMINISTRATIVO', 'LETRADO'].includes(rol);
   const puedeDescargos = ['SUPERADMIN', 'JUEZ', 'LETRADO'].includes(rol);
@@ -547,6 +595,9 @@ export default function JuzgadoFaltasUnificado() {
                        onChange={e => setFiltroRec(e.target.value)}
                        className="px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-[#7A1B28]"
                      />
+                     <button onClick={exportarRecaudacionCSV} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm">
+                       📥 Exportar a Excel
+                     </button>
                      <button onClick={() => setModalRecaudacion(true)} className="bg-[#7A1B28] hover:bg-[#5E151F] text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm">
                        + Cargar Nuevo Impuesto / Deuda
                      </button>
@@ -738,7 +789,7 @@ export default function JuzgadoFaltasUnificado() {
             .tabs button:hover { background: var(--papel); color: var(--azul-loreto); }
             .tabs button.active { background: var(--azul-loreto); color: #fff; }
             
-            /* === REGLAS PARA GUARDAR COMO PDF (OCULTA LA WEB, MUESTRA EL CERTIFICADO) === */
+            /* === REGLAS PARA GUARDAR COMO PDF === */
             .print-only { display: none; }
             @media print {
               body { background: white !important; margin: 0 !important; padding: 0 !important; color: black !important; }
@@ -888,7 +939,6 @@ export default function JuzgadoFaltasUnificado() {
 
                           {mensaje && <p style={{marginTop: '16px', fontSize: '14.5px', color: esLibreDeuda ? '#10B981' : 'var(--rojo-loreto)', fontWeight: 600, textAlign: 'center'}}>{mensaje}</p>}
                           
-                          {/* === PANEL DE LIBRE DEUDA PÚBLICO === */}
                           {esLibreDeuda && (
                             <div className="mt-8 border-t-2 border-gray-100 pt-8 animate-[fadeIn_0.5s_ease-out]">
                               <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center">
@@ -904,7 +954,6 @@ export default function JuzgadoFaltasUnificado() {
                               </div>
                             </div>
                           )}
-                          {/* ================================== */}
 
                           {resultados.length > 0 && (
                             <div style={{marginTop: '28px', borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>
@@ -1004,46 +1053,42 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
                 </section>
 
-                {/* === CERTIFICADO DE LIBRE DEUDA OCULTO CON DOBLE LOGO === */}
-                {esLibreDeuda && (
-                  <div className="print-only">
-                    <div style={{ padding: '40px', border: '2px solid #000', borderRadius: '10px', maxWidth: '800px', margin: '0 auto', fontFamily: 'serif' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '30px' }}>
-                        <img src="/logojdf.png" alt="Juzgado de Faltas" style={{ height: '75px', width: 'auto', flexShrink: 0 }} />
-                        <div style={{ textAlign: 'center', flexGrow: 1, padding: '0 15px' }}>
-                          <h1 style={{ fontSize: '22px', margin: '0 0 5px 0', textTransform: 'uppercase', fontWeight: 'bold' }}>Municipalidad de la Ciudad de Loreto</h1>
-                          <h2 style={{ fontSize: '16px', margin: 0, fontWeight: 'normal' }}>Provincia de Santiago del Estero</h2>
-                          <h3 style={{ fontSize: '18px', margin: '10px 0 0 0', fontWeight: 'bold' }}>JUZGADO DE FALTAS MUNICIPAL</h3>
-                        </div>
-                        <img src="/logo-municipalidad.png" alt="Municipalidad de Loreto" style={{ height: '75px', width: 'auto', flexShrink: 0 }} />
+                <div className="print-only">
+                  <div style={{ padding: '40px', border: '2px solid #000', borderRadius: '10px', maxWidth: '800px', margin: '0 auto', fontFamily: 'serif' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '30px' }}>
+                      <img src="/logojdf.png" alt="Juzgado de Faltas" style={{ height: '75px', width: 'auto', flexShrink: 0 }} />
+                      <div style={{ textAlign: 'center', flexGrow: 1, padding: '0 15px' }}>
+                        <h1 style={{ fontSize: '22px', margin: '0 0 5px 0', textTransform: 'uppercase', fontWeight: 'bold' }}>Municipalidad de la Ciudad de Loreto</h1>
+                        <h2 style={{ fontSize: '16px', margin: 0, fontWeight: 'normal' }}>Provincia de Santiago del Estero</h2>
+                        <h3 style={{ fontSize: '18px', margin: '10px 0 0 0', fontWeight: 'bold' }}>JUZGADO DE FALTAS MUNICIPAL</h3>
                       </div>
+                      <img src="/logo-municipalidad.png" alt="Municipalidad de Loreto" style={{ height: '75px', width: 'auto', flexShrink: 0 }} />
+                    </div>
+                    
+                    <h4 style={{ textAlign: 'center', fontSize: '26px', textDecoration: 'underline', marginBottom: '40px' }}>CERTIFICADO DE LIBRE DEUDA</h4>
+                    
+                    <div style={{ fontSize: '16px', lineHeight: '2', textAlign: 'justify' }}>
+                      <p>Por medio del presente, el Juzgado de Faltas de la Municipalidad de Loreto, Provincia de Santiago del Estero, certifica y deja constancia que, habiendo compulsado los registros informáticos y bases de datos oficiales a la fecha de emisión del presente documento:</p>
                       
-                      <h4 style={{ textAlign: 'center', fontSize: '26px', textDecoration: 'underline', marginBottom: '40px' }}>CERTIFICADO DE LIBRE DEUDA</h4>
+                      <p style={{ margin: '20px 0', padding: '15px', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '5px' }}>
+                        El/la titular del Documento Nacional de Identidad N° <strong>{dni}</strong> (Género: {generoConsulta}), <strong>NO REGISTRA</strong> actas de infracción pendientes de juzgamiento, ni resoluciones condenatorias con deudas exigibles por faltas de tránsito, bromatología o tasas de recaudación en la jurisdicción de este Municipio.
+                      </p>
                       
-                      <div style={{ fontSize: '16px', lineHeight: '2', textAlign: 'justify' }}>
-                        <p>Por medio del presente, el Juzgado de Faltas de la Municipalidad de Loreto, Provincia de Santiago del Estero, certifica y deja constancia que, habiendo compulsado los registros informáticos y bases de datos oficiales a la fecha de emisión del presente documento:</p>
-                        
-                        <p style={{ margin: '20px 0', padding: '15px', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '5px' }}>
-                          El/la titular del Documento Nacional de Identidad N° <strong>{dni}</strong> (Género: {generoConsulta}), <strong>NO REGISTRA</strong> actas de infracción pendientes de juzgamiento, ni resoluciones condenatorias con deudas exigibles por faltas de tránsito, bromatología o tasas de recaudación en la jurisdicción de este Municipio.
-                        </p>
-                        
-                        <p>Se expide el presente certificado de forma automática a través del Portal de Autogestión Ciudadana, a los fines que el/la interesado/a estime corresponder.</p>
-                      </div>
+                      <p>Se expide el presente certificado de forma automática a través del Portal de Autogestión Ciudadana, a los fines que el/la interesado/a estime corresponder.</p>
+                    </div>
 
-                      <div style={{ marginTop: '60px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                        <div>
-                          <p style={{ margin: 0, fontStyle: 'italic' }}>Emitido electrónicamente el: {new Date().toLocaleDateString('es-AR')}</p>
-                          <p style={{ margin: 0, fontSize: '12px', color: '#555' }}>Cód. Validación: {Math.random().toString(36).substr(2, 9).toUpperCase()}-{dni}</p>
-                        </div>
-                        <div style={{ textAlign: 'center', borderTop: '1px dashed #000', width: '250px', paddingTop: '10px' }}>
-                          <p style={{ margin: 0, fontWeight: 'bold' }}>Juzgado de Faltas</p>
-                          <p style={{ margin: 0, fontSize: '14px' }}>Municipalidad de Loreto</p>
-                        </div>
+                    <div style={{ marginTop: '60px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                      <div>
+                        <p style={{ margin: 0, fontStyle: 'italic' }}>Emitido electrónicamente el: {new Date().toLocaleDateString('es-AR')}</p>
+                        <p style={{ margin: 0, fontSize: '12px', color: '#555' }}>Cód. Validación: {Math.random().toString(36).substr(2, 9).toUpperCase()}-{dni}</p>
+                      </div>
+                      <div style={{ textAlign: 'center', borderTop: '1px dashed #000', width: '250px', paddingTop: '10px' }}>
+                        <p style={{ margin: 0, fontWeight: 'bold' }}>Juzgado de Faltas</p>
+                        <p style={{ margin: 0, fontSize: '14px' }}>Municipalidad de Loreto</p>
                       </div>
                     </div>
                   </div>
-                )}
-                {/* ==================================================================== */}
+                </div>
 
                 <section id="autoridades" style={{background: 'var(--papel-alto)', borderBottom: '1px solid var(--linea)'}} className="no-print">
                   <div className="wrap">
@@ -1379,6 +1424,17 @@ export default function JuzgadoFaltasUnificado() {
                       )}
 
                       <div style={{overflowX: 'auto'}}>
+                        {/* === BOTÓN DE DESCARGA EXCEL (NUEVO) === */}
+                        {vista !== 'admin_calculadora' && vista !== 'admin_noticias' && (vista !== 'admin_balance' || tabBalance !== 'recaudacion') && (
+                           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
+                             <h3 style={{fontSize: '16px', margin: 0, color: 'var(--azul-loreto)'}}>Listado de Registros ({totalItems})</h3>
+                             <button onClick={exportarDatosCSV} className="btn btn--ghost btn--sm" style={{borderColor: '#10B981', color: '#047857'}}>
+                               📥 Exportar Vista a Excel
+                             </button>
+                           </div>
+                        )}
+                        {/* ======================================= */}
+
                         {cargandoAdmin ? <SkeletonTable columnas={vista === 'admin_actas' ? 9 : 5} /> : (
                           <>
                             {vista === 'admin_balance' && tabBalance === 'recaudacion' && (

@@ -20,10 +20,21 @@ export async function procesarTramiteCiudadano(formData: FormData) {
 
     let urlArchivo = ""
     if (archivo && archivo.size > 0) {
-      const blob = await put(archivo.name, archivo, { 
+      
+      // === ENCRIPTACIÓN DE NOMBRE DE ARCHIVO ===
+      // Obtenemos la extensión original (pdf, jpg, png)
+      const extension = archivo.name.split('.').pop();
+      // Generamos un código aleatorio combinando la fecha exacta en milisegundos y un hash matemático
+      const hashAleatorio = Math.random().toString(36).substring(2, 15);
+      const nombreSeguro = `${Date.now()}-${hashAleatorio}.${extension}`;
+
+      // Usamos el nombre seguro en lugar del nombre original para blindar la privacidad
+      const blob = await put(nombreSeguro, archivo, { 
         access: 'public',
         addRandomSuffix: true
       })
+      // =========================================
+      
       urlArchivo = blob.url
     } else {
       return { success: false, error: "Debe adjuntar un documento válido." }
@@ -129,8 +140,14 @@ export async function procesarNoticia(formData: FormData) {
 
     if (!archivo || archivo.size === 0) return { success: false, error: "Debe adjuntar una imagen." }
     
-    const blob = await put(archivo.name, archivo, { access: 'public', addRandomSuffix: true })
+    // === ENCRIPTACIÓN TAMBIÉN PARA LAS NOTICIAS ===
+    const extension = archivo.name.split('.').pop();
+    const hashAleatorio = Math.random().toString(36).substring(2, 15);
+    const nombreSeguro = `noticia-${Date.now()}-${hashAleatorio}.${extension}`;
     
+    const blob = await put(nombreSeguro, archivo, { access: 'public', addRandomSuffix: true })
+    // ==============================================
+
     await prisma.noticia.create({
       data: { titulo, contenido, imagenUrl: blob.url } 
     })

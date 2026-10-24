@@ -62,6 +62,47 @@ const SkeletonTable = ({ columnas = 6 }) => (
     ))}
   </div>
 );
+
+// === NUEVO: LÍNEA DE TIEMPO VISUAL PARA SEGUIMIENTO DEL CIUDADANO ===
+const TimelineExpediente = ({ estado }: { estado: string }) => {
+  let progress = 0;
+  let step1 = true; // Acta labrada siempre es true si existe
+  let step2 = false;
+  let step3 = false;
+
+  if (['PRESENTADO', 'PENDIENTE_CONCILIACION'].includes(estado)) {
+    progress = 50;
+    step2 = true;
+  } else if (['PAGADO', 'DESISTIDO', 'SOBRESEIDO', 'RESUELTO_A_FAVOR'].includes(estado)) {
+    progress = 100;
+    step2 = true;
+    step3 = true;
+  }
+
+  return (
+    <div className="py-6 mt-4 mb-2">
+      <div className="relative">
+        <div className="absolute top-[11px] left-0 w-full h-[4px] bg-gray-200 rounded"></div>
+        <div className="absolute top-[11px] left-0 h-[4px] bg-[#00B2D6] transition-all duration-1000 ease-out rounded" style={{ width: `${progress}%` }}></div>
+        
+        <div className="relative flex justify-between">
+          <div className="flex flex-col items-center">
+            <div className={`w-[26px] h-[26px] rounded-full flex items-center justify-center text-[12px] font-black z-10 transition-colors ${step1 ? 'bg-[#00B2D6] text-white ring-4 ring-gray-50' : 'bg-gray-200 text-gray-400 ring-4 ring-gray-50'}`}>✓</div>
+            <span className={`text-[10px] font-bold mt-2 uppercase tracking-widest ${step1 ? 'text-[#0B4A82]' : 'text-gray-400'}`}>Labrada</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <div className={`w-[26px] h-[26px] rounded-full flex items-center justify-center text-[12px] font-black z-10 transition-colors ${step2 ? 'bg-[#00B2D6] text-white ring-4 ring-gray-50' : 'bg-gray-200 text-gray-400 ring-4 ring-gray-50'}`}>{progress > 50 ? '✓' : '2'}</div>
+            <span className={`text-[10px] font-bold mt-2 uppercase tracking-widest ${step2 ? 'text-[#0B4A82]' : 'text-gray-400'}`}>En Revisión</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <div className={`w-[26px] h-[26px] rounded-full flex items-center justify-center text-[12px] font-black z-10 transition-colors ${step3 ? 'bg-[#10B981] text-white ring-4 ring-gray-50' : 'bg-gray-200 text-gray-400 ring-4 ring-gray-50'}`}>{step3 ? '✓' : '3'}</div>
+            <span className={`text-[10px] font-bold mt-2 uppercase tracking-widest ${step3 ? 'text-[#10B981]' : 'text-gray-400'}`}>Resuelta</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 // ===================================================
 
 export default function JuzgadoFaltasUnificado() {
@@ -715,7 +756,6 @@ export default function JuzgadoFaltasUnificado() {
 
           <header className="site">
             <div className="wrap nav-row">
-              {/* === NUEVA CABECERA CON LOGO MUNICIPALIDAD CON LINK A FACEBOOK === */}
               <div className="flex items-center gap-5">
                 <a href="https://www.facebook.com/profile.php?id=100087230738968" target="_blank" rel="noopener noreferrer" className="hidden md:flex items-center pr-5 border-r border-gray-200 hover:opacity-80 transition-opacity" title="Página Oficial de la Municipalidad">
                   <img src="/logo-municipalidad.png" alt="Municipalidad de Loreto" className="h-11 w-auto drop-shadow-sm" />
@@ -725,7 +765,6 @@ export default function JuzgadoFaltasUnificado() {
                   <span className="brand__text"><span className="eyebrow">Municipalidad de Loreto</span><strong>Juzgado de Faltas</strong></span>
                 </a>
               </div>
-              {/* ========================================================== */}
 
               <button className="menu-toggle" onClick={() => setMenuAbierto(!menuAbierto)}>{menuAbierto ? '✖' : '☰'}</button>
 
@@ -845,11 +884,10 @@ export default function JuzgadoFaltasUnificado() {
                                   <div key={acta.id} style={{padding: '20px', borderLeft: `4px solid ${colorBorde}`, background: 'var(--papel-alto)', marginBottom: '16px', borderRadius: '0 8px 8px 0', borderTop: '1px solid var(--linea)', borderRight: '1px solid var(--linea)', borderBottom: '1px solid var(--linea)'}}>
                                     <span style={{fontSize: '11px', fontWeight: 700, color: colorBorde, fontFamily: 'Montserrat, sans-serif', letterSpacing: '0.05em'}}>{nombreOrigen}</span><br/>
                                     <strong style={{fontSize: '16px', display: 'inline-block', marginTop: '4px'}}>Acta N° {acta.nroActa}</strong> <span style={{fontSize: '16px', color: 'var(--tinta-suave)'}}>— ${acta.monto.toString()}</span> <br/>
-                                    <div style={{marginTop: '8px'}}>
-                                      <span className="badge" style={{background: acta.estado === 'PENDIENTE' ? 'rgba(245, 158, 11, 0.15)' : (acta.estado === 'DESISTIDO' ? 'rgba(11, 74, 130, 0.15)' : 'rgba(16, 185, 129, 0.15)'), color: acta.estado === 'PENDIENTE' ? '#B45309' : (acta.estado === 'DESISTIDO' ? 'var(--azul-loreto)' : '#047857')}}>
-                                        {acta.estado === 'PRESENTADO' ? 'DESCARGO EN REVISIÓN' : acta.estado === 'PENDIENTE_CONCILIACION' ? 'PAGO EN REVISIÓN' : acta.estado}
-                                      </span>
-                                    </div>
+                                    
+                                    {/* === LÍNEA DE TIEMPO INCORPORADA === */}
+                                    <TimelineExpediente estado={acta.estado} />
+                                    {/* ================================== */}
                                     
                                     {acta.estado === 'PENDIENTE' && (
                                       <div style={{display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap'}}><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'pago' })} className="btn btn--ghost btn--sm">Informar Pago</button><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'descargo' })} className="btn btn--primary btn--sm">Presentar Descargo</button></div>

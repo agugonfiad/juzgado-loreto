@@ -173,6 +173,26 @@ export default function JuzgadoFaltasUnificado() {
     setEnviando(true);
     try {
       const formData = new FormData(e.currentTarget);
+      
+      // === BARRERA DE SEGURIDAD 6.2 (TAMAÑO Y FORMATO) ===
+      const archivo = formData.get('archivo') as File | null;
+      if (archivo && archivo.size > 0) {
+        // Límite estricto de 10 MB (10 * 1024 * 1024 bytes)
+        if (archivo.size > 10485760) {
+          setAlertaNotificacion({ titulo: 'Archivo demasiado pesado', mensaje: 'El documento supera el límite máximo de 10 MB permitido por seguridad institucional. Por favor, comprima el archivo e intente nuevamente.', tipo: 'error' });
+          setEnviando(false);
+          return;
+        }
+        // Validación estricta de formato real (MIME type)
+        const tiposPermitidos = ['application/pdf', 'image/jpeg', 'image/png'];
+        if (!tiposPermitidos.includes(archivo.type)) {
+          setAlertaNotificacion({ titulo: 'Formato no admitido', mensaje: 'Por protocolos de seguridad, el sistema únicamente acepta documentación en formato PDF, JPG o PNG.', tipo: 'error' });
+          setEnviando(false);
+          return;
+        }
+      }
+      // ===================================================
+
       const respuesta = await procesarTramiteCiudadano(formData);
       if (respuesta.success) {
         if (respuesta.expedienteNro) { 
@@ -184,8 +204,11 @@ export default function JuzgadoFaltasUnificado() {
       } else { 
         setAlertaNotificacion({ titulo: 'No se pudo procesar', mensaje: respuesta.error, tipo: 'error' }); 
       }
-    } catch (error: any) { setAlertaNotificacion({ titulo: 'Error de conexión', mensaje: 'Revise su conexión a internet e intente nuevamente.', tipo: 'error' }); 
-    } finally { setEnviando(false); }
+    } catch (error: any) { 
+      setAlertaNotificacion({ titulo: 'Error de conexión', mensaje: 'Revise su conexión a internet e intente nuevamente.', tipo: 'error' }); 
+    } finally { 
+      setEnviando(false); 
+    }
   }
 
   const procesarLogin = async (e: React.FormEvent) => {

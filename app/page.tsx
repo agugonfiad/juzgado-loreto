@@ -83,6 +83,10 @@ export default function JuzgadoFaltasUnificado() {
   const [impuestos, setImpuestos] = useState<any[]>([])
   const [modalRecaudacion, setModalRecaudacion] = useState(false)
   
+  // Estados Legales (NUEVO)
+  const [modalPrivacidad, setModalPrivacidad] = useState(false)
+  const [modalTerminos, setModalTerminos] = useState(false)
+
   // Estados para Recaudación (CON GÉNERO)
   const [recDni, setRecDni] = useState("")
   const [recGenero, setRecGenero] = useState("MASCULINO")
@@ -177,18 +181,14 @@ export default function JuzgadoFaltasUnificado() {
       // === BARRERA DE SEGURIDAD 6.2 (TAMAÑO Y FORMATO) ===
       const archivo = formData.get('archivo') as File | null;
       if (archivo && archivo.size > 0) {
-        // Límite estricto de 10 MB (10 * 1024 * 1024 bytes)
         if (archivo.size > 10485760) {
           setAlertaNotificacion({ titulo: 'Archivo demasiado pesado', mensaje: 'El documento supera el límite máximo de 10 MB permitido por seguridad institucional. Por favor, comprima el archivo e intente nuevamente.', tipo: 'error' });
-          setEnviando(false);
-          return;
+          setEnviando(false); return;
         }
-        // Validación estricta de formato real (MIME type)
         const tiposPermitidos = ['application/pdf', 'image/jpeg', 'image/png'];
         if (!tiposPermitidos.includes(archivo.type)) {
           setAlertaNotificacion({ titulo: 'Formato no admitido', mensaje: 'Por protocolos de seguridad, el sistema únicamente acepta documentación en formato PDF, JPG o PNG.', tipo: 'error' });
-          setEnviando(false);
-          return;
+          setEnviando(false); return;
         }
       }
       // ===================================================
@@ -204,11 +204,8 @@ export default function JuzgadoFaltasUnificado() {
       } else { 
         setAlertaNotificacion({ titulo: 'No se pudo procesar', mensaje: respuesta.error, tipo: 'error' }); 
       }
-    } catch (error: any) { 
-      setAlertaNotificacion({ titulo: 'Error de conexión', mensaje: 'Revise su conexión a internet e intente nuevamente.', tipo: 'error' }); 
-    } finally { 
-      setEnviando(false); 
-    }
+    } catch (error: any) { setAlertaNotificacion({ titulo: 'Error de conexión', mensaje: 'Revise su conexión a internet e intente nuevamente.', tipo: 'error' }); 
+    } finally { setEnviando(false); }
   }
 
   const procesarLogin = async (e: React.FormEvent) => {
@@ -621,7 +618,6 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
                 </form>
               </div>
-              <style dangerouslySetInnerHTML={{ __html: `@keyframes zoomIn { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}} />
             </div>
           )}
         </div>
@@ -1558,10 +1554,55 @@ export default function JuzgadoFaltasUnificado() {
             </div>
           )}
 
-          <footer className="site" style={{background: 'var(--azul-loreto)', color: '#F8F9FA', padding: '48px 0'}}>
+          {/* === MODALES LEGALES (NUEVOS) === */}
+          {modalTerminos && (
+            <div className="modal-overlay" onClick={() => setModalTerminos(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '700px', lineHeight: 1.6}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
+                  <h3 style={{fontSize: '22px', margin: 0}}>Términos y Condiciones de Uso</h3>
+                  <button onClick={() => setModalTerminos(false)} style={{background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--tinta-suave)'}}>✕</button>
+                </div>
+                <div style={{fontSize: '14.5px', color: 'var(--tinta)'}}>
+                  <p><strong>1. Objeto:</strong> El presente portal de Autogestión Ciudadana es administrado por el Juzgado de Faltas de la Municipalidad de Loreto, con el fin de facilitar la consulta de actas de infracción, presentación de descargos y emisión de comprobantes de pago de forma digital.</p>
+                  <p><strong>2. Validez Legal:</strong> Toda documentación, descargo o comprobante ingresado a través de esta plataforma digital reviste carácter de Declaración Jurada. El infractor asume la total responsabilidad civil y penal por la falsedad, adulteración o inexactitud de los datos y documentos proporcionados.</p>
+                  <p><strong>3. Uso de la Plataforma:</strong> El usuario se compromete a no utilizar el sistema con fines ilícitos, no intentar vulnerar sus medidas de seguridad, ni cargar archivos maliciosos. La Municipalidad se reserva el derecho de bloquear el acceso a cualquier dirección IP que presente un comportamiento anómalo o fraudulento.</p>
+                  <p><strong>4. Domicilio Electrónico:</strong> El correo electrónico proporcionado al momento de presentar un descargo será considerado como Domicilio Electrónico Constituido, siendo válidas todas las notificaciones, citaciones y resoluciones enviadas a dicha casilla.</p>
+                  <p><strong>5. Modificaciones:</strong> El Juzgado de Faltas se reserva el derecho de modificar o suspender temporalmente el servicio web para tareas de mantenimiento, sin que ello genere derecho a reclamo alguno por parte del usuario, quedando siempre habilitada la mesa de entradas presencial en sus horarios habituales.</p>
+                </div>
+                <button onClick={() => setModalTerminos(false)} className="btn btn--primary btn--block" style={{marginTop: '24px'}}>Cerrar y Aceptar</button>
+              </div>
+            </div>
+          )}
+
+          {modalPrivacidad && (
+            <div className="modal-overlay" onClick={() => setModalPrivacidad(false)}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '700px', lineHeight: 1.6}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
+                  <h3 style={{fontSize: '22px', margin: 0}}>Política de Privacidad y Tratamiento de Datos</h3>
+                  <button onClick={() => setModalPrivacidad(false)} style={{background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--tinta-suave)'}}>✕</button>
+                </div>
+                <div style={{fontSize: '14.5px', color: 'var(--tinta)'}}>
+                  <p><strong>1. Responsabilidad:</strong> De conformidad con la Ley Nacional N° 25.326 de Protección de Datos Personales, la Municipalidad de Loreto (en adelante "El Municipio") garantiza la seguridad y confidencialidad de los datos suministrados por los ciudadanos en este portal.</p>
+                  <p><strong>2. Finalidad de la Recopilación:</strong> Los datos personales solicitados (DNI, Género, Nombre, Correo Electrónico) y los documentos adjuntados serán utilizados de manera exclusiva para la consulta, gestión, procesamiento y resolución de expedientes de faltas e infracciones de tránsito o comerciales.</p>
+                  <p><strong>3. Protección y Confidencialidad:</strong> El Municipio ha adoptado las medidas técnicas y organizativas necesarias para evitar la pérdida, mal uso, alteración, acceso no autorizado y robo de los Datos Personales. Los archivos adjuntos son procesados mediante identificadores encriptados para garantizar el anonimato de sus rutas de acceso público.</p>
+                  <p><strong>4. Derechos ARCO:</strong> El titular de los datos personales tiene la facultad de ejercer el derecho de acceso a los mismos en forma gratuita. Asimismo, puede solicitar la rectificación, actualización o supresión de sus datos personales, dirigiéndose presencialmente a la Mesa de Entradas del Juzgado de Faltas.</p>
+                  <p><strong>5. Registros de Auditoría:</strong> El sistema registra automáticamente información de acceso (fecha, hora y dirección IP) con fines estrictamente orientados a la auditoría interna de seguridad y prevención de fraudes informáticos.</p>
+                </div>
+                <button onClick={() => setModalPrivacidad(false)} className="btn btn--primary btn--block" style={{marginTop: '24px'}}>Cerrar y Aceptar</button>
+              </div>
+            </div>
+          )}
+
+          <footer className="site" style={{background: 'var(--azul-loreto)', color: '#F8F9FA', padding: '48px 0 24px 0'}}>
             <div className="wrap" style={{textAlign: 'center', fontSize: '13.5px', fontFamily: 'Montserrat, sans-serif', opacity: 0.9}}>
               <strong>Juzgado de Faltas Municipal de Loreto</strong><br/>
               Provincia de Santiago del Estero — República Argentina<br/><br/>
+              
+              <div style={{display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '20px', margin: '20px 0', borderTop: '1px solid rgba(255,255,255,0.1)', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '16px 0'}}>
+                <button onClick={() => setModalTerminos(true)} style={{textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer'}}>Términos y Condiciones de Uso</button>
+                <button onClick={() => setModalPrivacidad(true)} style={{textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer'}}>Política de Privacidad (Ley 25.326)</button>
+              </div>
+
               © {new Date().getFullYear()} Todos los derechos reservados
             </div>
           </footer>

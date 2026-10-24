@@ -83,7 +83,7 @@ export default function JuzgadoFaltasUnificado() {
   const [impuestos, setImpuestos] = useState<any[]>([])
   const [modalRecaudacion, setModalRecaudacion] = useState(false)
   
-  // Estados Legales (NUEVO)
+  // Estados Legales
   const [modalPrivacidad, setModalPrivacidad] = useState(false)
   const [modalTerminos, setModalTerminos] = useState(false)
 
@@ -618,6 +618,7 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
                 </form>
               </div>
+              <style dangerouslySetInnerHTML={{ __html: `@keyframes zoomIn { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}} />
             </div>
           )}
         </div>
@@ -714,10 +715,18 @@ export default function JuzgadoFaltasUnificado() {
 
           <header className="site">
             <div className="wrap nav-row">
-              <a className="brand flex items-center gap-3" href="#" onClick={(e) => { e.preventDefault(); setVista('publica'); setMenuAbierto(false); }}>
-                <img src="/logojdf.png" alt="Logo Juzgado" className="brand__logo flex-shrink-0" />
-                <span className="brand__text"><span className="eyebrow">Municipalidad de Loreto</span><strong>Juzgado de Faltas</strong></span>
-              </a>
+              {/* === NUEVA CABECERA CON LOGO MUNICIPALIDAD (PUNTO 6.4) === */}
+              <div className="flex items-center gap-5">
+                <a href="https://loreto.gob.ar" target="_blank" rel="noopener noreferrer" className="hidden md:flex items-center pr-5 border-r border-gray-200 hover:opacity-80 transition-opacity" title="Sitio Oficial de la Municipalidad">
+                  <img src="/logo-municipalidad.png" alt="Municipalidad de Loreto" className="h-11 w-auto drop-shadow-sm" />
+                </a>
+                <a className="brand flex items-center gap-3" href="#" onClick={(e) => { e.preventDefault(); setVista('publica'); setMenuAbierto(false); }}>
+                  <img src="/logojdf.png" alt="Logo Juzgado" className="brand__logo flex-shrink-0 h-[45px] w-auto" />
+                  <span className="brand__text"><span className="eyebrow">Municipalidad de Loreto</span><strong>Juzgado de Faltas</strong></span>
+                </a>
+              </div>
+              {/* ========================================================== */}
+
               <button className="menu-toggle" onClick={() => setMenuAbierto(!menuAbierto)}>{menuAbierto ? '✖' : '☰'}</button>
 
               {vista === 'publica' ? (
@@ -1554,7 +1563,7 @@ export default function JuzgadoFaltasUnificado() {
             </div>
           )}
 
-          {/* === MODALES LEGALES (NUEVOS) === */}
+          {/* === MODALES LEGALES === */}
           {modalTerminos && (
             <div className="modal-overlay" onClick={() => setModalTerminos(false)}>
               <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '700px', lineHeight: 1.6}}>

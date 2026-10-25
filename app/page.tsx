@@ -87,15 +87,21 @@ const TimelineExpediente = ({ estado }: { estado: string }) => {
         
         <div className="relative flex justify-between">
           <div className="flex flex-col items-center">
-            <div className={`w-[26px] h-[26px] rounded-full flex items-center justify-center text-[12px] font-black z-10 transition-colors ${step1 ? 'bg-[#00B2D6] text-white ring-4 ring-gray-50' : 'bg-gray-200 text-gray-400 ring-4 ring-gray-50'}`}>✓</div>
+            <div className={`w-[26px] h-[26px] rounded-full flex items-center justify-center text-[12px] font-black z-10 transition-colors ${step1 ? 'bg-[#00B2D6] text-white ring-4 ring-gray-50' : 'bg-gray-200 text-gray-400 ring-4 ring-gray-50'}`}>
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+            </div>
             <span className={`text-[10px] font-bold mt-2 uppercase tracking-widest ${step1 ? 'text-[#0B4A82]' : 'text-gray-400'}`}>Labrada</span>
           </div>
           <div className="flex flex-col items-center">
-            <div className={`w-[26px] h-[26px] rounded-full flex items-center justify-center text-[12px] font-black z-10 transition-colors ${step2 ? 'bg-[#00B2D6] text-white ring-4 ring-gray-50' : 'bg-gray-200 text-gray-400 ring-4 ring-gray-50'}`}>{progress > 50 ? '✓' : '2'}</div>
+            <div className={`w-[26px] h-[26px] rounded-full flex items-center justify-center text-[12px] font-black z-10 transition-colors ${step2 ? 'bg-[#00B2D6] text-white ring-4 ring-gray-50' : 'bg-gray-200 text-gray-400 ring-4 ring-gray-50'}`}>
+              {progress > 50 ? <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg> : '2'}
+            </div>
             <span className={`text-[10px] font-bold mt-2 uppercase tracking-widest ${step2 ? 'text-[#0B4A82]' : 'text-gray-400'}`}>En Revisión</span>
           </div>
           <div className="flex flex-col items-center">
-            <div className={`w-[26px] h-[26px] rounded-full flex items-center justify-center text-[12px] font-black z-10 transition-colors ${step3 ? 'bg-[#10B981] text-white ring-4 ring-gray-50' : 'bg-gray-200 text-gray-400 ring-4 ring-gray-50'}`}>{step3 ? '✓' : '3'}</div>
+            <div className={`w-[26px] h-[26px] rounded-full flex items-center justify-center text-[12px] font-black z-10 transition-colors ${step3 ? 'bg-[#10B981] text-white ring-4 ring-gray-50' : 'bg-gray-200 text-gray-400 ring-4 ring-gray-50'}`}>
+              {step3 ? <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg> : '3'}
+            </div>
             <span className={`text-[10px] font-bold mt-2 uppercase tracking-widest ${step3 ? 'text-[#10B981]' : 'text-gray-400'}`}>Resuelta</span>
           </div>
         </div>
@@ -335,7 +341,6 @@ export default function JuzgadoFaltasUnificado() {
     const txt = filtroRec.toLowerCase(); return i.dniTitular.includes(txt) || i.nombreTitular.toLowerCase().includes(txt) || i.concepto.toLowerCase().includes(txt);
   });
 
-  // === EXPORTACIÓN DE PADRÓN RECAUDADOR A CSV ===
   const exportarRecaudacionCSV = () => {
     if (impuestosFiltrados.length === 0) return alert("No hay datos para exportar.");
     let csvContent = "\uFEFFFecha,Contribuyente,DNI,Concepto,Monto,Estado\n";
@@ -437,7 +442,7 @@ export default function JuzgadoFaltasUnificado() {
   const manejarBlanquearClave = async (id: string, nombre: string) => {
     if (!confirm(`¿Estás seguro de BLANQUEAR la contraseña de ${nombre}?`)) return;
     const res = await blanquearClave(id);
-    if (res.success) { alert(`✅ CLAVE RESTABLECIDA\n\nLa nueva clave para ${nombre} es: ${res.tempPass}`); } else { alert("Error: " + res.error); }
+    if (res.success) { alert(`CLAVE RESTABLECIDA\n\nLa nueva clave para ${nombre} es: ${res.tempPass}`); } else { alert("Error: " + res.error); }
   }
 
   const manejarConsultaDiaria = async (e?: React.FormEvent) => {
@@ -491,10 +496,9 @@ export default function JuzgadoFaltasUnificado() {
   const indicePrimerItem = (paginaActual - 1) * filasPorPagina; const indiceUltimoItem = paginaActual * filasPorPagina;
   const listaPaginada = listaBase.slice(indicePrimerItem, indiceUltimoItem);
 
-  // === EXPORTACIÓN GENERAL A CSV PARA EL JUZGADO ===
   const exportarDatosCSV = () => {
     if (listaBase.length === 0) return alert("No hay datos para exportar con los filtros actuales.");
-    let csvContent = "\uFEFF"; // BOM para compatibilidad directa con Excel en Español
+    let csvContent = "\uFEFF"; 
     
     if (vista === 'admin_actas' || (vista === 'admin_balance' && tabBalance === 'pendientes') || (vista === 'admin_balance' && tabBalance === 'reincidentes')) {
       csvContent += "Nro Acta,Fecha Infraccion,Infractor,DNI,Genero,Domicilio,Articulo,Estado,Monto\n";
@@ -524,7 +528,6 @@ export default function JuzgadoFaltasUnificado() {
     link.setAttribute("download", `Exportacion_${vista}_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link); link.click(); document.body.removeChild(link);
   }
-  // =================================================
 
   const rol = usuario?.rol || ''
   const puedeActas = ['SUPERADMIN', 'JUEZ', 'ADMINISTRATIVO', 'LETRADO'].includes(rol);
@@ -595,8 +598,8 @@ export default function JuzgadoFaltasUnificado() {
                        onChange={e => setFiltroRec(e.target.value)}
                        className="px-4 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:border-[#7A1B28]"
                      />
-                     <button onClick={exportarRecaudacionCSV} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm">
-                       📥 Exportar a Excel
+                     <button onClick={exportarRecaudacionCSV} className="flex items-center bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm">
+                       <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> Exportar a Excel
                      </button>
                      <button onClick={() => setModalRecaudacion(true)} className="bg-[#7A1B28] hover:bg-[#5E151F] text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-colors shadow-sm">
                        + Cargar Nuevo Impuesto / Deuda
@@ -703,7 +706,7 @@ export default function JuzgadoFaltasUnificado() {
                     <div>
                       <label className="block text-[11px] font-black text-gray-700 uppercase tracking-widest mb-2">Monto a Abonar ($)</label>
                       <input type="number" value={recMonto} onChange={e => setRecMonto(e.target.value)} required readOnly={!!tarifas.find(t => t.concepto === recConcepto)} className={`w-full px-4 py-4 border-2 rounded-lg text-2xl font-black outline-none transition-all ${!!tarifas.find(t => t.concepto === recConcepto) ? 'bg-gray-100 border-gray-200 text-[#7A1B28] cursor-not-allowed shadow-inner' : 'bg-white border-gray-300 text-[#7A1B28] focus:border-[#7A1B28] focus:ring-4 focus:ring-[#7A1B28]/10'}`} placeholder="0" />
-                      {!!tarifas.find(t => t.concepto === recConcepto) && <span className="text-[11px] font-semibold text-[#7A1B28]/70 mt-2 block bg-[#7A1B28]/5 px-3 py-1.5 rounded inline-block">🔒 El monto está fijado por sistema según ordenanza y no puede ser alterado.</span>}
+                      {!!tarifas.find(t => t.concepto === recConcepto) && <span className="text-[11px] font-semibold text-[#7A1B28]/70 mt-2 block bg-[#7A1B28]/5 px-3 py-1.5 rounded inline-block"><svg className="w-3.5 h-3.5 inline-block mr-1 relative -top-[1px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>El monto está fijado por sistema según ordenanza y no puede ser alterado.</span>}
                     </div>
                   </div>
 
@@ -713,7 +716,6 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
                 </form>
               </div>
-              <style dangerouslySetInnerHTML={{ __html: `@keyframes zoomIn { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}} />
             </div>
           )}
         </div>
@@ -816,7 +818,10 @@ export default function JuzgadoFaltasUnificado() {
 
           <div className="topbar no-print">
             <div className="wrap">
-              <div><span className="topbar__item">🕗 Lun. a Vie. 07:00 a 13:00 y 16:00 a 20:00 hs</span><span className="topbar__item">💬 <a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310 (WhatsApp)</a></span></div>
+              <div>
+                <span className="topbar__item"><svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Lun. a Vie. 07:00 a 13:00 y 16:00 a 20:00 hs</span>
+                <span className="topbar__item"><svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg><a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310 (WhatsApp)</a></span>
+              </div>
               <div><span className="topbar__item"><a href="#contacto">Contacto</a></span></div>
             </div>
           </div>
@@ -866,7 +871,7 @@ export default function JuzgadoFaltasUnificado() {
               )}
 
               <div className={`header-actions ${menuAbierto ? 'abierto' : ''}`}>
-                {autenticado && <span style={{fontSize: '13px', color: 'var(--tinta-suave)', fontWeight: 600, fontFamily: 'Montserrat, sans-serif'}}>👤 {usuario?.nombre}</span>}
+                {autenticado && <span style={{fontSize: '13px', color: 'var(--tinta-suave)', fontWeight: 600, fontFamily: 'Montserrat, sans-serif'}}><svg className="w-4 h-4 inline mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>{usuario?.nombre}</span>}
                 {autenticado && <a onClick={() => { setModalPassword(true); setMenuAbierto(false); }} style={{fontSize: '13px', cursor: 'pointer', color: 'var(--celeste-loreto)', fontWeight: 700, fontFamily: 'Montserrat, sans-serif'}}>Cambiar Clave</a>}
                 <button onClick={() => { 
                   if (vista === 'publica') { setVista('admin_actas'); } else { localStorage.removeItem('juzgado_sesion'); setVista('publica'); setAutenticado(false); setUsuario(null); setPassword(""); } 
@@ -896,7 +901,7 @@ export default function JuzgadoFaltasUnificado() {
                     <Reveal>
                       <div className="consulta-panel">
                         <div style={{textAlign: 'center', marginBottom: '24px'}} className="no-print">
-                          <span style={{fontSize: '36px', display: 'inline-block', marginBottom: '10px'}}>🔍</span>
+                          <svg className="w-10 h-10 text-white mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                           <h3 style={{fontSize: '28px', color: '#fff', marginBottom: '10px'}}>Portal de Autogestión Ciudadana</h3>
                           <p style={{fontSize: '15px', color: 'rgba(255,255,255,0.9)', maxWidth: '55ch', margin: '0 auto'}}>
                             Ingrese su documento y género para acceder de forma segura. Podrá <strong>verificar el estado de sus infracciones</strong>, <strong>informar transferencias</strong> o <strong>presentar descargos formales</strong>.
@@ -939,6 +944,7 @@ export default function JuzgadoFaltasUnificado() {
 
                           {mensaje && <p style={{marginTop: '16px', fontSize: '14.5px', color: esLibreDeuda ? '#10B981' : 'var(--rojo-loreto)', fontWeight: 600, textAlign: 'center'}}>{mensaje}</p>}
                           
+                          {/* === PANEL DE LIBRE DEUDA PÚBLICO === */}
                           {esLibreDeuda && (
                             <div className="mt-8 border-t-2 border-gray-100 pt-8 animate-[fadeIn_0.5s_ease-out]">
                               <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center">
@@ -948,12 +954,13 @@ export default function JuzgadoFaltasUnificado() {
                                 <h4 className="text-xl font-black text-emerald-800 mb-2 font-['Montserrat']">Libre de Infracciones y Deudas</h4>
                                 <p className="text-emerald-700 text-[14.5px] mb-6 max-w-md mx-auto">No posee actas de tránsito, bromatología ni deudas impositivas exigibles registradas bajo el documento <strong>{dni}</strong>.</p>
                                 <button onClick={() => window.print()} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 mx-auto">
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                                  <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                                   Generar Certificado PDF
                                 </button>
                               </div>
                             </div>
                           )}
+                          {/* ================================== */}
 
                           {resultados.length > 0 && (
                             <div style={{marginTop: '28px', borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>
@@ -1036,7 +1043,7 @@ export default function JuzgadoFaltasUnificado() {
                                     </div>
                                     
                                     <div style={{background: 'rgba(122, 27, 40, 0.05)', border: '1px solid rgba(122, 27, 40, 0.15)', padding: '16px', borderRadius: '6px', marginTop: '16px', fontSize: '13.5px'}}>
-                                      <strong style={{color: '#7A1B28', display: 'block', marginBottom: '8px', fontSize: '13px', textTransform: 'uppercase'}}>ℹ️ Información para Regularización</strong>
+                                      <strong style={{color: '#7A1B28', display: 'block', marginBottom: '8px', fontSize: '13px', textTransform: 'uppercase'}}><svg className="w-4 h-4 inline-block mr-1.5 relative -top-[1px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Información para Regularización</strong>
                                       <p style={{margin: '0 0 4px 0'}}>Puede abonar mediante transferencia bancaria a la cuenta oficial de Recaudación:</p>
                                       <p style={{margin: '0 0 4px 0'}}><strong>CBU:</strong> 32101205300000012431389</p>
                                       <p style={{margin: 0}}><strong>ALIAS:</strong> LoretoRecaudacion</p>
@@ -1131,7 +1138,7 @@ export default function JuzgadoFaltasUnificado() {
                         <div style={{ flex: 'none', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 8px 32px rgba(11,74,130,0.08)', textAlign: 'center', border: '1px solid var(--linea)', margin: '0 auto', maxWidth: '100%' }}>
                           <img src="/qrparacodigo.png" alt="QR Código de Convivencia" style={{ width: '100%', maxWidth: '180px', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
                           <span style={{ display: 'block', marginTop: '16px', fontSize: '12px', fontWeight: 800, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>Escanear para acceder</span>
-                          <a href="/codigo-convivencia.pdf" download className="btn btn--ghost btn--block" style={{marginTop: '16px', fontSize: '12px', padding: '8px', borderStyle: 'dashed'}}>📥 Descargar PDF al celular</a>
+                          <a href="/codigo-convivencia.pdf" download className="btn btn--ghost btn--block" style={{marginTop: '16px', fontSize: '12px', padding: '8px', borderStyle: 'dashed'}}><svg className="w-4 h-4 inline-block mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>Descargar PDF al celular</a>
                         </div>
                       </div>
                     </Reveal>
@@ -1147,7 +1154,7 @@ export default function JuzgadoFaltasUnificado() {
                           {noticiasPublicas.slice(0, 3).map(n => (
                             <div className="news-card" key={n.id}>
                               <img src={n.imagenUrl} alt={n.titulo} />
-                              <span style={{display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--celeste-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px'}}>📅 {new Date(n.creadoEn).toLocaleDateString('es-AR')}</span>
+                              <span style={{display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--celeste-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px'}}><svg className="w-3.5 h-3.5 inline-block mr-1 relative -top-[1px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>{new Date(n.creadoEn).toLocaleDateString('es-AR')}</span>
                               <h3>{n.titulo}</h3>
                               {n.contenido && <p>{n.contenido}</p>}
                             </div>
@@ -1171,10 +1178,10 @@ export default function JuzgadoFaltasUnificado() {
                       <div className="section-head"><p className="kicker">Atención al Público</p><h2>Ubicación y Vías de Contacto</h2></div>
                       <div className="contacto-grid">
                         <ul className="contacto-list">
-                          <li><span className="ico">📍</span><div><strong>Dirección Física</strong><span>Isla Soledad S/N, Bº Islas Malvinas<br/>Loreto, Santiago del Estero</span></div></li>
-                          <li><span className="ico">💬</span><div><strong>Atención por WhatsApp</strong><a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310</a></div></li>
-                          <li><span className="ico">📧</span><div><strong>Mesa de Entradas Virtual</strong><a href="mailto:juzgadodefaltasloreto@outlook.com">juzgadodefaltasloreto@outlook.com</a></div></li>
-                          <li><span className="ico">🕗</span><div><strong>Horario de Recepción</strong><span>Lunes a Viernes<br/>07:00 a 13:00 hs y 16:00 a 20:00 hs</span></div></li>
+                          <li><span className="ico"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg></span><div><strong>Dirección Física</strong><span>Isla Soledad S/N, Bº Islas Malvinas<br/>Loreto, Santiago del Estero</span></div></li>
+                          <li><span className="ico"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg></span><div><strong>Atención por WhatsApp</strong><a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310</a></div></li>
+                          <li><span className="ico"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.53 4.389a2 2 0 001.94 0L20 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg></span><div><strong>Mesa de Entradas Virtual</strong><a href="mailto:juzgadodefaltasloreto@outlook.com">juzgadodefaltasloreto@outlook.com</a></div></li>
+                          <li><span className="ico"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span><div><strong>Horario de Recepción</strong><span>Lunes a Viernes<br/>07:00 a 13:00 hs y 16:00 a 20:00 hs</span></div></li>
                         </ul>
                         <div className="map-frame"><iframe src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3527.794711317769!2d-64.1893188!3d-28.3031456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMjjCsDE4JzExLjMiUyA2NMKwMTEnMjEuNSJX!5e0!3m2!1sen!2sar!4v1700000000000!5m2!1sen!2sar" title="Mapa de ubicación del Juzgado de Faltas de Loreto" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
                       </div>
@@ -1246,7 +1253,7 @@ export default function JuzgadoFaltasUnificado() {
                                   <input type="date" value={fechaConsulta} onChange={e => setFechaConsulta(e.target.value)} max={new Date().toISOString().split('T')[0]} />
                                 </div>
                                 <button onClick={manejarConsultaDiaria} disabled={buscandoRecaudacion} className="btn btn--primary">{buscandoRecaudacion ? <><Spinner/> Consultando...</> : 'Ver Ingresos'}</button>
-                                <button onClick={exportarCSV} className="btn btn--ghost">📥 Exportar Reporte CSV</button>
+                                <button onClick={exportarCSV} className="btn btn--ghost"><svg className="w-4 h-4 inline-block mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> Exportar Reporte CSV</button>
                               </div>
 
                               {!buscandoRecaudacion && (
@@ -1424,16 +1431,14 @@ export default function JuzgadoFaltasUnificado() {
                       )}
 
                       <div style={{overflowX: 'auto'}}>
-                        {/* === BOTÓN DE DESCARGA EXCEL (NUEVO) === */}
                         {vista !== 'admin_calculadora' && vista !== 'admin_noticias' && (vista !== 'admin_balance' || tabBalance !== 'recaudacion') && (
                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
                              <h3 style={{fontSize: '16px', margin: 0, color: 'var(--azul-loreto)'}}>Listado de Registros ({totalItems})</h3>
                              <button onClick={exportarDatosCSV} className="btn btn--ghost btn--sm" style={{borderColor: '#10B981', color: '#047857'}}>
-                               📥 Exportar Vista a Excel
+                               <svg className="w-4 h-4 inline-block mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg> Exportar Vista a Excel
                              </button>
                            </div>
                         )}
-                        {/* ======================================= */}
 
                         {cargandoAdmin ? <SkeletonTable columnas={vista === 'admin_actas' ? 9 : 5} /> : (
                           <>

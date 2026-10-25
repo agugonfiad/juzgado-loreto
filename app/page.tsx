@@ -127,7 +127,7 @@ const BotonWhatsApp = () => {
   );
 }
 
-// === DATOS DE PREGUNTAS FRECUENTES DESTACADAS ===
+// DATOS DE PREGUNTAS FRECUENTES DESTACADAS
 const FAQS_DESTACADAS = [
   {
     pregunta: "¿Cuál es el plazo legal para presentar un descargo?",
@@ -250,7 +250,6 @@ export default function JuzgadoFaltasUnificado() {
 
   useEffect(() => { setPaginaActual(1); }, [filtroActaNombre, filtroDniAdmin, filtroDireccion, filtroEstado, vista, tabBalance, filtroRec]);
 
-  // Función para activar los Accesos Rápidos
   const activarAccesoRapido = (accion: 'descargo' | 'pago' | 'libredeuda' | 'turno') => {
     if (accion === 'turno') {
       document.getElementById('turnos-presenciales')?.scrollIntoView({ behavior: 'smooth' });
@@ -808,9 +807,6 @@ export default function JuzgadoFaltasUnificado() {
             body { margin: 0; background: var(--papel); color: var(--tinta); font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; line-height: 1.55; overflow-x: hidden; }
             h1, h2, h3, h4 { font-family: 'Montserrat', sans-serif; color: var(--azul-loreto); margin: 0 0 0.5em; line-height: 1.2; font-weight: 700; letter-spacing: -0.01em; } 
             a { color: inherit; } .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
-            .topbar { background: var(--azul-loreto); color: #FFFFFF; font-size: 13.5px; font-family: 'Inter', sans-serif; font-weight: 500; } 
-            .topbar .wrap { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; padding-bottom: 8px; gap: 16px; flex-wrap: wrap; } 
-            .topbar a { text-decoration: none; opacity: .9; } .topbar a:hover { opacity: 1; text-decoration: underline; } .topbar__item { display: inline-flex; align-items: center; gap: 6px; margin-right: 18px; }
             header.site { background: var(--papel); border-bottom: 1px solid var(--linea); position: sticky; top: 0; z-index: 100; } 
             .nav-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; gap: 20px; flex-wrap: wrap; }
             .brand { display: flex; align-items: center; gap: 14px; text-decoration: none; z-index: 101; } .brand__logo { height: 55px; width: auto; flex: none; } 
@@ -888,16 +884,6 @@ export default function JuzgadoFaltasUnificado() {
               .admin-table { display: block; overflow-x: auto; white-space: nowrap; }
             }
           `}} />
-
-          <div className="topbar no-print">
-            <div className="wrap">
-              <div>
-                <span className="topbar__item"><svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Lun. a Vie. 07:00 a 13:00 y 16:00 a 20:00 hs</span>
-                <span className="topbar__item"><svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg><a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310 (WhatsApp)</a></span>
-              </div>
-              <div><span className="topbar__item"><a href="#contacto">Ubicación y Contacto</a></span></div>
-            </div>
-          </div>
 
           <header className="site no-print">
             <div className="wrap nav-row">

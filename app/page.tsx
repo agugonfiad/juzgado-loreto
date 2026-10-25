@@ -157,6 +157,12 @@ export default function JuzgadoFaltasUnificado() {
   const [tramiteActivo, setTramiteActivo] = useState<{ id: string, tipo: 'pago' | 'descargo' } | null>(null)
   const [enviando, setEnviando] = useState(false)
   
+  // === NUEVOS ESTADOS PARA EL DESCARGO GUIADO ===
+  const [pasoDescargo, setPasoDescargo] = useState(1);
+  const [motivoText, setMotivoText] = useState("");
+  const MAX_MOTIVO = 3000;
+  // ==============================================
+  
   const [esLibreDeuda, setEsLibreDeuda] = useState(false)
   const [alertaNotificacion, setAlertaNotificacion] = useState<{titulo: string, mensaje: string, tipo: 'exito' | 'error'} | null>(null)
 
@@ -716,6 +722,7 @@ export default function JuzgadoFaltasUnificado() {
                   </div>
                 </form>
               </div>
+              <style dangerouslySetInnerHTML={{ __html: `@keyframes zoomIn { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } } @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}} />
             </div>
           )}
         </div>
@@ -726,7 +733,6 @@ export default function JuzgadoFaltasUnificado() {
            MUNDO JUZGADO DE FALTAS Y PÚBLICO (INTERFAZ AZUL) 
            ======================================================== */
         <>
-          {/* === CSS GLOBAL (INCLUYE REGLAS DE IMPRESIÓN PARA EL LIBRE DEUDA) === */}
           <style dangerouslySetInnerHTML={{ __html: `
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap');
             :root { --azul-loreto: #0B4A82; --celeste-loreto: #00B2D6; --rojo-loreto: #EB2128; --papel: #FFFFFF; --papel-alto: #F8F9FA; --tinta: #212529; --tinta-suave: #495057; --linea: #DEE2E6; --radius-s: 4px; --radius-m: 10px; --maxw: 1180px; }
@@ -978,7 +984,10 @@ export default function JuzgadoFaltasUnificado() {
                                     <TimelineExpediente estado={acta.estado} />
                                     
                                     {acta.estado === 'PENDIENTE' && (
-                                      <div style={{display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap'}}><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'pago' })} className="btn btn--ghost btn--sm">Informar Pago</button><button onClick={() => setTramiteActivo({ id: acta.id, tipo: 'descargo' })} className="btn btn--primary btn--sm">Presentar Descargo</button></div>
+                                      <div style={{display: 'flex', gap: '12px', marginTop: '16px', flexWrap: 'wrap'}}>
+                                        <button onClick={() => { setTramiteActivo({ id: acta.id, tipo: 'pago' }); }} className="btn btn--ghost btn--sm">Informar Pago</button>
+                                        <button onClick={() => { setTramiteActivo({ id: acta.id, tipo: 'descargo' }); setPasoDescargo(1); setMotivoText(""); }} className="btn btn--primary btn--sm">Presentar Descargo</button>
+                                      </div>
                                     )}
                                     
                                     {tramiteActivo?.id === acta.id && (
@@ -986,7 +995,8 @@ export default function JuzgadoFaltasUnificado() {
                                         <input type="hidden" name="infraccionId" value={acta.id} />
                                         <input type="hidden" name="tipo" value={tramiteActivo?.tipo || ''} />
                                         
-                                        {tramiteActivo?.tipo === 'pago' ? (
+                                        {/* === FORMULARIO DE PAGO NORMAL === */}
+                                        {tramiteActivo?.tipo === 'pago' && (
                                           <>
                                             <div style={{background: 'rgba(0, 178, 214, 0.08)', border: '1px solid rgba(0, 178, 214, 0.2)', padding: '20px', borderRadius: '6px', marginBottom: '20px', fontSize: '14.5px'}}>
                                               <h4 style={{fontSize: '14px', margin: '0 0 12px 0', color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.02em'}}>Datos Oficiales de Recaudación</h4>
@@ -1004,19 +1014,86 @@ export default function JuzgadoFaltasUnificado() {
                                               <label>Comprobante de Pago (PDF o Imagen — Máx. recomendado: 4 MB)</label>
                                               <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required style={{padding: '8px'}} />
                                             </div>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <div className="field"><label>Nombre y Apellido del Presentante</label><input type="text" name="nombre" required /></div>
-                                            <div className="field"><label>Correo Electrónico (Constitución de Domicilio Digital)</label><input type="email" name="email" required /></div>
-                                            <div className="field"><label>Fundamentos del Descargo</label><textarea name="motivo" rows={4} required></textarea></div>
-                                            <div className="field">
-                                              <label>Documentación / Prueba Adjunta (PDF o Imagen — Máx. recomendado: 4 MB)</label>
-                                              <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required style={{padding: '8px'}} />
-                                            </div>
+                                            <button type="submit" disabled={enviando} className="btn btn--primary btn--block">{enviando ? <><Spinner/> Procesando envío...</> : 'Ingresar Documentación al Juzgado'}</button>
                                           </>
                                         )}
-                                        <button type="submit" disabled={enviando} className="btn btn--primary btn--block">{enviando ? <><Spinner/> Procesando envío...</> : 'Ingresar Documentación al Juzgado'}</button>
+                                        
+                                        {/* === FORMULARIO MULTI-STEP PARA DESCARGOS === */}
+                                        {tramiteActivo?.tipo === 'descargo' && (
+                                          <div className="bg-white border border-[#DEE2E6] rounded-xl shadow-sm p-6 mt-4">
+                                            
+                                            {/* Navegación por pasos */}
+                                            <div className="flex mb-6 text-[12px] font-bold text-gray-400 uppercase tracking-widest gap-2 border-b border-gray-100 pb-4">
+                                              <span className={pasoDescargo >= 1 ? 'text-[#0B4A82]' : ''}>1. Datos Personales</span> <span className="mx-1">{'>'}</span>
+                                              <span className={pasoDescargo >= 2 ? 'text-[#0B4A82]' : ''}>2. Fundamentos</span> <span className="mx-1">{'>'}</span>
+                                              <span className={pasoDescargo === 3 ? 'text-[#0B4A82]' : ''}>3. Revisión</span>
+                                            </div>
+
+                                            {/* PASO 1 */}
+                                            <div className={pasoDescargo === 1 ? 'block' : 'hidden'}>
+                                              <div className="mb-6 p-4 bg-[#00B2D6]/10 border border-[#00B2D6]/30 rounded-lg">
+                                                <h4 className="text-[#0B4A82] font-bold mb-2 flex items-center gap-2">
+                                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> 
+                                                  Guía: Cómo presentar su descargo
+                                                </h4>
+                                                <ul className="text-[13.5px] text-gray-700 space-y-1.5 ml-5 list-disc">
+                                                  <li>Complete sus datos de contacto reales (el correo será su <strong>Domicilio Digital válido</strong>).</li>
+                                                  <li>Redacte los hechos de forma clara, respetuosa y detallada (máximo 3000 caracteres).</li>
+                                                  <li>Tenga lista su prueba documental en formato PDF, JPG o PNG (fotos de pólizas de seguro, cédula verde, DNI, etc.). Límite de sistema: 10MB.</li>
+                                                </ul>
+                                              </div>
+                                              
+                                              <div className="field"><label>Nombre y Apellido del Presentante</label><input type="text" name="nombre" id="desc_nombre" /></div>
+                                              <div className="field"><label>Correo Electrónico (Constitución de Domicilio Digital)</label><input type="email" name="email" id="desc_email" /></div>
+                                              <button type="button" onClick={() => {
+                                                const n = (document.getElementById('desc_nombre') as HTMLInputElement).value;
+                                                const e = (document.getElementById('desc_email') as HTMLInputElement).value;
+                                                if(n && e) setPasoDescargo(2); else alert("Por favor complete su nombre y correo para continuar.");
+                                              }} className="btn btn--primary btn--block mt-2">Siguiente: Redactar Fundamentos</button>
+                                            </div>
+
+                                            {/* PASO 2 */}
+                                            <div className={pasoDescargo === 2 ? 'block' : 'hidden'}>
+                                              <div className="field">
+                                                <label className="flex justify-between items-end">
+                                                  <span>Fundamentos Jurídicos / Relato de los Hechos</span>
+                                                  <span className={`text-[11px] font-bold px-2 py-1 rounded ${motivoText.length >= MAX_MOTIVO ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-500'}`}>{motivoText.length} / {MAX_MOTIVO}</span>
+                                                </label>
+                                                <textarea name="motivo" id="desc_motivo" rows={6} value={motivoText} onChange={(e) => setMotivoText(e.target.value)} maxLength={MAX_MOTIVO} placeholder="Ej: Me dirijo a S.S. a fin de formular descargo respecto al Acta N°... en razón de que el vehículo se encontraba estacionado en un lugar permitido..." className="resize-y"></textarea>
+                                              </div>
+                                              <div className="field">
+                                                <label>Documentación / Prueba Adjunta Obligatoria</label>
+                                                <input type="file" name="archivo" id="desc_archivo" accept=".pdf, .jpg, .jpeg, .png" style={{padding: '8px'}} />
+                                              </div>
+                                              <div className="flex gap-4 mt-2">
+                                                <button type="button" onClick={() => setPasoDescargo(1)} className="btn btn--ghost flex-1">Volver</button>
+                                                <button type="button" onClick={() => {
+                                                  const m = (document.getElementById('desc_motivo') as HTMLTextAreaElement).value;
+                                                  const a = (document.getElementById('desc_archivo') as HTMLInputElement).files;
+                                                  if(m && a && a.length > 0) setPasoDescargo(3); else alert("Debe redactar su defensa y adjuntar al menos un archivo probatorio.");
+                                                }} className="btn btn--primary flex-[2]">Siguiente: Revisión Final</button>
+                                              </div>
+                                            </div>
+
+                                            {/* PASO 3 */}
+                                            <div className={pasoDescargo === 3 ? 'block' : 'hidden'}>
+                                              <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 mb-6">
+                                                <h4 className="text-red-600 font-bold mb-2 flex items-center gap-2">
+                                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                                  Atención: Confirmación de Declaración Jurada
+                                                </h4>
+                                                <p className="text-[14px] text-gray-700 leading-relaxed m-0">
+                                                  Está a punto de ingresar formalmente un descargo al Juzgado de Faltas. Al presionar "Firmar y Enviar", usted confirma que los datos y pruebas adjuntas son veraces. Su correo electrónico constituirá su Domicilio Digital legal para futuras notificaciones de este expediente.
+                                                </p>
+                                              </div>
+                                              <div className="flex gap-4">
+                                                <button type="button" onClick={() => setPasoDescargo(2)} className="btn btn--ghost flex-1" disabled={enviando}>Modificar</button>
+                                                <button type="submit" disabled={enviando} className="btn btn--primary flex-[2]">{enviando ? <><Spinner/> Radicando Expediente...</> : '✓ Firmar y Enviar al Juzgado'}</button>
+                                              </div>
+                                            </div>
+
+                                          </div>
+                                        )}
                                       </form>
                                     )}
                                   </div>

@@ -110,7 +110,7 @@ const TimelineExpediente = ({ estado }: { estado: string }) => {
   );
 }
 
-// === NUEVO: COMPONENTE DE BOTÓN FLOTANTE WHATSAPP ===
+// COMPONENTE DE BOTÓN FLOTANTE WHATSAPP
 const BotonWhatsApp = () => {
   return (
     <a 
@@ -126,6 +126,30 @@ const BotonWhatsApp = () => {
     </a>
   );
 }
+
+// === DATOS DE PREGUNTAS FRECUENTES DESTACADAS ===
+const FAQS_DESTACADAS = [
+  {
+    pregunta: "¿Cuál es el plazo legal para presentar un descargo?",
+    respuesta: "Usted dispone de un plazo improrrogable de cinco (5) días hábiles administrativos contados a partir de la fecha en que se labró o notificó el acta de infracción. Puede realizar la presentación de forma 100% digital desde este portal adjuntando su prueba documental."
+  },
+  {
+    pregunta: "¿Cómo accedo al descuento del 50% por Pago Voluntario?",
+    respuesta: "Si abona la infracción dentro del plazo inicial antes del vencimiento y sin haber interpuesto recurso de descargo, accede automáticamente a una quita del 50% sobre el valor base de la multa. Puede transferir a la cuenta oficial e informar el comprobante en la sección de Consulta."
+  },
+  {
+    pregunta: "¿Cómo obtengo el Certificado de Libre Deuda Municipal?",
+    respuesta: "Ingrese su número de DNI y género en el buscador superior. Si el sistema verifica que usted no registra actas pendientes ni deudas impositivas exigibles, se habilitará automáticamente un botón verde para descargar e imprimir su Certificado Oficial con membrete y código de validación."
+  },
+  {
+    pregunta: "¿Qué documentación necesito para retirar un vehículo retenido?",
+    respuesta: "Debe solicitar un turno presencial o acercarse al Juzgado con su DNI, Licencia de Conducir vigente, Cédula de Identificación del Vehículo (verde o azul) y comprobante de Póliza de Seguro en vigencia. Una vez regularizada la situación procesal, el Juez emitirá el Oficio de Liberación."
+  },
+  {
+    pregunta: "¿Qué medios de pago están habilitados?",
+    respuesta: "Puede abonar mediante transferencia bancaria desde cualquier billetera virtual o banco al Alias oficial 'LoretoRecaudacion' (Banco Santiago del Estero), o bien de forma presencial por ventanilla en la sede del Juzgado de Lunes a Viernes."
+  }
+];
 // ===================================================
 
 export default function JuzgadoFaltasUnificado() {
@@ -164,7 +188,7 @@ export default function JuzgadoFaltasUnificado() {
   const [textoResolucion, setTextoResolucion] = useState("")
   const [procesando, setProcesando] = useState(false)
 
-  // Búsqueda Pública
+  // Búsqueda Pública y Navegación Guiada
   const [dni, setDni] = useState("")
   const [generoConsulta, setGeneroConsulta] = useState("MASCULINO")
   const [resultados, setResultados] = useState<any[]>([])
@@ -173,6 +197,9 @@ export default function JuzgadoFaltasUnificado() {
   const [mensaje, setMensaje] = useState("")
   const [tramiteActivo, setTramiteActivo] = useState<{ id: string, tipo: 'pago' | 'descargo' } | null>(null)
   const [enviando, setEnviando] = useState(false)
+  const [guiaAccionRapida, setGuiaAccionRapida] = useState<string>("")
+  const [faqAbierta, setFaqAbierta] = useState<number | null>(0)
+  const inputDniRef = useRef<HTMLInputElement>(null)
   
   const [pasoDescargo, setPasoDescargo] = useState(1);
   const [motivoText, setMotivoText] = useState("");
@@ -223,8 +250,24 @@ export default function JuzgadoFaltasUnificado() {
 
   useEffect(() => { setPaginaActual(1); }, [filtroActaNombre, filtroDniAdmin, filtroDireccion, filtroEstado, vista, tabBalance, filtroRec]);
 
+  // Función para activar los Accesos Rápidos
+  const activarAccesoRapido = (accion: 'descargo' | 'pago' | 'libredeuda' | 'turno') => {
+    if (accion === 'turno') {
+      document.getElementById('turnos-presenciales')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    const textos: Record<string, string> = {
+      descargo: "Para presentar un descargo formal, ingrese su DNI y género a continuación para localizar su acta:",
+      pago: "Para informar una transferencia y adjuntar el comprobante, ingrese primero su DNI y género:",
+      libredeuda: "Para validar sus antecedentes y emitir el Certificado de Libre Deuda en PDF, ingrese su DNI y género:"
+    };
+    setGuiaAccionRapida(textos[accion] || "");
+    document.getElementById('consulta')?.scrollIntoView({ behavior: 'smooth' });
+    setTimeout(() => inputDniRef.current?.focus(), 500);
+  }
+
   const manejarBusqueda = async (e: React.FormEvent) => {
-    e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null); setEsLibreDeuda(false);
+    e.preventDefault(); setBuscando(true); setMensaje(""); setTramiteActivo(null); setEsLibreDeuda(false); setGuiaAccionRapida("");
     setResultados([]); setResultadosImpuestos([]);
 
     const resInfracciones = await buscarInfraccionPorDni(dni, generoConsulta);
@@ -280,7 +323,6 @@ export default function JuzgadoFaltasUnificado() {
     } finally { setEnviando(false); }
   }
 
-  // === NUEVO: MANEJO DEL ENVÍO DE TURNOS ===
   const manejarEnvioTurno = (e: React.FormEvent) => {
     e.preventDefault();
     setAlertaNotificacion({ 
@@ -290,7 +332,6 @@ export default function JuzgadoFaltasUnificado() {
     });
     (e.target as HTMLFormElement).reset();
   }
-  // =========================================
 
   const procesarLogin = async (e: React.FormEvent) => {
     e.preventDefault(); setProcesando(true);
@@ -760,7 +801,6 @@ export default function JuzgadoFaltasUnificado() {
            MUNDO JUZGADO DE FALTAS Y PÚBLICO (INTERFAZ AZUL) 
            ======================================================== */
         <>
-          {/* === CSS GLOBAL (INCLUYE REGLAS DE IMPRESIÓN PARA EL LIBRE DEUDA) === */}
           <style dangerouslySetInnerHTML={{ __html: `
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap');
             :root { --azul-loreto: #0B4A82; --celeste-loreto: #00B2D6; --rojo-loreto: #EB2128; --papel: #FFFFFF; --papel-alto: #F8F9FA; --tinta: #212529; --tinta-suave: #495057; --linea: #DEE2E6; --radius-s: 4px; --radius-m: 10px; --maxw: 1180px; }
@@ -777,37 +817,37 @@ export default function JuzgadoFaltasUnificado() {
             .brand__text .eyebrow { font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin: 0 0 2px; font-weight: 600; } 
             .brand__text strong { display: block; font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 18px; color: var(--azul-loreto); line-height: 1.1; letter-spacing: -0.02em; }
             .menu-toggle { display: none; background: none; border: none; font-size: 28px; color: var(--azul-loreto); cursor: pointer; padding: 5px; z-index: 101; }
-            nav.primary { display: flex; align-items: center; gap: 28px; } nav.primary ul { list-style: none; display: flex; gap: 26px; margin: 0; padding: 0; } 
-            nav.primary a { text-decoration: none; font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 14px; color: var(--tinta); padding: 6px 2px; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; } 
+            nav.primary { display: flex; align-items: center; gap: 28px; } nav.primary ul { list-style: none; display: flex; gap: 24px; margin: 0; padding: 0; } 
+            nav.primary a { text-decoration: none; font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 13.5px; color: var(--tinta); padding: 6px 2px; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; } 
             nav.primary a:hover, nav.primary a.active { border-color: var(--rojo-loreto); color: var(--azul-loreto); }
             .header-actions { display: flex; align-items: center; gap: 15px; }
             .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 22px; border-radius: var(--radius-s); font-weight: 600; font-size: 14px; text-decoration: none; border: 1.5px solid transparent; cursor: pointer; font-family: 'Montserrat', sans-serif; transition: all 0.2s; letter-spacing: 0.02em; } 
             .btn--primary { background: var(--azul-loreto); color: #fff; border-radius: 4px; } .btn--primary:hover { background: #083863; } 
             .btn--ghost { background: transparent; color: var(--azul-loreto); border-color: var(--azul-loreto); } .btn--ghost:hover { background: var(--azul-loreto); color: #fff; } 
             .btn--sm { padding: 8px 14px; font-size: 13px; } .btn--block { width: 100%; } .btn--success { background: #10B981; color: white; border: none; } .btn--danger { background: #EF4444; color: white; border: none; }
-            .hero { padding: 48px 0 32px; background: radial-gradient(circle at 88% 15%, rgba(0, 178, 214, 0.06), transparent 45%), var(--papel-alto); border-bottom: 1px solid var(--linea); } 
+            .hero { padding: 36px 0 24px; background: radial-gradient(circle at 88% 15%, rgba(0, 178, 214, 0.06), transparent 45%), var(--papel-alto); border-bottom: 1px solid var(--linea); } 
             .hero .wrap { display: grid; grid-template-columns: 1fr; text-align: center; max-width: 800px; } 
-            .hero .eyebrow { font-family: 'Montserrat', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--celeste-loreto); margin-bottom: 12px; font-weight: 700; } 
-            .hero h1 { font-size: clamp(28px, 3.5vw, 42px); font-weight: 800; letter-spacing: -0.02em; } 
-            .hero p.lead { font-size: 16.5px; color: var(--tinta-suave); max-width: 55ch; margin: 12px auto 24px; font-weight: 400; }
-            section { padding: 80px 0; } .section-head { max-width: 60ch; margin-bottom: 48px; } 
-            .section-head .kicker { font-family: 'Montserrat', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin-bottom: 12px; font-weight: 700; }
+            .hero .eyebrow { font-family: 'Montserrat', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--celeste-loreto); margin-bottom: 8px; font-weight: 700; } 
+            .hero h1 { font-size: clamp(26px, 3.2vw, 38px); font-weight: 800; letter-spacing: -0.02em; } 
+            .hero p.lead { font-size: 16px; color: var(--tinta-suave); max-width: 55ch; margin: 8px auto 12px; font-weight: 400; }
+            section { padding: 64px 0; } .section-head { max-width: 60ch; margin-bottom: 40px; } 
+            .section-head .kicker { font-family: 'Montserrat', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin-bottom: 10px; font-weight: 700; }
             .art-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--linea); border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; } 
-            .art-card { background: var(--papel); padding: 32px 24px; } .art-card h3 { font-size: 16px; font-weight: 700; } .art-card p { font-size: 14.5px; color: var(--tinta-suave); margin: 0; }
+            .art-card { background: var(--papel); padding: 28px 22px; } .art-card h3 { font-size: 16px; font-weight: 700; } .art-card p { font-size: 14px; color: var(--tinta-suave); margin: 0; }
             .autoridades-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
-            .autoridad-card { background: var(--papel); padding: 32px; border-radius: var(--radius-m); border: 1px solid var(--linea); box-shadow: 0 2px 10px rgba(0,0,0,0.02); text-align: center; border-top: 4px solid var(--azul-loreto); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+            .autoridad-card { background: var(--papel); padding: 28px 24px; border-radius: var(--radius-m); border: 1px solid var(--linea); box-shadow: 0 2px 10px rgba(0,0,0,0.02); text-align: center; border-top: 4px solid var(--azul-loreto); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
             .autoridad-card:hover { transform: translateY(-6px); box-shadow: 0 20px 25px -5px rgba(11,74,130,0.08), 0 10px 10px -5px rgba(11,74,130,0.04); border-color: rgba(11,74,130,0.15); }
             .autoridad-card.principal { border-top-color: var(--celeste-loreto); background: radial-gradient(circle at top, rgba(0,178,214,0.04), transparent 70%), var(--papel); }
-            .autoridad-card span { font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); display: block; margin-bottom: 10px; font-weight: 700; }
-            .autoridad-card h3 { font-size: 18px; color: var(--azul-loreto); margin: 0; font-weight: 700; }
+            .autoridad-card span { font-family: 'Montserrat', sans-serif; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); display: block; margin-bottom: 6px; font-weight: 700; }
+            .autoridad-card h3 { font-size: 17px; color: var(--azul-loreto); margin: 0; font-weight: 700; }
             .news-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; } 
             .news-card { background: var(--papel); padding: 24px; border-radius: var(--radius-m); border: 1px solid var(--linea); box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: default; }
             .news-card:hover { transform: translateY(-6px); box-shadow: 0 20px 25px -5px rgba(11,74,130,0.08); border-color: rgba(11,74,130,0.15); }
             .news-card img { width: 100%; aspect-ratio: 3/2; object-fit: cover; margin-bottom: 16px; border-radius: 6px; } 
             .news-card h3 { font-size: 16px; text-transform: uppercase; color: var(--azul-loreto); line-height: 1.4; font-weight: 800; letter-spacing: 0.02em; margin-bottom: 10px; }
             .news-card p { font-size: 14.5px; color: var(--tinta-suave); line-height: 1.6; white-space: pre-wrap; margin: 0; }
-            .consulta-panel { background: var(--azul-loreto); color: #F8F9FA; border-radius: var(--radius-m); padding: 48px; max-width: 900px; margin: 0 auto; box-shadow: 0 16px 40px rgba(11,74,130,0.15); } 
-            .consulta-panel h3 { color: #fff; font-size: 28px; text-align: center; }
+            .consulta-panel { background: var(--azul-loreto); color: #F8F9FA; border-radius: var(--radius-m); padding: 40px; max-width: 900px; margin: 0 auto; box-shadow: 0 16px 40px rgba(11,74,130,0.15); } 
+            .consulta-panel h3 { color: #fff; font-size: 26px; text-align: center; }
             .consulta-form { background: var(--papel); border-radius: var(--radius-m); padding: 32px; color: var(--tinta); margin-top: 24px; } 
             .field { margin-bottom: 20px; } .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--tinta); font-family: 'Montserrat', sans-serif; } 
             .field input, .field textarea, .field select { width: 100%; padding: 12px 14px; border: 1.5px solid var(--linea); border-radius: var(--radius-s); font-family: 'Inter', sans-serif; font-size: 14.5px; background: #fff; color: var(--tinta); transition: border-color 0.2s; }
@@ -825,7 +865,7 @@ export default function JuzgadoFaltasUnificado() {
             .tabs button:hover { background: var(--papel); color: var(--azul-loreto); }
             .tabs button.active { background: var(--azul-loreto); color: #fff; }
             
-            /* === REGLAS PARA GUARDAR COMO PDF === */
+            /* REGLAS PARA GUARDAR COMO PDF */
             .print-only { display: none; }
             @media print {
               body { background: white !important; margin: 0 !important; padding: 0 !important; color: black !important; }
@@ -834,13 +874,12 @@ export default function JuzgadoFaltasUnificado() {
               .consulta-panel, .consulta-form { box-shadow: none !important; margin: 0 !important; padding: 0 !important; background: white !important; }
               @page { margin: 1cm; size: A4 portrait; }
             }
-            /* ============================================================================== */
 
             @keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
             @keyframes modalZoom { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
             @media (max-width: 980px) { 
               .contacto-grid, .hero .wrap, .news-grid, .autoridades-grid, .art-grid { grid-template-columns: 1fr; } 
-              .hero { padding: 30px 0; } .consulta-panel { padding: 24px 16px; } .menu-toggle { display: block; }
+              .hero { padding: 24px 0; } .consulta-panel { padding: 24px 16px; } .menu-toggle { display: block; }
               nav.primary { display: none; width: 100%; order: 3; padding: 20px 0; border-top: 1px solid var(--linea); margin-top: 15px; }
               nav.primary.abierto { display: flex; flex-direction: column; align-items: flex-start; }
               nav.primary ul { flex-direction: column; gap: 15px; width: 100%; } nav.primary a { display: block; width: 100%; padding: 5px 0; }
@@ -856,7 +895,7 @@ export default function JuzgadoFaltasUnificado() {
                 <span className="topbar__item"><svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Lun. a Vie. 07:00 a 13:00 y 16:00 a 20:00 hs</span>
                 <span className="topbar__item"><svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg><a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310 (WhatsApp)</a></span>
               </div>
-              <div><span className="topbar__item"><a href="#contacto">Contacto</a></span></div>
+              <div><span className="topbar__item"><a href="#contacto">Ubicación y Contacto</a></span></div>
             </div>
           </div>
 
@@ -877,11 +916,13 @@ export default function JuzgadoFaltasUnificado() {
               {vista === 'publica' ? (
                 <nav className={`primary ${menuAbierto ? 'abierto' : ''}`}>
                   <ul className="pl-6 lg:pl-0">
-                    <li><a href="#inicio" onClick={() => setMenuAbierto(false)}>Inicio</a></li>
-                    <li><a href="#consulta" onClick={() => setMenuAbierto(false)}>Trámites Online</a></li>
-                    <li><a href="#autoridades" onClick={() => setMenuAbierto(false)}>Autoridades</a></li>
-                    <li><a href="#normativa" onClick={() => setMenuAbierto(false)}>Normativa</a></li>
+                    <li><a href="#consulta" onClick={() => setMenuAbierto(false)}>Consultar y Pagar</a></li>
+                    <li><a href="#accesos-rapidos" onClick={() => setMenuAbierto(false)}>Trámites</a></li>
+                    <li><a href="#faq" onClick={() => setMenuAbierto(false)}>Preguntas Frecuentes</a></li>
                     <li><a href="#noticias" onClick={() => setMenuAbierto(false)}>Noticias</a></li>
+                    <li><a href="#normativa" onClick={() => setMenuAbierto(false)}>Normativa</a></li>
+                    <li><a href="#institucion" onClick={() => setMenuAbierto(false)}>El Juzgado</a></li>
+                    <li><a href="#contacto" onClick={() => setMenuAbierto(false)}>Contacto</a></li>
                   </ul>
                 </nav>
               ) : (
@@ -904,16 +945,17 @@ export default function JuzgadoFaltasUnificado() {
                 </nav>
               )}
 
-              <div className={`header-actions ${menuAbierto ? 'abierto' : ''}`}>
-                {autenticado && <span style={{fontSize: '13px', color: 'var(--tinta-suave)', fontWeight: 600, fontFamily: 'Montserrat, sans-serif'}}><svg className="w-4 h-4 inline mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>{usuario?.nombre}</span>}
-                {autenticado && <a onClick={() => { setModalPassword(true); setMenuAbierto(false); }} style={{fontSize: '13px', cursor: 'pointer', color: 'var(--celeste-loreto)', fontWeight: 700, fontFamily: 'Montserrat, sans-serif'}}>Cambiar Clave</a>}
-                <button onClick={() => { 
-                  if (vista === 'publica') { setVista('admin_actas'); } else { localStorage.removeItem('juzgado_sesion'); setVista('publica'); setAutenticado(false); setUsuario(null); setPassword(""); } 
-                  setMenuAbierto(false); 
-                }} className="btn btn--ghost btn--sm">
-                  {vista === 'publica' ? 'Acceso Personal' : 'Cerrar Sesión'}
-                </button>
-              </div>
+              {vista !== 'publica' && (
+                <div className={`header-actions ${menuAbierto ? 'abierto' : ''}`}>
+                  {autenticado && <span style={{fontSize: '13px', color: 'var(--tinta-suave)', fontWeight: 600, fontFamily: 'Montserrat, sans-serif'}}><svg className="w-4 h-4 inline mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>{usuario?.nombre}</span>}
+                  {autenticado && <a onClick={() => { setModalPassword(true); setMenuAbierto(false); }} style={{fontSize: '13px', cursor: 'pointer', color: 'var(--celeste-loreto)', fontWeight: 700, fontFamily: 'Montserrat, sans-serif'}}>Cambiar Clave</a>}
+                  <button onClick={() => { 
+                    localStorage.removeItem('juzgado_sesion'); setVista('publica'); setAutenticado(false); setUsuario(null); setPassword(""); setMenuAbierto(false); 
+                  }} className="btn btn--ghost btn--sm">
+                    Volver al Portal Público
+                  </button>
+                </div>
+              )}
             </div>
           </header>
 
@@ -925,32 +967,43 @@ export default function JuzgadoFaltasUnificado() {
                     <Reveal>
                       <p className="eyebrow">Municipalidad de Loreto · Santiago del Estero</p>
                       <h1>Juzgado de Faltas Municipal</h1>
-                      <p className="lead">Plataforma digital oficial para la consulta de actas, presentación de descargos y gestión de pagos sin necesidad de trámites presenciales.</p>
+                      <p className="lead">Plataforma digital oficial para la consulta de actas, presentación de descargos, libre deuda y gestión de pagos en línea.</p>
                     </Reveal>
                   </div>
                 </section>
 
-                <section id="consulta" style={{background: '#fff', padding: '60px 0'}} className="no-print">
+                {/* =================================================================
+                    1. CONSULTA DE INFRACCIONES + 2. ACCESOS RÁPIDOS + 3. AVISO ESTAFAS
+                    ================================================================= */}
+                <section id="consulta" style={{background: '#fff', padding: '48px 0'}} className="no-print">
                   <div className="wrap">
                     <Reveal>
+                      {/* 1. CONSULTA DE INFRACCIONES */}
                       <div className="consulta-panel">
-                        <div style={{textAlign: 'center', marginBottom: '24px'}} className="no-print">
-                          <svg className="w-10 h-10 text-white mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                          <h3 style={{fontSize: '28px', color: '#fff', marginBottom: '10px'}}>Portal de Autogestión Ciudadana</h3>
-                          <p style={{fontSize: '15px', color: 'rgba(255,255,255,0.9)', maxWidth: '55ch', margin: '0 auto'}}>
-                            Ingrese su documento y género para acceder de forma segura. Podrá <strong>verificar el estado de sus infracciones</strong>, <strong>informar transferencias</strong> o <strong>presentar descargos formales</strong>.
+                        <div style={{textAlign: 'center', marginBottom: '20px'}} className="no-print">
+                          <svg className="w-9 h-9 text-white mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                          <h3 style={{fontSize: '26px', color: '#fff', marginBottom: '8px'}}>1. Consulta de Infracciones y Deudas</h3>
+                          <p style={{fontSize: '14.5px', color: 'rgba(255,255,255,0.9)', maxWidth: '55ch', margin: '0 auto'}}>
+                            Ingrese su documento y género para verificar su estado administrativo, informar pagos, presentar descargos o emitir su Libre Deuda.
                           </p>
                         </div>
                         
                         <div className="consulta-form no-print">
+                          {guiaAccionRapida && (
+                            <div className="mb-6 p-4 bg-[#00B2D6]/10 border-l-4 border-[#00B2D6] rounded-r-lg flex items-center justify-between">
+                              <span className="text-[14px] font-bold text-[#0B4A82]">{guiaAccionRapida}</span>
+                              <button onClick={() => setGuiaAccionRapida("")} className="text-gray-400 hover:text-gray-600 font-bold ml-4">✕</button>
+                            </div>
+                          )}
+
                           <form onSubmit={manejarBusqueda}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                               <div>
                                 <label className="block text-[13px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Documento (DNI / CUIT)</label>
-                                <input type="text" value={dni} onChange={(e) => setDni(e.target.value)} placeholder="Sin puntos" required className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 transition-all outline-none focus:bg-white focus:border-[#00B2D6] focus:ring-4 focus:ring-[#00B2D6]/20 shadow-inner" />
+                                <input ref={inputDniRef} type="text" value={dni} onChange={(e) => setDni(e.target.value)} placeholder="Sin puntos ni espacios" required className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 transition-all outline-none focus:bg-white focus:border-[#00B2D6] focus:ring-4 focus:ring-[#00B2D6]/20 shadow-inner" />
                               </div>
                               <div>
-                                <label className="block text-[13px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Género (Identidad Validada)</label>
+                                <label className="block text-[13px] font-bold text-gray-700 mb-2 uppercase tracking-wide">Género (Según su DNI)</label>
                                 <select value={generoConsulta} onChange={(e) => setGeneroConsulta(e.target.value)} required className="w-full px-4 py-4 bg-gray-50 border-2 border-gray-200 rounded-xl text-gray-800 transition-all outline-none focus:bg-white focus:border-[#00B2D6] focus:ring-4 focus:ring-[#00B2D6]/20 shadow-inner">
                                   <option value="MASCULINO">Masculino</option>
                                   <option value="FEMENINO">Femenino</option>
@@ -959,7 +1012,7 @@ export default function JuzgadoFaltasUnificado() {
                               </div>
                             </div>
                             <button type="submit" disabled={buscando} className="w-full bg-[#0B4A82] hover:bg-[#083863] text-white font-bold py-4 px-6 rounded-xl transition-all shadow-[0_4px_14px_0_rgba(11,74,130,0.39)] disabled:opacity-70">
-                              {buscando ? <><Spinner/> Consultando base de datos segura...</> : 'Consultar Infracciones y Trámites'}
+                              {buscando ? <><Spinner/> Consultando base de datos segura...</> : 'Consultar Padrón de Infracciones'}
                             </button>
                           </form>
 
@@ -969,16 +1022,13 @@ export default function JuzgadoFaltasUnificado() {
                               <div className="p-5 border-l-4 border-gray-300 bg-gray-50 mb-4 rounded-r-lg border-y border-r border-gray-100">
                                 <div className="h-3 bg-gray-200 rounded w-32 mb-3 animate-[pulse_1.5s_ease-in-out_infinite]"></div>
                                 <div className="h-5 bg-gray-200 rounded w-48 mb-5 animate-[pulse_1.5s_ease-in-out_infinite]" style={{animationDelay: '0.1s'}}></div>
-                                <div className="flex gap-3">
-                                  <div className="h-8 bg-gray-200 rounded w-28 animate-[pulse_1.5s_ease-in-out_infinite]" style={{animationDelay: '0.2s'}}></div>
-                                </div>
                               </div>
                             </div>
                           )}
 
                           {mensaje && <p style={{marginTop: '16px', fontSize: '14.5px', color: esLibreDeuda ? '#10B981' : 'var(--rojo-loreto)', fontWeight: 600, textAlign: 'center'}}>{mensaje}</p>}
                           
-                          {/* === PANEL DE LIBRE DEUDA PÚBLICO === */}
+                          {/* PANEL DE LIBRE DEUDA PÚBLICO */}
                           {esLibreDeuda && (
                             <div className="mt-8 border-t-2 border-gray-100 pt-8 animate-[fadeIn_0.5s_ease-out]">
                               <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center">
@@ -989,12 +1039,11 @@ export default function JuzgadoFaltasUnificado() {
                                 <p className="text-emerald-700 text-[14.5px] mb-6 max-w-md mx-auto">No posee actas de tránsito, bromatología ni deudas impositivas exigibles registradas bajo el documento <strong>{dni}</strong>.</p>
                                 <button onClick={() => window.print()} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 mx-auto">
                                   <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
-                                  Generar Certificado PDF
+                                  Descargar Certificado Libre Deuda (PDF)
                                 </button>
                               </div>
                             </div>
                           )}
-                          {/* ================================== */}
 
                           {resultados.length > 0 && (
                             <div style={{marginTop: '28px', borderTop: '2px solid var(--linea)', paddingTop: '24px'}}>
@@ -1023,7 +1072,6 @@ export default function JuzgadoFaltasUnificado() {
                                         <input type="hidden" name="infraccionId" value={acta.id} />
                                         <input type="hidden" name="tipo" value={tramiteActivo?.tipo || ''} />
                                         
-                                        {/* === FORMULARIO DE PAGO NORMAL === */}
                                         {tramiteActivo?.tipo === 'pago' && (
                                           <>
                                             <div style={{background: 'rgba(0, 178, 214, 0.08)', border: '1px solid rgba(0, 178, 214, 0.2)', padding: '20px', borderRadius: '6px', marginBottom: '20px', fontSize: '14.5px'}}>
@@ -1039,17 +1087,15 @@ export default function JuzgadoFaltasUnificado() {
                                               <input type="number" name="monto" required />
                                             </div>
                                             <div className="field">
-                                              <label>Comprobante de Pago (PDF o Imagen — Máx. recomendado: 4 MB)</label>
+                                              <label>Comprobante de Pago (PDF o Imagen — Máx. 10 MB)</label>
                                               <input type="file" name="archivo" accept=".pdf, .jpg, .jpeg, .png" required style={{padding: '8px'}} />
                                             </div>
                                             <button type="submit" disabled={enviando} className="btn btn--primary btn--block">{enviando ? <><Spinner/> Procesando envío...</> : 'Ingresar Documentación al Juzgado'}</button>
                                           </>
                                         )}
                                         
-                                        {/* === FORMULARIO MULTI-STEP PARA DESCARGOS === */}
                                         {tramiteActivo?.tipo === 'descargo' && (
                                           <div className="bg-white border border-[#DEE2E6] rounded-xl shadow-sm p-6 mt-4">
-                                            
                                             <div className="flex mb-6 text-[12px] font-bold text-gray-400 uppercase tracking-widest gap-2 border-b border-gray-100 pb-4">
                                               <span className={pasoDescargo >= 1 ? 'text-[#0B4A82]' : ''}>1. Datos Personales</span> <span className="mx-1">{'>'}</span>
                                               <span className={pasoDescargo >= 2 ? 'text-[#0B4A82]' : ''}>2. Fundamentos</span> <span className="mx-1">{'>'}</span>
@@ -1115,7 +1161,6 @@ export default function JuzgadoFaltasUnificado() {
                                                 <button type="submit" disabled={enviando} className="btn btn--primary flex-[2]">{enviando ? <><Spinner/> Radicando Expediente...</> : '✓ Firmar y Enviar al Juzgado'}</button>
                                               </div>
                                             </div>
-
                                           </div>
                                         )}
                                       </form>
@@ -1158,11 +1203,239 @@ export default function JuzgadoFaltasUnificado() {
                         </div>
                       </div>
 
-                      {/* === NUEVO MÓDULO DE TURNOS PRESENCIALES === */}
-                      <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 mt-12 max-w-4xl mx-auto no-print">
+                      {/* 2. ACCESOS RÁPIDOS */}
+                      <div id="accesos-rapidos" className="max-w-[900px] mx-auto mt-10">
+                        <div className="flex items-center justify-between mb-4">
+                          <span className="text-[12px] font-extrabold uppercase tracking-widest text-[#0B4A82] font-['Montserrat']">Accesos Rápidos a Trámites</span>
+                          <span className="text-[12px] text-gray-500">Seleccione una gestión para iniciar</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                          <button onClick={() => activarAccesoRapido('descargo')} className="group bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-[#00B2D6] transition-all text-left flex flex-col justify-between">
+                            <div className="w-10 h-10 rounded-lg bg-[#0B4A82]/10 text-[#0B4A82] group-hover:bg-[#0B4A82] group-hover:text-white flex items-center justify-center mb-3 transition-colors">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            </div>
+                            <div>
+                              <strong className="block text-[15px] font-bold text-[#0B4A82] font-['Montserrat'] mb-1">Presentar descargo</strong>
+                              <span className="text-[12.5px] text-gray-500 leading-snug block">Ejerza su defensa y adjunte pruebas en línea.</span>
+                            </div>
+                          </button>
+
+                          <button onClick={() => activarAccesoRapido('pago')} className="group bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-[#00B2D6] transition-all text-left flex flex-col justify-between">
+                            <div className="w-10 h-10 rounded-lg bg-[#00B2D6]/15 text-[#0B4A82] group-hover:bg-[#00B2D6] group-hover:text-white flex items-center justify-center mb-3 transition-colors">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                            </div>
+                            <div>
+                              <strong className="block text-[15px] font-bold text-[#0B4A82] font-['Montserrat'] mb-1">Informar pago</strong>
+                              <span className="text-[12.5px] text-gray-500 leading-snug block">Suba su comprobante de transferencia bancaria.</span>
+                            </div>
+                          </button>
+
+                          <button onClick={() => activarAccesoRapido('libredeuda')} className="group bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-emerald-500 transition-all text-left flex flex-col justify-between">
+                            <div className="w-10 h-10 rounded-lg bg-emerald-100 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white flex items-center justify-center mb-3 transition-colors">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                            </div>
+                            <div>
+                              <strong className="block text-[15px] font-bold text-[#0B4A82] font-['Montserrat'] mb-1">Libre deuda</strong>
+                              <span className="text-[12.5px] text-gray-500 leading-snug block">Descargue su certificado oficial en formato PDF.</span>
+                            </div>
+                          </button>
+
+                          <button onClick={() => activarAccesoRapido('turno')} className="group bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-[#0B4A82] transition-all text-left flex flex-col justify-between">
+                            <div className="w-10 h-10 rounded-lg bg-amber-100 text-amber-700 group-hover:bg-amber-600 group-hover:text-white flex items-center justify-center mb-3 transition-colors">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            </div>
+                            <div>
+                              <strong className="block text-[15px] font-bold text-[#0B4A82] font-['Montserrat'] mb-1">Sacar turno</strong>
+                              <span className="text-[12.5px] text-gray-500 leading-snug block">Agende atención presencial en Mesa de Entradas.</span>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* 3. AVISO DE SEGURIDAD CONTRA ESTAFAS */}
+                      <div className="max-w-[900px] mx-auto mt-8 bg-amber-50 border-l-4 border-amber-500 border-t border-r border-b border-amber-200 rounded-r-xl p-6 shadow-sm">
+                        <div className="flex items-start gap-4">
+                          <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                          </div>
+                          <div>
+                            <h4 className="text-[15px] font-extrabold text-amber-900 uppercase tracking-wide font-['Montserrat'] mb-1">
+                              Aviso Oficial de Prevención contra Estafas
+                            </h4>
+                            <p className="text-[14px] text-amber-800 leading-relaxed m-0">
+                              El Juzgado de Faltas de Loreto <strong>nunca solicita pagos por teléfono, redes sociales ni cobradores a domicilio</strong>. La única cuenta bancaria autorizada pertenece a la <strong>Municipalidad de Loreto</strong> (Banco Santiago del Estero · CBU: <strong>32101205300000012431389</strong> · Alias: <strong>LoretoRecaudacion</strong>). Verifique siempre el destinatario antes de transferir.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </Reveal>
+                  </div>
+                </section>
+
+                {/* =================================================================
+                    4. PREGUNTAS FRECUENTES DESTACADAS
+                    ================================================================= */}
+                <section id="faq" style={{background: 'var(--papel-alto)', borderTop: '1px solid var(--linea)', borderBottom: '1px solid var(--linea)'}} className="no-print">
+                  <div className="wrap">
+                    <Reveal>
+                      <div className="section-head" style={{margin: '0 auto 40px auto', textAlign: 'center'}}>
+                        <p className="kicker">Orientación al Vecino</p>
+                        <h2>Preguntas Frecuentes Destacadas</h2>
+                        <p>Respuestas rápidas sobre plazos procesales, beneficios de pago voluntario y requisitos para trámites habituales.</p>
+                      </div>
+
+                      <div className="max-w-[820px] mx-auto space-y-3">
+                        {FAQS_DESTACADAS.map((faq, idx) => {
+                          const abierta = faqAbierta === idx;
+                          return (
+                            <div key={idx} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm transition-all">
+                              <button 
+                                onClick={() => setFaqAbierta(abierta ? null : idx)}
+                                className="w-full px-6 py-4 text-left flex justify-between items-center gap-4 hover:bg-gray-50 transition-colors"
+                              >
+                                <span className="font-bold text-[15.5px] text-[#0B4A82] font-['Montserrat']">{faq.pregunta}</span>
+                                <span className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-200 ${abierta ? 'bg-[#0B4A82] text-white rotate-180' : 'bg-gray-100 text-[#0B4A82]'}`}>
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                                </span>
+                              </button>
+                              {abierta && (
+                                <div className="px-6 pb-5 pt-1 text-[14.5px] text-gray-600 border-t border-gray-100 leading-relaxed">
+                                  {faq.respuesta}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </Reveal>
+                  </div>
+                </section>
+
+                {/* =================================================================
+                    5. NOTICIAS RECIENTES
+                    ================================================================= */}
+                {noticiasPublicas.length > 0 && (
+                  <section id="noticias" style={{background: '#FFFFFF', borderBottom: '1px solid var(--linea)'}} className="no-print">
+                    <div className="wrap">
+                      <Reveal>
+                        <div className="section-head">
+                          <p className="kicker">Actualidad y Operativos</p>
+                          <h2>Noticias Recientes</h2>
+                          <p>Comunicados oficiales, campañas de concientización vial y novedades operativas del Juzgado.</p>
+                        </div>
+                        <div className="news-grid">
+                          {noticiasPublicas.slice(0, 3).map(n => (
+                            <div className="news-card" key={n.id}>
+                              <img src={n.imagenUrl} alt={n.titulo} />
+                              <span style={{display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--celeste-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px'}}><svg className="w-3.5 h-3.5 inline-block mr-1 relative -top-[1px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>{new Date(n.creadoEn).toLocaleDateString('es-AR')}</span>
+                              <h3>{n.titulo}</h3>
+                              {n.contenido && <p>{n.contenido}</p>}
+                            </div>
+                          ))}
+                        </div>
+                        {noticiasPublicas.length > 3 && (
+                          <div style={{textAlign: 'center', marginTop: '40px'}}>
+                            <Link className="btn btn--ghost" href="/noticias">
+                              Ver histórico de noticias
+                            </Link>
+                          </div>
+                        )}
+                      </Reveal>
+                    </div>
+                  </section>
+                )}
+
+                {/* =================================================================
+                    6. NORMATIVA Y CÓDIGO DE CONVIVENCIA
+                    ================================================================= */}
+                <section id="normativa" style={{ background: '#FFFFFF', borderBottom: '1px solid var(--linea)' }} className="no-print">
+                  <div className="wrap">
+                    <Reveal>
+                      <div style={{ background: 'var(--papel-alto)', borderRadius: 'var(--radius-m)', padding: '44px', display: 'flex', alignItems: 'center', gap: '44px', flexWrap: 'wrap', border: '1px solid var(--linea)' }}>
+                        <div style={{ flex: 1, minWidth: '250px' }}>
+                          <p className="kicker" style={{ color: 'var(--rojo-loreto)', fontFamily: 'Montserrat, sans-serif', fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '12px' }}>Transparencia y Marco Legal</p>
+                          <h2 style={{ fontSize: '30px', marginBottom: '16px', color: 'var(--azul-loreto)' }}>Normativa y Código de Convivencia</h2>
+                          <p style={{ fontSize: '15.5px', color: 'var(--tinta-suave)', lineHeight: '1.6', marginBottom: '16px' }}>Acceda de forma directa al régimen contravencional de la Ciudad de Loreto, en concordancia con la Ley Nacional de Tránsito N° 24.449. Conozca sus derechos, garantías procesales y las reglamentaciones vigentes.</p>
+                        </div>
+                        <div style={{ flex: 'none', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 8px 32px rgba(11,74,130,0.08)', textAlign: 'center', border: '1px solid var(--linea)', margin: '0 auto', maxWidth: '100%' }}>
+                          <img src="/qrparacodigo.png" alt="QR Código de Convivencia" style={{ width: '100%', maxWidth: '170px', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
+                          <span style={{ display: 'block', marginTop: '14px', fontSize: '11.5px', fontWeight: 800, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>Escanear con el celular</span>
+                          <a href="/codigo-convivencia.pdf" download className="btn btn--ghost btn--block" style={{marginTop: '14px', fontSize: '12px', padding: '8px', borderStyle: 'dashed'}}><svg className="w-4 h-4 inline-block mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>Descargar PDF Completo</a>
+                        </div>
+                      </div>
+                    </Reveal>
+                  </div>
+                </section>
+
+                {/* =================================================================
+                    7. SOBRE EL JUZGADO Y AUTORIDADES
+                    ================================================================= */}
+                <section id="institucion" style={{background: 'var(--papel-alto)', borderBottom: '1px solid var(--linea)'}} className="no-print">
+                  <div className="wrap">
+                    <Reveal>
+                      <div className="section-head">
+                        <p className="kicker">Institucional y Autoridades</p>
+                        <h2>Sobre el Juzgado de Faltas</h2>
+                        <p>Órgano autónomo de juzgamiento administrativo municipal encargado de garantizar el debido proceso y la seguridad comunitaria.</p>
+                      </div>
+                      <div className="art-grid" style={{marginBottom: '56px'}}>
+                        <div className="art-card"><h3>Jurisdicción</h3><p>Entiende en las faltas e infracciones cometidas dentro del ejido municipal de Loreto, conforme a las ordenanzas vigentes.</p></div>
+                        <div className="art-card"><h3>Imparcialidad</h3><p>Actúa como órgano técnico autónomo, garantizando al ciudadano el derecho constitucional a ser oído antes de cualquier sanción.</p></div>
+                        <div className="art-card"><h3>Debido Proceso</h3><p>Toda acta labrada admite la interposición de descargo, ofrecimiento de prueba documental y etapa de revisión resolutiva.</p></div>
+                        <div className="art-card"><h3>Educación Vial</h3><p>Promueve el respeto a las normas de tránsito y bromatología como pilar para la convivencia pacífica en nuestra ciudad.</p></div>
+                      </div>
+
+                      <div id="autoridades">
+                        <h3 style={{fontSize: '22px', marginBottom: '24px', textAlign: 'center'}}>Cuerpo de Magistrados y Funcionarios</h3>
+                        <div className="autoridades-grid">
+                          {[
+                            { cargo: "Juez de Faltas", nombre: "Dr. Facundo Mansilla", principal: true },
+                            { cargo: "Secretaria Letrada", nombre: "Dra. Romina Casaubon", principal: false },
+                            { cargo: "Secretario Letrado", nombre: "Dr. Agustín González Fiad", principal: false },
+                            { cargo: "Secretario Letrado", nombre: "Dr. Leandro Ledesma", principal: false },
+                            { cargo: "Área Contable", nombre: "CPN Nur Salomón", principal: false }
+                          ].map((aut, i) => (
+                            <div key={i} className={`autoridad-card ${aut.principal ? 'principal' : ''}`}>
+                              <div className="w-16 h-16 rounded-full bg-[#0B4A82]/10 text-[#0B4A82] flex items-center justify-center mx-auto mb-4 border-2 border-[#0B4A82]/20">
+                                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                              </div>
+                              <span>{aut.cargo}</span>
+                              <h3>{aut.nombre}</h3>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </Reveal>
+                  </div>
+                </section>
+
+                {/* =================================================================
+                    8. UBICACIÓN, MAPA, CONTACTO Y TURNOS PRESENCIALES
+                    ================================================================= */}
+                <section id="contacto" style={{background: 'var(--papel)'}} className="no-print">
+                  <div className="wrap">
+                    <Reveal>
+                      <div className="section-head">
+                        <p className="kicker">Atención Presencial</p>
+                        <h2>Ubicación, Mapa y Contacto</h2>
+                        <p>Canales oficiales de atención ciudadana y reserva de turnos para trámites en sede municipal.</p>
+                      </div>
+                      <div className="contacto-grid" style={{marginBottom: '64px'}}>
+                        <ul className="contacto-list">
+                          <li><span className="ico"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg></span><div><strong>Dirección Física</strong><span>Isla Soledad S/N, Bº Islas Malvinas<br/>Loreto, Santiago del Estero</span></div></li>
+                          <li><span className="ico"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg></span><div><strong>Atención por WhatsApp</strong><a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310</a></div></li>
+                          <li><span className="ico"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.53 4.389a2 2 0 001.94 0L20 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg></span><div><strong>Mesa de Entradas Virtual</strong><a href="mailto:juzgadodefaltasloreto@outlook.com">juzgadodefaltasloreto@outlook.com</a></div></li>
+                          <li><span className="ico"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span><div><strong>Horario de Recepción</strong><span>Lunes a Viernes<br/>07:00 a 13:00 hs y 16:00 a 20:00 hs</span></div></li>
+                        </ul>
+                        <div className="map-frame"><iframe src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3527.794711317769!2d-64.1893188!3d-28.3031456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMjjCsDE4JzExLjMiUyA2NMKwMTEnMjEuNSJX!5e0!3m2!1sen!2sar!4v1700000000000!5m2!1sen!2sar" title="Mapa de ubicación del Juzgado de Faltas de Loreto" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
+                      </div>
+
+                      {/* MÓDULO DE TURNOS PRESENCIALES INTEGRADO EN CONTACTO */}
+                      <div id="turnos-presenciales" className="bg-[#F8F9FA] rounded-xl shadow-sm border border-gray-200 p-8 max-w-4xl mx-auto">
                         <div className="text-center mb-8">
-                          <h3 className="text-2xl font-bold text-[#0B4A82] mb-3">Turnos Presenciales</h3>
-                          <p className="text-gray-600 text-sm">Reserve una cita para ser atendido en la Mesa de Entradas del Juzgado.</p>
+                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#00B2D6] font-['Montserrat'] block mb-1">Reserva Online</span>
+                          <h3 className="text-2xl font-bold text-[#0B4A82] mb-2">Solicitar Turno Presencial</h3>
+                          <p className="text-gray-600 text-sm">Agende día y franja horaria para ser atendido sin filas en la Mesa de Entradas del Juzgado.</p>
                         </div>
                         <form onSubmit={manejarEnvioTurno}>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -1171,7 +1444,7 @@ export default function JuzgadoFaltasUnificado() {
                               <input type="text" required placeholder="Ej: Juan Pérez" />
                             </div>
                             <div className="field !mb-0">
-                              <label>Correo Electrónico (para confirmar)</label>
+                              <label>Correo Electrónico (para confirmación)</label>
                               <input type="email" required placeholder="ejemplo@correo.com" />
                             </div>
                             <div className="field !mb-0">
@@ -1198,17 +1471,16 @@ export default function JuzgadoFaltasUnificado() {
                               </select>
                             </div>
                           </div>
-                          <button type="submit" className="w-full bg-[#00B2D6] hover:bg-[#0099b8] text-white font-bold py-3.5 px-6 rounded-lg transition-colors shadow-sm">
-                            Solicitar Turno
+                          <button type="submit" className="w-full bg-[#0B4A82] hover:bg-[#083863] text-white font-bold py-3.5 px-6 rounded-lg transition-colors shadow-sm">
+                            Confirmar Reserva de Turno
                           </button>
                         </form>
                       </div>
-                      {/* ========================================= */}
-                      
                     </Reveal>
                   </div>
                 </section>
 
+                {/* CERTIFICADO IMPRIMIBLE OCULTO */}
                 <div className="print-only">
                   <div style={{ padding: '40px', border: '2px solid #000', borderRadius: '10px', maxWidth: '800px', margin: '0 auto', fontFamily: 'serif' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #000', paddingBottom: '20px', marginBottom: '30px' }}>
@@ -1245,98 +1517,6 @@ export default function JuzgadoFaltasUnificado() {
                     </div>
                   </div>
                 </div>
-
-                <section id="autoridades" style={{background: 'var(--papel-alto)', borderBottom: '1px solid var(--linea)'}} className="no-print">
-                  <div className="wrap">
-                    <Reveal>
-                      <div className="section-head"><p className="kicker">Estructura Institucional</p><h2>Autoridades del Juzgado</h2><p>Conozca al equipo de magistrados y profesionales que integran la administración del Juzgado de Faltas Municipal.</p></div>
-                      <div className="autoridades-grid">
-                        <div className="autoridad-card principal"><span>Juez de Faltas</span><h3>Dr. Facundo Mansilla</h3></div>
-                        <div className="autoridad-card"><span>Secretaria Letrada</span><h3>Dra. Romina Casaubon</h3></div>
-                        <div className="autoridad-card"><span>Secretario Letrado</span><h3>Dr. Agustín González Fiad</h3></div>
-                        <div className="autoridad-card"><span>Secretario Letrado</span><h3>Dr. Leandro Ledesma</h3></div>
-                        <div className="autoridad-card"><span>Contadora</span><h3>CPN Nur Salomón</h3></div>
-                      </div>
-                    </Reveal>
-                  </div>
-                </section>
-                
-                <section id="institucion" className="no-print">
-                  <div className="wrap">
-                    <Reveal>
-                      <div className="section-head"><p className="kicker">Competencia y Funciones</p><h2>Sobre el Juzgado de Faltas</h2><p>El Juzgado interviene como órgano de juzgamiento una vez agotada la instancia administrativa preventiva, garantizando el derecho de defensa del ciudadano.</p></div>
-                      <div className="art-grid">
-                        <div className="art-card"><h3>Jurisdicción</h3><p>Entiende en las faltas cometidas dentro del ejido municipal de Loreto, conforme a la normativa vigente.</p></div>
-                        <div className="art-card"><h3>Imparcialidad</h3><p>Actúa como órgano autónomo, garantizando al presunto infractor el derecho a ser oído antes de cualquier sanción.</p></div>
-                        <div className="art-card"><h3>Debido Proceso</h3><p>Toda acta de infracción admite la presentación de descargo, ofrecimiento de prueba y etapa de apelación.</p></div>
-                        <div className="art-card"><h3>Educación Vial</h3><p>Promueve la concientización sobre las normas de tránsito como herramienta central para la seguridad comunitaria.</p></div>
-                      </div>
-                    </Reveal>
-                  </div>
-                </section>
-
-                <section id="normativa" style={{ background: '#FFFFFF', padding: '80px 0', borderBottom: '1px solid var(--linea)' }} className="no-print">
-                  <div className="wrap">
-                    <Reveal>
-                      <div style={{ background: 'var(--papel-alto)', borderRadius: 'var(--radius-m)', padding: '48px', display: 'flex', alignItems: 'center', gap: '48px', flexWrap: 'wrap', border: '1px solid var(--linea)' }}>
-                        <div style={{ flex: 1, minWidth: '250px' }}>
-                          <p className="kicker" style={{ color: 'var(--rojo-loreto)', fontFamily: 'Montserrat, sans-serif', fontSize: '12px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '12px' }}>Transparencia Municipal</p>
-                          <h2 style={{ fontSize: '32px', marginBottom: '16px', color: 'var(--azul-loreto)' }}>Código de Convivencia y Faltas de Tránsito</h2>
-                          <p style={{ fontSize: '16px', color: 'var(--tinta-suave)', lineHeight: '1.6' }}>Acceda de forma directa a la normativa oficial de la Ciudad de Loreto. Conozca sus derechos, obligaciones ciudadanas y las reglamentaciones de tránsito vigentes escaneando el código QR con la cámara de su dispositivo móvil.</p>
-                        </div>
-                        <div style={{ flex: 'none', background: '#fff', padding: '24px', borderRadius: '12px', boxShadow: '0 8px 32px rgba(11,74,130,0.08)', textAlign: 'center', border: '1px solid var(--linea)', margin: '0 auto', maxWidth: '100%' }}>
-                          <img src="/qrparacodigo.png" alt="QR Código de Convivencia" style={{ width: '100%', maxWidth: '180px', height: 'auto', display: 'block', margin: '0 auto', borderRadius: '4px' }} />
-                          <span style={{ display: 'block', marginTop: '16px', fontSize: '12px', fontWeight: 800, color: 'var(--azul-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'Montserrat, sans-serif' }}>Escanear para acceder</span>
-                          <a href="/codigo-convivencia.pdf" download className="btn btn--ghost btn--block" style={{marginTop: '16px', fontSize: '12px', padding: '8px', borderStyle: 'dashed'}}><svg className="w-4 h-4 inline-block mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>Descargar PDF al celular</a>
-                        </div>
-                      </div>
-                    </Reveal>
-                  </div>
-                </section>
-
-                {noticiasPublicas.length > 0 && (
-                  <section id="noticias" style={{background: '#FFFFFF', paddingTop: '60px', paddingBottom: '80px'}} className="no-print">
-                    <div className="wrap">
-                      <Reveal>
-                        <div style={{textAlign: 'center', marginBottom: '56px'}}><h2 style={{fontSize: '36px', color: 'var(--tinta)'}}>Novedades Institucionales</h2></div>
-                        <div className="news-grid">
-                          {noticiasPublicas.slice(0, 3).map(n => (
-                            <div className="news-card" key={n.id}>
-                              <img src={n.imagenUrl} alt={n.titulo} />
-                              <span style={{display: 'block', fontSize: '11px', fontWeight: 800, color: 'var(--celeste-loreto)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px'}}><svg className="w-3.5 h-3.5 inline-block mr-1 relative -top-[1px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>{new Date(n.creadoEn).toLocaleDateString('es-AR')}</span>
-                              <h3>{n.titulo}</h3>
-                              {n.contenido && <p>{n.contenido}</p>}
-                            </div>
-                          ))}
-                        </div>
-                        {noticiasPublicas.length > 3 && (
-                          <div style={{textAlign: 'center', marginTop: '56px'}}>
-                            <Link className="btn btn--ghost" href="/noticias">
-                              Ver histórico de noticias
-                            </Link>
-                          </div>
-                        )}
-                      </Reveal>
-                    </div>
-                  </section>
-                )}
-
-                <section id="contacto" style={{background: 'var(--papel)', borderTop: '1px solid var(--linea)'}} className="no-print">
-                  <div className="wrap">
-                    <Reveal>
-                      <div className="section-head"><p className="kicker">Atención al Público</p><h2>Ubicación y Vías de Contacto</h2></div>
-                      <div className="contacto-grid">
-                        <ul className="contacto-list">
-                          <li><span className="ico"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg></span><div><strong>Dirección Física</strong><span>Isla Soledad S/N, Bº Islas Malvinas<br/>Loreto, Santiago del Estero</span></div></li>
-                          <li><span className="ico"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg></span><div><strong>Atención por WhatsApp</strong><a href="https://wa.me/5493854743310?text=Hola!%20Queria%20consultar%20sobre%20mi%20Acta%20de%20Infracción%20N.º..." target="_blank" rel="noopener noreferrer">385 474-3310</a></div></li>
-                          <li><span className="ico"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.53 4.389a2 2 0 001.94 0L20 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg></span><div><strong>Mesa de Entradas Virtual</strong><a href="mailto:juzgadodefaltasloreto@outlook.com">juzgadodefaltasloreto@outlook.com</a></div></li>
-                          <li><span className="ico"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span><div><strong>Horario de Recepción</strong><span>Lunes a Viernes<br/>07:00 a 13:00 hs y 16:00 a 20:00 hs</span></div></li>
-                        </ul>
-                        <div className="map-frame"><iframe src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3527.794711317769!2d-64.1893188!3d-28.3031456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMjjCsDE4JzExLjMiUyA2NMKwMTEnMjEuNSJX!5e0!3m2!1sen!2sar!4v1700000000000!5m2!1sen!2sar" title="Mapa de ubicación del Juzgado de Faltas de Loreto" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
-                      </div>
-                    </Reveal>
-                  </div>
-                </section>
               </>
             )}
 
@@ -1347,7 +1527,7 @@ export default function JuzgadoFaltasUnificado() {
                     <div style={{maxWidth: '400px', margin: '0 auto', background: 'var(--papel)', padding: '48px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', boxShadow: '0 8px 24px rgba(0,0,0,0.04)'}}>
                       <div style={{textAlign: 'center', marginBottom: '32px'}}>
                         <img src="/logojdf.png" alt="Logo" style={{height: '60px', display: 'block', margin: '0 auto 16px auto'}} />
-                        <h2 style={{fontSize: '22px', margin: 0}}>Acceso Restringido</h2>
+                        <h2 style={{fontSize: '22px', margin: 0}}>Acceso Interno</h2>
                         <p style={{fontSize: '14px', color: 'var(--tinta-suave)', margin: '8px 0 0 0'}}>Plataforma exclusiva para personal de la Municipalidad.</p>
                       </div>
                       <form onSubmit={procesarLogin}>
@@ -1884,7 +2064,7 @@ export default function JuzgadoFaltasUnificado() {
             </div>
           )}
 
-          {/* === MODALES LEGALES === */}
+          {/* MODALES LEGALES */}
           {modalTerminos && (
             <div className="modal-overlay" onClick={() => setModalTerminos(false)}>
               <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{maxWidth: '700px', lineHeight: 1.6}}>
@@ -1912,7 +2092,7 @@ export default function JuzgadoFaltasUnificado() {
                   <button onClick={() => setModalPrivacidad(false)} style={{background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--tinta-suave)'}}>✕</button>
                 </div>
                 <div style={{fontSize: '14.5px', color: 'var(--tinta)'}}>
-                  <p><strong>1. Responsabilidad:</strong> De conformidad con la Ley Nacional N° 25.326 de Protección de Datos Personales, la Municipalidad de Loreto (en adelante "El Municipio") garantiza la seguridad y confidencialidad de los datos suministrados por citizens en este portal.</p>
+                  <p><strong>1. Responsabilidad:</strong> De conformidad con la Ley Nacional N° 25.326 de Protección de Datos Personales, la Municipalidad de Loreto (en adelante "El Municipio") garantiza la seguridad y confidencialidad de los datos suministrados por los ciudadanos en este portal.</p>
                   <p><strong>2. Finalidad de la Recopilación:</strong> Los datos personales solicitados (DNI, Género, Nombre, Correo Electrónico) y los documentos adjuntados serán utilizados de manera exclusiva para la consulta, gestión, procesamiento y resolución de expedientes de faltas e infracciones de tránsito o comerciales.</p>
                   <p><strong>3. Protección y Confidencialidad:</strong> El Municipio ha adoptado las medidas técnicas y organizativas necesarias para evitar la pérdida, mal uso, alteración, acceso no autorizado y robo de los Datos Personales. Los archivos adjuntos son procesados mediante identificadores encriptados para garantizar el anonimato de sus rutas de acceso público.</p>
                   <p><strong>4. Derechos ARCO:</strong> El titular de los datos personales tiene la facultad de ejercer el derecho de acceso a los mismos en forma gratuita. Asimismo, puede solicitar la rectificación, actualización o supresión de sus datos personales, dirigiéndose presencialmente a la Mesa de Entradas del Juzgado de Faltas.</p>
@@ -1923,18 +2103,20 @@ export default function JuzgadoFaltasUnificado() {
             </div>
           )}
 
-          {/* === BOTÓN WHATSAPP IMPLEMENTADO === */}
           <BotonWhatsApp />
-          {/* =================================== */}
 
           <footer className="site no-print" style={{background: 'var(--azul-loreto)', color: '#F8F9FA', padding: '48px 0 24px 0'}}>
             <div className="wrap" style={{textAlign: 'center', fontSize: '13.5px', fontFamily: 'Montserrat, sans-serif', opacity: 0.9}}>
               <strong>Juzgado de Faltas Municipal de Loreto</strong><br/>
-              Provincia de Santiago del Estero — República Argentina<br/><br/>
+              Provincia de Santiago del Estero — República Argentina<br/>
+              <span style={{fontSize: '12px', opacity: 0.75}}>Creado y regulado conforme a las Ordenanzas Municipales vigentes y al Código de Convivencia de la Ciudad de Loreto.</span><br/><br/>
               
-              <div style={{display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '20px', margin: '20px 0', borderTop: '1px solid rgba(255,255,255,0.1)', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '16px 0'}}>
+              <div style={{display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '24px', margin: '20px 0', borderTop: '1px solid rgba(255,255,255,0.1)', borderBottom: '1px solid rgba(255,255,255,0.1)', padding: '16px 0'}}>
                 <button onClick={() => setModalTerminos(true)} style={{textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer'}}>Términos y Condiciones de Uso</button>
                 <button onClick={() => setModalPrivacidad(true)} style={{textDecoration: 'underline', background: 'none', border: 'none', color: 'inherit', cursor: 'pointer'}}>Política de Privacidad (Ley 25.326)</button>
+                <button onClick={() => { setVista('admin_actas'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{textDecoration: 'underline', background: 'none', border: 'none', color: '#00B2D6', fontWeight: 700, cursor: 'pointer'}}>
+                  🔒 Acceso Interno (Personal)
+                </button>
               </div>
 
               © {new Date().getFullYear()} Todos los derechos reservados

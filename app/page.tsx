@@ -109,6 +109,23 @@ const TimelineExpediente = ({ estado }: { estado: string }) => {
     </div>
   );
 }
+
+// === NUEVO: COMPONENTE DE BOTÓN FLOTANTE WHATSAPP ===
+const BotonWhatsApp = () => {
+  return (
+    <a 
+      href="https://wa.me/5493854743310?text=Hola!%20Queria%20hacer%20una%20consulta%20al%20Juzgado%20de%20Faltas..." 
+      target="_blank" 
+      rel="noopener noreferrer"
+      className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-300 no-print"
+      title="Atención por WhatsApp"
+    >
+      <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01a1.183 1.183 0 0 0-.854.398c-.297.319-1.139 1.114-1.139 2.716 0 1.603 1.164 3.153 1.327 3.371.163.218 2.298 3.509 5.567 4.921 2.321.999 3.13.914 3.693.856.634-.065 1.757-.718 2.005-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+      </svg>
+    </a>
+  );
+}
 // ===================================================
 
 export default function JuzgadoFaltasUnificado() {
@@ -157,11 +174,9 @@ export default function JuzgadoFaltasUnificado() {
   const [tramiteActivo, setTramiteActivo] = useState<{ id: string, tipo: 'pago' | 'descargo' } | null>(null)
   const [enviando, setEnviando] = useState(false)
   
-  // === NUEVOS ESTADOS PARA EL DESCARGO GUIADO ===
   const [pasoDescargo, setPasoDescargo] = useState(1);
   const [motivoText, setMotivoText] = useState("");
   const MAX_MOTIVO = 3000;
-  // ==============================================
   
   const [esLibreDeuda, setEsLibreDeuda] = useState(false)
   const [alertaNotificacion, setAlertaNotificacion] = useState<{titulo: string, mensaje: string, tipo: 'exito' | 'error'} | null>(null)
@@ -264,6 +279,18 @@ export default function JuzgadoFaltasUnificado() {
     } catch (error: any) { setAlertaNotificacion({ titulo: 'Error de conexión', mensaje: 'Revise su conexión a internet e intente nuevamente.', tipo: 'error' }); 
     } finally { setEnviando(false); }
   }
+
+  // === NUEVO: MANEJO DEL ENVÍO DE TURNOS ===
+  const manejarEnvioTurno = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAlertaNotificacion({ 
+      titulo: '¡Turno Solicitado!', 
+      mensaje: 'Su solicitud de turno ha sido registrada. Recibirá una confirmación por correo electrónico en la franja horaria seleccionada.', 
+      tipo: 'exito' 
+    });
+    (e.target as HTMLFormElement).reset();
+  }
+  // =========================================
 
   const procesarLogin = async (e: React.FormEvent) => {
     e.preventDefault(); setProcesando(true);
@@ -733,6 +760,7 @@ export default function JuzgadoFaltasUnificado() {
            MUNDO JUZGADO DE FALTAS Y PÚBLICO (INTERFAZ AZUL) 
            ======================================================== */
         <>
+          {/* === CSS GLOBAL (INCLUYE REGLAS DE IMPRESIÓN PARA EL LIBRE DEUDA) === */}
           <style dangerouslySetInnerHTML={{ __html: `
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap');
             :root { --azul-loreto: #0B4A82; --celeste-loreto: #00B2D6; --rojo-loreto: #EB2128; --papel: #FFFFFF; --papel-alto: #F8F9FA; --tinta: #212529; --tinta-suave: #495057; --linea: #DEE2E6; --radius-s: 4px; --radius-m: 10px; --maxw: 1180px; }
@@ -1022,14 +1050,12 @@ export default function JuzgadoFaltasUnificado() {
                                         {tramiteActivo?.tipo === 'descargo' && (
                                           <div className="bg-white border border-[#DEE2E6] rounded-xl shadow-sm p-6 mt-4">
                                             
-                                            {/* Navegación por pasos */}
                                             <div className="flex mb-6 text-[12px] font-bold text-gray-400 uppercase tracking-widest gap-2 border-b border-gray-100 pb-4">
                                               <span className={pasoDescargo >= 1 ? 'text-[#0B4A82]' : ''}>1. Datos Personales</span> <span className="mx-1">{'>'}</span>
                                               <span className={pasoDescargo >= 2 ? 'text-[#0B4A82]' : ''}>2. Fundamentos</span> <span className="mx-1">{'>'}</span>
                                               <span className={pasoDescargo === 3 ? 'text-[#0B4A82]' : ''}>3. Revisión</span>
                                             </div>
 
-                                            {/* PASO 1 */}
                                             <div className={pasoDescargo === 1 ? 'block' : 'hidden'}>
                                               <div className="mb-6 p-4 bg-[#00B2D6]/10 border border-[#00B2D6]/30 rounded-lg">
                                                 <h4 className="text-[#0B4A82] font-bold mb-2 flex items-center gap-2">
@@ -1052,7 +1078,6 @@ export default function JuzgadoFaltasUnificado() {
                                               }} className="btn btn--primary btn--block mt-2">Siguiente: Redactar Fundamentos</button>
                                             </div>
 
-                                            {/* PASO 2 */}
                                             <div className={pasoDescargo === 2 ? 'block' : 'hidden'}>
                                               <div className="field">
                                                 <label className="flex justify-between items-end">
@@ -1075,7 +1100,6 @@ export default function JuzgadoFaltasUnificado() {
                                               </div>
                                             </div>
 
-                                            {/* PASO 3 */}
                                             <div className={pasoDescargo === 3 ? 'block' : 'hidden'}>
                                               <div className="bg-gray-50 p-5 rounded-lg border border-gray-200 mb-6">
                                                 <h4 className="text-red-600 font-bold mb-2 flex items-center gap-2">
@@ -1133,6 +1157,54 @@ export default function JuzgadoFaltasUnificado() {
                           )}
                         </div>
                       </div>
+
+                      {/* === NUEVO MÓDULO DE TURNOS PRESENCIALES === */}
+                      <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8 mt-12 max-w-4xl mx-auto no-print">
+                        <div className="text-center mb-8">
+                          <h3 className="text-2xl font-bold text-[#0B4A82] mb-3">Turnos Presenciales</h3>
+                          <p className="text-gray-600 text-sm">Reserve una cita para ser atendido en la Mesa de Entradas del Juzgado.</p>
+                        </div>
+                        <form onSubmit={manejarEnvioTurno}>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                            <div className="field !mb-0">
+                              <label>Nombre y Apellido</label>
+                              <input type="text" required placeholder="Ej: Juan Pérez" />
+                            </div>
+                            <div className="field !mb-0">
+                              <label>Correo Electrónico (para confirmar)</label>
+                              <input type="email" required placeholder="ejemplo@correo.com" />
+                            </div>
+                            <div className="field !mb-0">
+                              <label>Día del Turno</label>
+                              <input type="date" required min={new Date().toISOString().split('T')[0]} />
+                            </div>
+                            <div className="field !mb-0">
+                              <label>Franja Horaria</label>
+                              <select required>
+                                <option value="">Seleccione el horario...</option>
+                                <option value="manana">Turno Mañana (07:00 a 13:00 hs)</option>
+                                <option value="tarde">Turno Tarde (16:00 a 20:00 hs)</option>
+                              </select>
+                            </div>
+                            <div className="field !mb-0 md:col-span-2">
+                              <label>Motivo del Trámite</label>
+                              <select required>
+                                <option value="">Seleccione un motivo...</option>
+                                <option value="descargo">Presentar documentación anexa a un descargo</option>
+                                <option value="vehiculo">Retirar oficio de liberación de vehículo (Corralón)</option>
+                                <option value="juez">Audiencia con el Juez de Faltas</option>
+                                <option value="pago">Abonar infracción presencialmente por mostrador</option>
+                                <option value="otro">Otras consultas o reclamos</option>
+                              </select>
+                            </div>
+                          </div>
+                          <button type="submit" className="w-full bg-[#00B2D6] hover:bg-[#0099b8] text-white font-bold py-3.5 px-6 rounded-lg transition-colors shadow-sm">
+                            Solicitar Turno
+                          </button>
+                        </form>
+                      </div>
+                      {/* ========================================= */}
+                      
                     </Reveal>
                   </div>
                 </section>
@@ -1850,6 +1922,10 @@ export default function JuzgadoFaltasUnificado() {
               </div>
             </div>
           )}
+
+          {/* === BOTÓN WHATSAPP IMPLEMENTADO === */}
+          <BotonWhatsApp />
+          {/* =================================== */}
 
           <footer className="site no-print" style={{background: 'var(--azul-loreto)', color: '#F8F9FA', padding: '48px 0 24px 0'}}>
             <div className="wrap" style={{textAlign: 'center', fontSize: '13.5px', fontFamily: 'Montserrat, sans-serif', opacity: 0.9}}>

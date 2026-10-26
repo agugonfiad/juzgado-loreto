@@ -126,30 +126,6 @@ const BotonWhatsApp = () => {
     </a>
   );
 }
-
-// DATOS DE PREGUNTAS FRECUENTES DESTACADAS
-const FAQS_DESTACADAS = [
-  {
-    pregunta: "¿Cuál es el plazo legal para presentar un descargo?",
-    respuesta: "Usted dispone de un plazo improrrogable de cinco (5) días hábiles administrativos contados a partir de la fecha en que se labró o notificó el acta de infracción. Puede realizar la presentación de forma 100% digital desde este portal adjuntando su prueba documental."
-  },
-  {
-    pregunta: "¿Cómo accedo al descuento del 50% por Pago Voluntario?",
-    respuesta: "Si abona la infracción dentro del plazo inicial antes del vencimiento y sin haber interpuesto recurso de descargo, accede automáticamente a una quita del 50% sobre el valor base de la multa. Puede transferir a la cuenta oficial e informar el comprobante en la sección de Consulta."
-  },
-  {
-    pregunta: "¿Cómo obtengo el Certificado de Libre Deuda Municipal?",
-    respuesta: "Ingrese su número de DNI y género en el buscador superior. Si el sistema verifica que usted no registra actas pendientes ni deudas impositivas exigibles, se habilitará automáticamente un botón verde para descargar e imprimir su Certificado Oficial con membrete y código de validación."
-  },
-  {
-    pregunta: "¿Qué documentación necesito para retirar un vehículo retenido?",
-    respuesta: "Debe solicitar un turno presencial o acercarse al Juzgado con su DNI, Licencia de Conducir vigente, Cédula de Identificación del Vehículo (verde o azul) y comprobante de Póliza de Seguro en vigencia. Una vez regularizada la situación procesal, el Juez emitirá el Oficio de Liberación."
-  },
-  {
-    pregunta: "¿Qué medios de pago están habilitados?",
-    respuesta: "Puede abonar mediante transferencia bancaria desde cualquier billetera virtual o banco al Alias oficial 'LoretoRecaudacion' (Banco Santiago del Estero), o bien de forma presencial por ventanilla en la sede del Juzgado de Lunes a Viernes."
-  }
-];
 // ===================================================
 
 export default function JuzgadoFaltasUnificado() {
@@ -198,7 +174,6 @@ export default function JuzgadoFaltasUnificado() {
   const [tramiteActivo, setTramiteActivo] = useState<{ id: string, tipo: 'pago' | 'descargo' } | null>(null)
   const [enviando, setEnviando] = useState(false)
   const [guiaAccionRapida, setGuiaAccionRapida] = useState<string>("")
-  const [faqAbierta, setFaqAbierta] = useState<number | null>(0)
   const inputDniRef = useRef<HTMLInputElement>(null)
   
   const [pasoDescargo, setPasoDescargo] = useState(1);
@@ -322,14 +297,32 @@ export default function JuzgadoFaltasUnificado() {
     } finally { setEnviando(false); }
   }
 
-  const manejarEnvioTurno = (e: React.FormEvent) => {
+  // ENVÍO DE SOLICITUD DE AUDIENCIA CON EL JUEZ (VÍA WHATSAPP OFICIAL + ALERTA)
+  const manejarEnvioTurno = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const nombreAud = formData.get('nombre') as string;
+    const emailAud = formData.get('email') as string;
+    const fechaAud = formData.get('fecha') as string;
+    const franjaAud = formData.get('franja') as string;
+
+    const franjaTexto = franjaAud === 'manana' ? 'Turno Mañana (07:00 a 13:00 hs)' : 'Turno Tarde (16:00 a 20:00 hs)';
+    const fechaFormateada = fechaAud ? fechaAud.split('-').reverse().join('/') : '';
+
+    const mensajeWa = `Hola! Solicito una *Audiencia con el Juez de Faltas*:\n\n` +
+                      `• *Nombre y Apellido:* ${nombreAud}\n` +
+                      `• *Correo:* ${emailAud}\n` +
+                      `• *Día solicitado:* ${fechaFormateada}\n` +
+                      `• *Franja horaria:* ${franjaTexto}`;
+
+    window.open(`https://wa.me/5493854743310?text=${encodeURIComponent(mensajeWa)}`, '_blank');
+
     setAlertaNotificacion({ 
-      titulo: '¡Turno Solicitado!', 
-      mensaje: 'Su solicitud de turno ha sido registrada. Recibirá una confirmación por correo electrónico en la franja horaria seleccionada.', 
+      titulo: '¡Solicitud Generada!', 
+      mensaje: 'Se ha abierto WhatsApp con los datos de su audiencia para confirmar la recepción directa con Mesa de Entradas del Juzgado.', 
       tipo: 'exito' 
     });
-    (e.target as HTMLFormElement).reset();
+    e.currentTarget.reset();
   }
 
   const procesarLogin = async (e: React.FormEvent) => {
@@ -904,7 +897,6 @@ export default function JuzgadoFaltasUnificado() {
                   <ul className="pl-6 lg:pl-0">
                     <li><a href="#consulta" onClick={() => setMenuAbierto(false)}>Consultar y Pagar</a></li>
                     <li><a href="#accesos-rapidos" onClick={() => setMenuAbierto(false)}>Trámites</a></li>
-                    <li><a href="#faq" onClick={() => setMenuAbierto(false)}>Preguntas Frecuentes</a></li>
                     <li><a href="#noticias" onClick={() => setMenuAbierto(false)}>Noticias</a></li>
                     <li><a href="#normativa" onClick={() => setMenuAbierto(false)}>Normativa</a></li>
                     <li><a href="#institucion" onClick={() => setMenuAbierto(false)}>El Juzgado</a></li>
@@ -959,16 +951,16 @@ export default function JuzgadoFaltasUnificado() {
                 </section>
 
                 {/* =================================================================
-                    1. CONSULTA DE INFRACCIONES + 2. ACCESOS RÁPIDOS + 3. AVISO ESTAFAS
+                    CONSULTA DE INFRACCIONES + ACCESOS RÁPIDOS + AVISO ESTAFAS
                     ================================================================= */}
                 <section id="consulta" style={{background: '#fff', padding: '48px 0'}} className="no-print">
                   <div className="wrap">
                     <Reveal>
-                      {/* 1. CONSULTA DE INFRACCIONES */}
+                      {/* CONSULTA DE INFRACCIONES */}
                       <div className="consulta-panel">
                         <div style={{textAlign: 'center', marginBottom: '20px'}} className="no-print">
                           <svg className="w-9 h-9 text-white mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                          <h3 style={{fontSize: '26px', color: '#fff', marginBottom: '8px'}}>1. Consulta de Infracciones y Deudas</h3>
+                          <h3 style={{fontSize: '26px', color: '#fff', marginBottom: '8px'}}>Consulta de Infracciones y Deudas</h3>
                           <p style={{fontSize: '14.5px', color: 'rgba(255,255,255,0.9)', maxWidth: '55ch', margin: '0 auto'}}>
                             Ingrese su documento y género para verificar su estado administrativo, informar pagos, presentar descargos o emitir su Libre Deuda.
                           </p>
@@ -1189,7 +1181,7 @@ export default function JuzgadoFaltasUnificado() {
                         </div>
                       </div>
 
-                      {/* 2. ACCESOS RÁPIDOS */}
+                      {/* ACCESOS RÁPIDOS */}
                       <div id="accesos-rapidos" className="max-w-[900px] mx-auto mt-10">
                         <div className="flex items-center justify-between mb-4">
                           <span className="text-[12px] font-extrabold uppercase tracking-widest text-[#0B4A82] font-['Montserrat']">Accesos Rápidos a Trámites</span>
@@ -1231,14 +1223,14 @@ export default function JuzgadoFaltasUnificado() {
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                             </div>
                             <div>
-                              <strong className="block text-[15px] font-bold text-[#0B4A82] font-['Montserrat'] mb-1">Sacar turno</strong>
-                              <span className="text-[12.5px] text-gray-500 leading-snug block">Agende atención presencial en Mesa de Entradas.</span>
+                              <strong className="block text-[15px] font-bold text-[#0B4A82] font-['Montserrat'] mb-1">Audiencia con el Juez</strong>
+                              <span className="text-[12.5px] text-gray-500 leading-snug block">Solicite audiencia presencial con el Juez de Faltas.</span>
                             </div>
                           </button>
                         </div>
                       </div>
 
-                      {/* 3. AVISO DE SEGURIDAD CONTRA ESTAFAS */}
+                      {/* AVISO DE SEGURIDAD CONTRA ESTAFAS */}
                       <div className="max-w-[900px] mx-auto mt-8 bg-amber-50 border-l-4 border-amber-500 border-t border-r border-b border-amber-200 rounded-r-xl p-6 shadow-sm">
                         <div className="flex items-start gap-4">
                           <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -1259,49 +1251,10 @@ export default function JuzgadoFaltasUnificado() {
                 </section>
 
                 {/* =================================================================
-                    4. PREGUNTAS FRECUENTES DESTACADAS
-                    ================================================================= */}
-                <section id="faq" style={{background: 'var(--papel-alto)', borderTop: '1px solid var(--linea)', borderBottom: '1px solid var(--linea)'}} className="no-print">
-                  <div className="wrap">
-                    <Reveal>
-                      <div className="section-head" style={{margin: '0 auto 40px auto', textAlign: 'center'}}>
-                        <p className="kicker">Orientación al Vecino</p>
-                        <h2>Preguntas Frecuentes Destacadas</h2>
-                        <p>Respuestas rápidas sobre plazos procesales, beneficios de pago voluntario y requisitos para trámites habituales.</p>
-                      </div>
-
-                      <div className="max-w-[820px] mx-auto space-y-3">
-                        {FAQS_DESTACADAS.map((faq, idx) => {
-                          const abierta = faqAbierta === idx;
-                          return (
-                            <div key={idx} className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm transition-all">
-                              <button 
-                                onClick={() => setFaqAbierta(abierta ? null : idx)}
-                                className="w-full px-6 py-4 text-left flex justify-between items-center gap-4 hover:bg-gray-50 transition-colors"
-                              >
-                                <span className="font-bold text-[15.5px] text-[#0B4A82] font-['Montserrat']">{faq.pregunta}</span>
-                                <span className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-200 ${abierta ? 'bg-[#0B4A82] text-white rotate-180' : 'bg-gray-100 text-[#0B4A82]'}`}>
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
-                                </span>
-                              </button>
-                              {abierta && (
-                                <div className="px-6 pb-5 pt-1 text-[14.5px] text-gray-600 border-t border-gray-100 leading-relaxed">
-                                  {faq.respuesta}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </Reveal>
-                  </div>
-                </section>
-
-                {/* =================================================================
-                    5. NOTICIAS RECIENTES
+                    NOTICIAS RECIENTES
                     ================================================================= */}
                 {noticiasPublicas.length > 0 && (
-                  <section id="noticias" style={{background: '#FFFFFF', borderBottom: '1px solid var(--linea)'}} className="no-print">
+                  <section id="noticias" style={{background: '#FFFFFF', borderTop: '1px solid var(--linea)', borderBottom: '1px solid var(--linea)'}} className="no-print">
                     <div className="wrap">
                       <Reveal>
                         <div className="section-head">
@@ -1332,7 +1285,7 @@ export default function JuzgadoFaltasUnificado() {
                 )}
 
                 {/* =================================================================
-                    6. NORMATIVA Y CÓDIGO DE CONVIVENCIA
+                    NORMATIVA Y CÓDIGO DE CONVIVENCIA
                     ================================================================= */}
                 <section id="normativa" style={{ background: '#FFFFFF', borderBottom: '1px solid var(--linea)' }} className="no-print">
                   <div className="wrap">
@@ -1354,7 +1307,7 @@ export default function JuzgadoFaltasUnificado() {
                 </section>
 
                 {/* =================================================================
-                    7. SOBRE EL JUZGADO Y AUTORIDADES
+                    SOBRE EL JUZGADO Y AUTORIDADES
                     ================================================================= */}
                 <section id="institucion" style={{background: 'var(--papel-alto)', borderBottom: '1px solid var(--linea)'}} className="no-print">
                   <div className="wrap">
@@ -1396,7 +1349,7 @@ export default function JuzgadoFaltasUnificado() {
                 </section>
 
                 {/* =================================================================
-                    8. UBICACIÓN, MAPA, CONTACTO Y TURNOS PRESENCIALES
+                    UBICACIÓN, MAPA, CONTACTO Y SOLICITUD DE AUDIENCIA CON EL JUEZ
                     ================================================================= */}
                 <section id="contacto" style={{background: 'var(--papel)'}} className="no-print">
                   <div className="wrap">
@@ -1404,7 +1357,7 @@ export default function JuzgadoFaltasUnificado() {
                       <div className="section-head">
                         <p className="kicker">Atención Presencial</p>
                         <h2>Ubicación, Mapa y Contacto</h2>
-                        <p>Canales oficiales de atención ciudadana y reserva de turnos para trámites en sede municipal.</p>
+                        <p>Canales oficiales de atención ciudadana y solicitud de audiencia en sede municipal.</p>
                       </div>
                       <div className="contacto-grid" style={{marginBottom: '64px'}}>
                         <ul className="contacto-list">
@@ -1416,49 +1369,38 @@ export default function JuzgadoFaltasUnificado() {
                         <div className="map-frame"><iframe src="https://www.google.com/maps/embed?pb=!1m17!1m12!1m3!1d3527.794711317769!2d-64.1893188!3d-28.3031456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m2!1m1!2zMjjCsDE4JzExLjMiUyA2NMKwMTEnMjEuNSJX!5e0!3m2!1sen!2sar!4v1700000000000!5m2!1sen!2sar" title="Mapa de ubicación del Juzgado de Faltas de Loreto" loading="lazy" referrerPolicy="no-referrer-when-downgrade"></iframe></div>
                       </div>
 
-                      {/* MÓDULO DE TURNOS PRESENCIALES INTEGRADO EN CONTACTO */}
+                      {/* MÓDULO DE SOLICITUD DE AUDIENCIA CON EL JUEZ DE FALTAS */}
                       <div id="turnos-presenciales" className="bg-[#F8F9FA] rounded-xl shadow-sm border border-gray-200 p-8 max-w-4xl mx-auto">
                         <div className="text-center mb-8">
                           <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#00B2D6] font-['Montserrat'] block mb-1">Reserva Online</span>
-                          <h3 className="text-2xl font-bold text-[#0B4A82] mb-2">Solicitar Turno Presencial</h3>
-                          <p className="text-gray-600 text-sm">Agende día y franja horaria para ser atendido sin filas en la Mesa de Entradas del Juzgado.</p>
+                          <h3 className="text-2xl font-bold text-[#0B4A82] mb-2">Solicitar audiencia con el Juez de Faltas</h3>
+                          <p className="text-gray-600 text-sm">Seleccione día y franja horaria para coordinar su audiencia presencial en el Juzgado.</p>
                         </div>
                         <form onSubmit={manejarEnvioTurno}>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div className="field !mb-0">
                               <label>Nombre y Apellido</label>
-                              <input type="text" required placeholder="Ej: Juan Pérez" />
+                              <input type="text" name="nombre" required placeholder="Ej: Juan Pérez" />
                             </div>
                             <div className="field !mb-0">
-                              <label>Correo Electrónico (para confirmación)</label>
-                              <input type="email" required placeholder="ejemplo@correo.com" />
+                              <label>Correo Electrónico (para confirmar)</label>
+                              <input type="email" name="email" required placeholder="ejemplo@correo.com" />
                             </div>
                             <div className="field !mb-0">
-                              <label>Día del Turno</label>
-                              <input type="date" required min={new Date().toISOString().split('T')[0]} />
+                              <label>Día de la Audiencia</label>
+                              <input type="date" name="fecha" required min={new Date().toISOString().split('T')[0]} />
                             </div>
                             <div className="field !mb-0">
                               <label>Franja Horaria</label>
-                              <select required>
+                              <select name="franja" required>
                                 <option value="">Seleccione el horario...</option>
                                 <option value="manana">Turno Mañana (07:00 a 13:00 hs)</option>
                                 <option value="tarde">Turno Tarde (16:00 a 20:00 hs)</option>
                               </select>
                             </div>
-                            <div className="field !mb-0 md:col-span-2">
-                              <label>Motivo del Trámite</label>
-                              <select required>
-                                <option value="">Seleccione un motivo...</option>
-                                <option value="descargo">Presentar documentación anexa a un descargo</option>
-                                <option value="vehiculo">Retirar oficio de liberación de vehículo (Corralón)</option>
-                                <option value="juez">Audiencia con el Juez de Faltas</option>
-                                <option value="pago">Abonar infracción presencialmente por mostrador</option>
-                                <option value="otro">Otras consultas o reclamos</option>
-                              </select>
-                            </div>
                           </div>
                           <button type="submit" className="w-full bg-[#0B4A82] hover:bg-[#083863] text-white font-bold py-3.5 px-6 rounded-lg transition-colors shadow-sm">
-                            Confirmar Reserva de Turno
+                            Solicitar Audiencia con el Juez
                           </button>
                         </form>
                       </div>

@@ -814,11 +814,71 @@ export default function JuzgadoFaltasUnificado() {
             .btn--primary { background: var(--azul-loreto); color: #fff; border-radius: 4px; } .btn--primary:hover { background: #083863; } 
             .btn--ghost { background: transparent; color: var(--azul-loreto); border-color: var(--azul-loreto); } .btn--ghost:hover { background: var(--azul-loreto); color: #fff; } 
             .btn--sm { padding: 8px 14px; font-size: 13px; } .btn--block { width: 100%; } .btn--success { background: #10B981; color: white; border: none; } .btn--danger { background: #EF4444; color: white; border: none; }
-            .hero { padding: 36px 0 24px; background: radial-gradient(circle at 88% 15%, rgba(0, 178, 214, 0.06), transparent 45%), var(--papel-alto); border-bottom: 1px solid var(--linea); } 
-            .hero .wrap { display: grid; grid-template-columns: 1fr; text-align: center; max-width: 800px; } 
-            .hero .eyebrow { font-family: 'Montserrat', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--celeste-loreto); margin-bottom: 8px; font-weight: 700; } 
-            .hero h1 { font-size: clamp(26px, 3.2vw, 38px); font-weight: 800; letter-spacing: -0.02em; } 
-            .hero p.lead { font-size: 16px; color: var(--tinta-suave); max-width: 55ch; margin: 8px auto 12px; font-weight: 400; }
+            
+            /* === HERO CON IMAGEN DEL EDIFICIO DIFUMINADA DE FONDO === */
+            .hero { 
+              position: relative; 
+              padding: 56px 0 44px; 
+              background: var(--papel-alto); 
+              border-bottom: 1px solid var(--linea); 
+              overflow: hidden; 
+            }
+            .hero__bg {
+              position: absolute;
+              inset: 0;
+              background-image: url('/edificio-juzgado.jpg');
+              background-size: cover;
+              background-position: center 45%;
+              filter: blur(2.5px);
+              transform: scale(1.04);
+              z-index: 0;
+            }
+            .hero__overlay {
+              position: absolute;
+              inset: 0;
+              background: linear-gradient(
+                180deg,
+                rgba(248, 249, 250, 0.80) 0%,
+                rgba(255, 255, 255, 0.86) 55%,
+                rgba(248, 249, 250, 0.93) 100%
+              );
+              z-index: 1;
+            }
+            .hero .wrap { 
+              position: relative; 
+              z-index: 2; 
+              display: grid; 
+              grid-template-columns: 1fr; 
+              text-align: center; 
+              max-width: 800px; 
+            } 
+            .hero .eyebrow { 
+              font-family: 'Montserrat', sans-serif; 
+              font-size: 12px; 
+              letter-spacing: .08em; 
+              text-transform: uppercase; 
+              color: #0088A8; 
+              margin-bottom: 8px; 
+              font-weight: 800; 
+              text-shadow: 0 1px 2px rgba(255,255,255,0.9);
+            } 
+            .hero h1 { 
+              font-size: clamp(28px, 3.5vw, 42px); 
+              font-weight: 800; 
+              letter-spacing: -0.02em; 
+              color: var(--azul-loreto);
+              text-shadow: 0 2px 12px rgba(255,255,255,0.95);
+            } 
+            .hero p.lead { 
+              font-size: 16.5px; 
+              color: #2B3035; 
+              max-width: 55ch; 
+              margin: 8px auto 12px; 
+              font-weight: 500; 
+              text-shadow: 0 1px 6px rgba(255,255,255,0.95);
+            }
+            /* ======================================================== */
+
             section { padding: 64px 0; } .section-head { max-width: 60ch; margin-bottom: 40px; } 
             .section-head .kicker { font-family: 'Montserrat', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--rojo-loreto); margin-bottom: 10px; font-weight: 700; }
             .art-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--linea); border: 1px solid var(--linea); border-radius: var(--radius-m); overflow: hidden; } 
@@ -868,7 +928,7 @@ export default function JuzgadoFaltasUnificado() {
             @keyframes modalZoom { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
             @media (max-width: 980px) { 
               .contacto-grid, .hero .wrap, .news-grid, .autoridades-grid, .art-grid { grid-template-columns: 1fr; } 
-              .hero { padding: 24px 0; } .consulta-panel { padding: 24px 16px; } .menu-toggle { display: block; }
+              .hero { padding: 36px 0 28px; } .consulta-panel { padding: 24px 16px; } .menu-toggle { display: block; }
               nav.primary { display: none; width: 100%; order: 3; padding: 20px 0; border-top: 1px solid var(--linea); margin-top: 15px; }
               nav.primary.abierto { display: flex; flex-direction: column; align-items: flex-start; }
               nav.primary ul { flex-direction: column; gap: 15px; width: 100%; } nav.primary a { display: block; width: 100%; padding: 5px 0; }
@@ -941,6 +1001,8 @@ export default function JuzgadoFaltasUnificado() {
             {vista === 'publica' && (
               <>
                 <section className="hero no-print" id="inicio">
+                  <div className="hero__bg" aria-hidden="true"></div>
+                  <div className="hero__overlay" aria-hidden="true"></div>
                   <div className="wrap">
                     <Reveal>
                       <p className="eyebrow">Municipalidad de Loreto · Santiago del Estero</p>

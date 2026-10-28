@@ -135,6 +135,7 @@ enum EstadoInfraccion {
 enum TipoInfraccion {
   TRANSITO
   BROMATOLOGIA
+  CONTRAVENCIONAL
 }
 
 enum RolUsuario {

@@ -567,9 +567,10 @@ export default function JuzgadoFaltasUnificado() {
     let csvContent = "\uFEFF"; 
     
     if (vista === 'admin_actas' || (vista === 'admin_balance' && tabBalance === 'pendientes') || (vista === 'admin_balance' && tabBalance === 'reincidentes')) {
-      csvContent += "Nro Acta,Fecha Infraccion,Infractor,DNI,Genero,Domicilio,Articulo,Estado,Monto\n";
+      csvContent += "Nro Acta,Reparticion,Fecha Infraccion,Infractor,DNI,Genero,Domicilio,Articulo,Estado,Monto\n";
       listaBase.forEach((item: any) => {
-        csvContent += `"${item.nroActa}","${new Date(item.fechaInfraccion).toLocaleDateString('es-AR')}","${item.nombreTitular}","${item.dniTitular}","${item.generoTitular || ''}","${item.lugar || ''}","${item.articulo || ''}","${item.estado}","${item.monto}"\n`;
+        const rep = item.tipoInfraccion === 'BROMATOLOGIA' ? 'Bromatología' : (item.tipoInfraccion === 'CONTRAVENCIONAL' ? 'Denuncia Contravencional' : 'Tránsito');
+        csvContent += `"${item.nroActa}","${rep}","${new Date(item.fechaInfraccion).toLocaleDateString('es-AR')}","${item.nombreTitular}","${item.dniTitular}","${item.generoTitular || ''}","${item.lugar || ''}","${item.articulo || ''}","${item.estado}","${item.monto}"\n`;
       });
     } else if (vista === 'admin_descargos' || vista === 'admin_pagos') {
       csvContent += "Expediente / Nro Acta,Estado,Fecha Ingreso,Monto / Referencia\n";
@@ -1076,7 +1077,7 @@ export default function JuzgadoFaltasUnificado() {
                                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
                                 </div>
                                 <h4 className="text-xl font-black text-emerald-800 mb-2 font-['Montserrat']">Libre de Infracciones y Deudas</h4>
-                                <p className="text-emerald-700 text-[14.5px] mb-6 max-w-md mx-auto">No posee actas de tránsito, bromatología ni deudas impositivas exigibles registradas bajo el documento <strong>{dni}</strong>.</p>
+                                <p className="text-emerald-700 text-[14.5px] mb-6 max-w-md mx-auto">No posee actas de tránsito, bromatología, denuncias contravencionales ni deudas impositivas exigibles registradas bajo el documento <strong>{dni}</strong>.</p>
                                 <button onClick={() => window.print()} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 mx-auto">
                                   <svg className="w-5 h-5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
                                   Descargar Certificado Libre Deuda (PDF)
@@ -1090,8 +1091,11 @@ export default function JuzgadoFaltasUnificado() {
                               <h4 style={{fontSize: '16px', color: 'var(--azul-loreto)', marginBottom: '16px'}}>Expedientes Registrados en el Sistema:</h4>
                               {resultados.map((acta) => {
                                 const esBroma = acta.tipoInfraccion === 'BROMATOLOGIA';
-                                const colorBorde = esBroma ? '#10B981' : 'var(--azul-loreto)';
-                                const nombreOrigen = esBroma ? 'BROMATOLOGÍA Y CALIDAD DE VIDA' : 'DIRECCIÓN DE TRÁNSITO';
+                                const esPolicia = acta.tipoInfraccion === 'CONTRAVENCIONAL';
+                                const colorBorde = esBroma ? '#10B981' : (esPolicia ? '#B45309' : 'var(--azul-loreto)');
+                                const nombreOrigen = esBroma 
+                                  ? 'BROMATOLOGÍA Y CALIDAD DE VIDA' 
+                                  : (esPolicia ? 'POLICÍA DE LA PROVINCIA · DENUNCIA CONTRAVENCIONAL' : 'DIRECCIÓN DE TRÁNSITO');
 
                                 return (
                                   <div key={acta.id} style={{padding: '20px', borderLeft: `4px solid ${colorBorde}`, background: 'var(--papel-alto)', marginBottom: '16px', borderRadius: '0 8px 8px 0', borderTop: '1px solid var(--linea)', borderRight: '1px solid var(--linea)', borderBottom: '1px solid var(--linea)'}}>
@@ -1489,7 +1493,7 @@ export default function JuzgadoFaltasUnificado() {
                       <p>Por medio del presente, el Juzgado de Faltas de la Municipalidad de Loreto, Provincia de Santiago del Estero, certifica y deja constancia que, habiendo compulsado los registros informáticos y bases de datos oficiales a la fecha de emisión del presente documento:</p>
                       
                       <p style={{ margin: '20px 0', padding: '15px', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '5px' }}>
-                        El/la titular del Documento Nacional de Identidad N° <strong>{dni}</strong> (Género: {generoConsulta}), <strong>NO REGISTRA</strong> actas de infracción pendientes de juzgamiento, ni resoluciones condenatorias con deudas exigibles por faltas de tránsito, bromatología o tasas de recaudación en la jurisdicción de este Municipio.
+                        El/la titular del Documento Nacional de Identidad N° <strong>{dni}</strong> (Género: {generoConsulta}), <strong>NO REGISTRA</strong> actas de infracción pendientes de juzgamiento, ni resoluciones condenatorias con deudas exigibles por faltas de tránsito, bromatología, denuncias contravencionales o tasas de recaudación en la jurisdicción de este Municipio.
                       </p>
                       
                       <p>Se expide el presente certificado de forma automática a través del Portal de Autogestión Ciudadana, a los fines que el/la interesado/a estime corresponder.</p>
@@ -1610,6 +1614,7 @@ export default function JuzgadoFaltasUnificado() {
                                   <option value="">Consolidado Histórico</option>
                                   <option value="TRANSITO">Exclusivo Tránsito</option>
                                   <option value="BROMATOLOGIA">Exclusivo Bromatología</option>
+                                  <option value="CONTRAVENCIONAL">Exclusivo Denuncia Contravencional</option>
                                 </select>
                               </div>
                             </div>
@@ -1698,7 +1703,14 @@ export default function JuzgadoFaltasUnificado() {
                           <div style={{background: 'var(--papel)', padding: '32px', borderRadius: 'var(--radius-m)', border: '1px solid var(--linea)', marginBottom: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.02)'}}>
                             <h3 style={{fontSize: '18px', marginBottom: '24px'}}>Carga de Nueva Acta de Infracción</h3>
                             <form onSubmit={manejarCrearActa} style={{display: 'flex', gap: '16px', alignItems: 'flex-end', flexWrap: 'wrap'}}>
-                              <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '180px'}}><label>Repartición</label><select value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value)}><option value="TRANSITO">Tránsito</option><option value="BROMATOLOGIA">Bromatología</option></select></div>
+                              <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '180px'}}>
+                                <label>Repartición</label>
+                                <select value={nuevoTipo} onChange={(e) => setNuevoTipo(e.target.value)}>
+                                  <option value="TRANSITO">Tránsito</option>
+                                  <option value="BROMATOLOGIA">Bromatología</option>
+                                  <option value="CONTRAVENCIONAL">Denuncia Contravencional (Policía)</option>
+                                </select>
+                              </div>
                               <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '110px'}}><label>N° Acta</label><input type="text" value={nuevoNroActa} onChange={(e) => setNuevoNroActa(e.target.value)} required /></div>
                               <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '140px'}}><label>Fecha</label><input type="date" value={nuevaFecha} onChange={(e) => setNuevaFecha(e.target.value)} /></div>
                               <div className="field" style={{marginBottom: 0, flex: 1, minWidth: '160px'}}><label>Infractor</label><input type="text" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} required /></div>
@@ -1733,6 +1745,7 @@ export default function JuzgadoFaltasUnificado() {
                                 <option value="">Consolidado Histórico</option>
                                 <option value="TRANSITO">Exclusivo Tránsito</option>
                                 <option value="BROMATOLOGIA">Exclusivo Bromatología</option>
+                                <option value="CONTRAVENCIONAL">Exclusivo Denuncia Contravencional</option>
                               </select>
                             </div>
                             <div className="field" style={{marginBottom: 0}}>
@@ -1927,6 +1940,7 @@ export default function JuzgadoFaltasUnificado() {
                     <select value={modalEditarActa.tipoInfraccion} onChange={(e) => setModalEditarActa({...modalEditarActa, tipoInfraccion: e.target.value})} required>
                       <option value="TRANSITO">Dirección de Tránsito</option>
                       <option value="BROMATOLOGIA">Bromatología y Calidad de Vida</option>
+                      <option value="CONTRAVENCIONAL">Denuncia Contravencional (Policía)</option>
                     </select>
                   </div>
                   <div className="field" style={{flex: 1, minWidth: '110px'}}><label>N° Físico de Acta</label><input type="text" value={modalEditarActa.nroActa} onChange={(e) => setModalEditarActa({...modalEditarActa, nroActa: e.target.value})} required /></div>
@@ -2083,7 +2097,7 @@ export default function JuzgadoFaltasUnificado() {
                 </div>
                 <div style={{fontSize: '14.5px', color: 'var(--tinta)'}}>
                   <p><strong>1. Responsabilidad:</strong> De conformidad con la Ley Nacional N° 25.326 de Protección de Datos Personales, la Municipalidad de Loreto (en adelante "El Municipio") garantiza la seguridad y confidencialidad de los datos suministrados por los ciudadanos en este portal.</p>
-                  <p><strong>2. Finalidad de la Recopilación:</strong> Los datos personales solicitados (DNI, Género, Nombre, Correo Electrónico) y los documentos adjuntados serán utilizados de manera exclusiva para la consulta, gestión, procesamiento y resolución de expedientes de faltas e infracciones de tránsito o comerciales.</p>
+                  <p><strong>2. Finalidad de la Recopilación:</strong> Los datos personales solicitados (DNI, Género, Nombre, Correo Electrónico) y los documentos adjuntados serán utilizados de manera exclusiva para la consulta, gestión, procesamiento y resolución de expedientes de faltas e infracciones de tránsito, comerciales o contravencionales.</p>
                   <p><strong>3. Protección y Confidencialidad:</strong> El Municipio ha adoptado las medidas técnicas y organizativas necesarias para evitar la pérdida, mal uso, alteración, acceso no autorizado y robo de los Datos Personales. Los archivos adjuntos son procesados mediante identificadores encriptados para garantizar el anonimato de sus rutas de acceso público.</p>
                   <p><strong>4. Derechos ARCO:</strong> El titular de los datos personales tiene la facultad de ejercer el derecho de acceso a los mismos en forma gratuita. Asimismo, puede solicitar la rectificación, actualización o supresión de sus datos personales, dirigiéndose presencialmente a la Mesa de Entradas del Juzgado de Faltas.</p>
                   <p><strong>5. Registros de Auditoría:</strong> El sistema registra automáticamente información de acceso (fecha, hora y dirección IP) con fines estrictamente orientados a la auditoría interna de seguridad y prevención de fraudes informáticos.</p>
